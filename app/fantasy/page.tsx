@@ -1,6 +1,7 @@
 import FantasyCalculator from "../../components/FantasyCalculator";
 import { actualSeriesByStage, loadDefaultLeague, toPlayerEntries } from "../../lib/data";
 import { projectGroupStageSeries } from "../../lib/groupStage";
+import { strengthByTeam } from "../../lib/strength";
 import { projectMainEvent } from "../../lib/tiBracket";
 import { STAGES, type Stage } from "../../lib/stages";
 import type { PlayerEntry } from "../../lib/fantasy";
@@ -53,6 +54,7 @@ export default async function FantasyPage() {
         playersByStage={playersByStage}
         actualByStage={actualByStage}
         groupProjection={projectGroupStageSeries(league.teams)}
+        strengthByTeam={strengthByTeam(league.teams)}
         leagueName={league.leagueName}
         teams={league.teams}
         stageSplit={league.stages?.split ?? false}

@@ -6,18 +6,24 @@ import {
   Tier, Trait, availableStats, rankPlayers, riskToPercentile
 } from "../lib/fantasy";
 import { BANNER_SLOTS, Role, STAT_LABELS, StatKey, statsForColor } from "../lib/scoring";
-import { ActionOutcome, actionCatalogue, compareActions, randomBanner } from "../lib/reroll";
+import {
+  RosterOffer, RosterOutcome, SKIP_ACTION,
+  actionCatalogue, compareRosterOffers, randomBanner
+} from "../lib/reroll";
 import { STAGE_LABELS, STAGE_SLOTS, STAGE_TOKENS, type Stage } from "../lib/stages";
 import { seededRandom } from "../lib/rng";
+
+const ROLES: Role[] = ["core", "mid", "support"];
+const ROLE_LABELS: Record<Role, string> = { core: "Core", mid: "Mid", support: "Support" };
 
 const fmt = (n: number) => Math.round(n).toLocaleString("en-US");
 const signed = (n: number) =>
   `${n >= 0 ? "+" : "−"}${Math.abs(Math.round(n)).toLocaleString("en-US")}`;
 
 const RISK_LABELS: Array<{ at: number; label: string; hint: string }> = [
-  { at: 0, label: "Safe", hint: "ranks players by their floor — who holds up on a bad day" },
-  { at: 50, label: "Balanced", hint: "ranks players by a typical game" },
-  { at: 100, label: "Highroll", hint: "ranks players by their ceiling — who can spike hardest" }
+  { at: 0, label: "Safe", hint: "the floor — what holds up on a bad day" },
+  { at: 50, label: "Balanced", hint: "a typical run" },
+  { at: 100, label: "Highroll", hint: "the ceiling — what a best-of-several run looks like" }
 ];
 
 export function riskLabel(risk: number) {
@@ -26,88 +32,127 @@ export function riskLabel(risk: number) {
   return RISK_LABELS[1];
 }
 
+/**
+ * What a risk setting is actually asking for, in runs.
+ *
+ * Risk reads a percentile of your own outcome distribution, and the expected
+ * best of N independent runs lands near the N/(N+1)th percentile. Inverting
+ * that, a percentile p is the outcome you would target if you were going for
+ * the best of
+ *
+ *     N = p / (1 - p)
+ *
+ * runs. So risk 50 is a typical run, risk 70 is about the best of two, risk 85
+ * about the best of five, and risk 100 the best of twenty. That is the honest
+ * reading of the slider: it is not "how brave am I", it is "how many attempts
+ * am I effectively aiming to beat".
+ */
+export function riskAsRuns(risk: number): number {
+  const p = riskToPercentile(risk) / 100;
+  return p / Math.max(0.001, 1 - p);
+}
+
+export function riskAsOdds(risk: number): string {
+  const n = riskAsRuns(risk);
+  if (n < 1.3) return "a typical run";
+  return `aiming for the best of about ${n < 2.5 ? 2 : Math.round(n)} runs`;
+}
+
 export default function FantasySimulator({
-  players, role, roleLabel, stage, banner, risk, onRisk, seriesByTeam, onApply
+  playersByRole, banners, risk, stage, onRisk, seriesByTeam, onBanner
 }: {
-  players: PlayerEntry[];
-  role: Role;
-  roleLabel: string;
-  /** Which fantasy card this is. Chosen above, so the whole page agrees. */
-  stage: Stage;
-  banner: Emblem[];
+  playersByRole: Record<Role, PlayerEntry[]>;
+  banners: Record<Role, Emblem[]>;
   risk: number;
+  stage: Stage;
   onRisk: (risk: number) => void;
   seriesByTeam: Record<string, number>;
-  onApply: (banner: Emblem[]) => void;
+  onBanner: (role: Role, banner: Emblem[]) => void;
 }) {
   const [tokens, setTokens] = useState<number>(STAGE_TOKENS[stage]);
   const [chosen, setChosen] = useState<string[]>([]);
-  const [results, setResults] = useState<ActionOutcome[] | null>(null);
+  const [offerRole, setOfferRole] = useState<Role>("core");
+  const [results, setResults] = useState<RosterOutcome[] | null>(null);
   const [busy, setBusy] = useState(false);
 
   const slots = STAGE_SLOTS[stage];
   const budget = STAGE_TOKENS[stage];
-  const staged = useMemo(() => banner.slice(0, slots), [banner, slots]);
-  const catalogue = useMemo(() => actionCatalogue(role, slots), [role, slots]);
-  const slotOptions = useMemo(
-    () => BANNER_SLOTS[role].slice(0, slots).map((color) => statsForColor(color)),
-    [role, slots]
+
+  const staged = useMemo(
+    () => Object.fromEntries(ROLES.map((r) => [r, banners[r].slice(0, slots)])) as Record<Role, Emblem[]>,
+    [banners, slots]
   );
 
-  // A changed banner, role or risk level invalidates any result on screen.
-  useEffect(() => { setResults(null); }, [banner, role, risk, tokens]);
-
-  // Switching card resets the budget to what that stage actually grants.
+  useEffect(() => { setResults(null); }, [banners, risk, tokens]);
   useEffect(() => {
     setTokens(STAGE_TOKENS[stage]);
     setChosen([]);
     setResults(null);
   }, [stage]);
 
-  // Rerolls are compared against a reduced field: the strongest players under
-  // the current banner. The best player after a reroll is essentially always
-  // among them, and it keeps the simulation fast enough to run in the browser.
-  const shortlist = useMemo(
-    () => rankPlayers(players, role, staged, risk, seriesByTeam).slice(0, 10).map((r) => r.player),
-    [players, role, staged, risk, seriesByTeam]
+  const catalogue = useMemo(
+    () => Object.fromEntries(ROLES.map((r) => [r, actionCatalogue(r, slots)])) as Record<Role, ReturnType<typeof actionCatalogue>>,
+    [slots]
+  );
+
+  // Rerolls are compared against a reduced field per role: the strongest
+  // entries under the current banner. The best entry after a reroll is
+  // essentially always among them, and it keeps this responsive in a browser.
+  const shortlists = useMemo(
+    () => Object.fromEntries(ROLES.map((r) => [
+      r,
+      rankPlayers(playersByRole[r] ?? [], r, staged[r], risk, seriesByTeam).slice(0, 10).map((x) => x.player)
+    ])) as Record<Role, PlayerEntry[]>,
+    [playersByRole, staged, risk, seriesByTeam]
   );
 
   const valueOf = useMemo(
-    () => (candidate: Emblem[]) =>
-      rankPlayers(shortlist, role, candidate, risk, seriesByTeam)[0]?.total ?? 0,
-    [shortlist, role, risk, seriesByTeam]
+    () => (role: Role, banner: Emblem[]) =>
+      rankPlayers(shortlists[role] ?? [], role, banner, risk, seriesByTeam)[0]?.total ?? 0,
+    [shortlists, risk, seriesByTeam]
   );
 
-  const current = useMemo(() => valueOf(staged), [valueOf, staged]);
+  const roleValues = useMemo(
+    () => Object.fromEntries(ROLES.map((r) => [r, valueOf(r, staged[r])])) as Record<Role, number>,
+    [valueOf, staged]
+  );
+  const rosterTotal = ROLES.reduce((sum, r) => sum + roleValues[r], 0);
 
-  const toggle = (id: string) =>
-    setChosen((now) => (now.includes(id) ? now.filter((x) => x !== id) : [...now, id]));
-
-  const update = (index: number, patch: Partial<Emblem>) => {
-    const next = [...banner];
-    next[index] = { ...next[index], ...patch };
-    onApply(next);
-  };
+  const key = (role: Role, id: string) => `${role}:${id}`;
+  const toggle = (k: string) =>
+    setChosen((now) => (now.includes(k) ? now.filter((x) => x !== k) : [...now, k]));
 
   const run = () => {
-    const actions = catalogue.filter((a) => chosen.includes(a.id));
-    if (!actions.length) return;
+    const offers: RosterOffer[] = [];
+    for (const role of ROLES) {
+      for (const action of catalogue[role]) {
+        if (chosen.includes(key(role, action.id))) offers.push({ role, action });
+      }
+    }
+    if (!offers.length) return;
+    // Skipping is always on the menu, so it is always in the comparison.
+    offers.push({ role: "core", action: SKIP_ACTION });
     setBusy(true);
-    // Yield once so the button can render its busy state before we block.
     setTimeout(() => {
-      setResults(compareActions(staged, role, actions, valueOf, 800, tokens));
+      setResults(compareRosterOffers(offers, staged, valueOf, tokens, 800));
       setBusy(false);
     }, 0);
   };
 
-  const rollFresh = () => {
-    const fresh = randomBanner(role, slots, seededRandom(`fresh-${Date.now()}`));
-    // Keep any slots beyond this stage untouched.
-    onApply([...fresh, ...banner.slice(slots)]);
-    setTokens(budget);
+  const rollFresh = (role: Role) => {
+    const fresh = randomBanner(role, slots, seededRandom(`fresh-${role}-${Date.now()}`));
+    onBanner(role, [...fresh, ...banners[role].slice(slots)]);
+    setResults(null);
+  };
+
+  const update = (role: Role, index: number, patch: Partial<Emblem>) => {
+    const next = [...banners[role]];
+    next[index] = { ...next[index], ...patch };
+    onBanner(role, next);
   };
 
   const info = riskLabel(risk);
+  const chosenCount = chosen.length;
 
   return (
     <section className="card stack" id="simulator">
@@ -115,10 +160,9 @@ export default function FantasySimulator({
         <div>
           <h2>Fantasy simulator</h2>
           <p className="faint" style={{ marginTop: 2 }}>
-            Enter the banner you actually hold, say how many tokens are left, tick the
-            options the game is offering — and see which one is worth taking once the
-            whole budget is played out, not just on the next roll. Switch card with the
-            tabs at the top of the page; each stage has its own emblems and its own tokens.
+            One pool of {budget} tokens for the whole roster — Core, Mid and Support
+            share it. Tick the options the game is offering on each banner and see
+            which one is worth spending on, or whether to keep the tokens.
           </p>
         </div>
         <span className="tag">{STAGE_LABELS[stage]} · {slots} emblems</span>
@@ -129,9 +173,8 @@ export default function FantasySimulator({
           <div>
             <h3>Risk</h3>
             <p className="faint" style={{ marginTop: 2 }}>
-              {info.label} — {info.hint}. Reading the {Math.round(riskToPercentile(risk))}th
-              percentile of each player&rsquo;s own games. This drives the ranking above and
-              every number below.
+              {info.label} — {info.hint}. Reading the{" "}
+              {Math.round(riskToPercentile(risk))}th percentile: {riskAsOdds(risk)}.
             </p>
           </div>
           <div className="pill-row">
@@ -144,8 +187,7 @@ export default function FantasySimulator({
         <input
           type="range" min={0} max={100} step={1} value={risk}
           onChange={(e) => onRisk(Number(e.target.value))}
-          aria-label="Risk"
-          className="risk-slider"
+          aria-label="Risk" className="risk-slider"
         />
         <div className="row-between faint">
           <span>Floor</span><span>Typical</span><span>Ceiling</span>
@@ -156,106 +198,134 @@ export default function FantasySimulator({
         <div className="stat-tile">
           <small>Tokens left</small>
           <input
-            type="number" min={0} max={99} value={tokens}
-            aria-label="Tokens left"
+            type="number" min={0} max={99} value={tokens} aria-label="Tokens left"
             onChange={(e) => setTokens(Math.max(0, Math.min(99, Number(e.target.value) || 0)))}
             className="token-input"
           />
-          <span className="faint">{STAGE_LABELS[stage].toLowerCase()} starts with {budget}</span>
+          <span className="faint">shared · stage grants {budget}</span>
         </div>
         <div className="stat-tile">
-          <small>Banner as it stands</small>
-          <b>{fmt(current)}</b>
-          <span className="faint">projected tournament total · best {roleLabel.toLowerCase()}</span>
+          <small>Roster now</small>
+          <b>{fmt(rosterTotal)}</b>
+          <span className="faint">
+            {ROLES.map((r) => `${ROLE_LABELS[r]} ${fmt(roleValues[r])}`).join(" · ")}
+          </span>
         </div>
         <div className="stat-tile">
-          <small>Starting roll</small>
-          <button onClick={rollFresh} style={{ marginTop: 4 }}>Roll a random banner</button>
-          <span className="faint">or type yours in below</span>
+          <small>Options ticked</small>
+          <b>{chosenCount}</b>
+          <span className="faint">skip is always compared too</span>
         </div>
-      </div>
-
-      <div className="stack" style={{ gap: 8 }}>
-        <h3>What you hold now</h3>
-        <p className="faint">
-          Set each emblem to what the game actually gave you. Stats already used
-          elsewhere on the banner are hidden — one of each, always.
-        </p>
-        {staged.map((emblem, index) => {
-          const color = BANNER_SLOTS[role][index];
-          return (
-            <div key={index} className="emblem-row">
-              <span className={`dot dot-${color}`} aria-label={color} />
-              <select value={emblem.stat} aria-label={`Held emblem ${index + 1} stat`}
-                onChange={(e) => update(index, { stat: e.target.value as StatKey })}>
-                {availableStats(staged, index, slotOptions).map((stat) => (
-                  <option key={stat} value={stat}>{STAT_LABELS[stat]}</option>
-                ))}
-              </select>
-              <select value={emblem.tier} aria-label={`Held emblem ${index + 1} tier`}
-                onChange={(e) => update(index, { tier: e.target.value as Tier })}>
-                {TIERS.map((tier) => (
-                  <option key={tier} value={tier}>{tier} · +{TIER_BONUSES[tier]}%</option>
-                ))}
-              </select>
-              <select value={emblem.trait} aria-label={`Held emblem ${index + 1} trait`}
-                title={TRAIT_DESCRIPTIONS[emblem.trait]}
-                onChange={(e) => update(index, { trait: e.target.value as Trait })}>
-                {TRAITS.map((trait) => (
-                  <option key={trait} value={trait}>{trait === "none" ? "—" : trait}</option>
-                ))}
-              </select>
-            </div>
-          );
-        })}
       </div>
 
       <div className="stack" style={{ gap: 8 }}>
         <div className="row-between">
           <h3>Options on offer</h3>
           <div style={{ display: "flex", gap: 8 }}>
-            <button onClick={run} className="btn-primary" disabled={!chosen.length || busy}>
-              {busy ? "Simulating…" : `Compare ${chosen.length || ""}`}
+            <button onClick={run} className="btn-primary" disabled={!chosenCount || busy}>
+              {busy ? "Simulating…" : `Compare ${chosenCount || ""}`}
             </button>
             <button onClick={() => { setChosen([]); setResults(null); }}>Clear</button>
           </div>
         </div>
         <p className="faint">
-          Tick the options the game is showing you — normally three. Each is rolled
-          800 times against the banner above.
+          Pick the banner the offer is on, then tick it. The game normally shows three
+          at a time. Each is rolled 800 times against the {tokens} tokens you have left.
         </p>
-        <div className="option-grid">
-          {catalogue.map((action) => (
-            <label key={action.id} className={`option-chip ${chosen.includes(action.id) ? "on" : ""}`}>
-              <input type="checkbox" checked={chosen.includes(action.id)} onChange={() => toggle(action.id)} />
-              <span>{action.label}</span>
-              <em className="num">{action.cost}t</em>
-            </label>
+        <div className="pill-row" role="tablist" aria-label="Offer banner">
+          {ROLES.map((r) => (
+            <button key={r} className="pill" role="tab" aria-pressed={offerRole === r}
+              onClick={() => setOfferRole(r)}>
+              {ROLE_LABELS[r]}
+              {chosen.some((k) => k.startsWith(`${r}:`)) && (
+                <span className="faint"> · {chosen.filter((k) => k.startsWith(`${r}:`)).length}</span>
+              )}
+            </button>
           ))}
+        </div>
+        <div className="option-grid">
+          {catalogue[offerRole].map((action) => {
+            const k = key(offerRole, action.id);
+            return (
+              <label key={k} className={`option-chip ${chosen.includes(k) ? "on" : ""}`}>
+                <input type="checkbox" checked={chosen.includes(k)} onChange={() => toggle(k)} />
+                <span>{action.label}</span>
+                <em className="num">{action.cost}t</em>
+              </label>
+            );
+          })}
         </div>
       </div>
 
-      {results && <Results results={results} current={current} tokens={tokens} />}
+      {results && <Results results={results} rosterTotal={rosterTotal} tokens={tokens} />}
+
+      <div className="stack" style={{ gap: 8 }}>
+        <h3>What you hold now</h3>
+        <p className="faint">
+          Set each banner to what the game actually gave you. Stats already used on the
+          same banner are hidden — one of each, always.
+        </p>
+        {ROLES.map((role) => (
+          <div key={role} className="sub-card stack" style={{ gap: 6 }}>
+            <div className="row-between">
+              <strong>{ROLE_LABELS[role]}</strong>
+              <span className="faint">
+                {fmt(roleValues[role])}{" "}
+                <button className="link-button" onClick={() => rollFresh(role)}>roll random</button>
+              </span>
+            </div>
+            {staged[role].map((emblem, index) => {
+              const color = BANNER_SLOTS[role][index];
+              const slotOptions = BANNER_SLOTS[role].slice(0, slots).map((c) => statsForColor(c));
+              return (
+                <div key={index} className="emblem-row">
+                  <span className={`dot dot-${color}`} aria-label={color} />
+                  <select value={emblem.stat} aria-label={`${ROLE_LABELS[role]} emblem ${index + 1} stat`}
+                    onChange={(e) => update(role, index, { stat: e.target.value as StatKey })}>
+                    {availableStats(staged[role], index, slotOptions).map((stat) => (
+                      <option key={stat} value={stat}>{STAT_LABELS[stat]}</option>
+                    ))}
+                  </select>
+                  <select value={emblem.tier} aria-label={`${ROLE_LABELS[role]} emblem ${index + 1} tier`}
+                    onChange={(e) => update(role, index, { tier: e.target.value as Tier })}>
+                    {TIERS.map((tier) => (
+                      <option key={tier} value={tier}>{tier} · +{TIER_BONUSES[tier]}%</option>
+                    ))}
+                  </select>
+                  <select value={emblem.trait} aria-label={`${ROLE_LABELS[role]} emblem ${index + 1} trait`}
+                    title={TRAIT_DESCRIPTIONS[emblem.trait]}
+                    onChange={(e) => update(role, index, { trait: e.target.value as Trait })}>
+                    {TRAITS.map((trait) => (
+                      <option key={trait} value={trait}>{trait === "none" ? "—" : trait}</option>
+                    ))}
+                  </select>
+                </div>
+              );
+            })}
+          </div>
+        ))}
+      </div>
 
       <p className="notice">
         Token costs and the tier/trait roll distributions are <strong>assumptions</strong> —
-        Valve publishes neither and no guide lists them. They live in{" "}
-        <code>ACTION_COSTS</code>, <code>TIER_WEIGHTS</code> and <code>TRAIT_WEIGHTS</code> in{" "}
-        <code>lib/reroll.ts</code>. Correct them there and every number here follows.
+        Valve publishes neither. They live in <code>ACTION_COSTS</code>,{" "}
+        <code>TIER_WEIGHTS</code> and <code>TRAIT_WEIGHTS</code> in <code>lib/reroll.ts</code>.
       </p>
     </section>
   );
 }
 
 function Results({
-  results, current, tokens
+  results, rosterTotal, tokens
 }: {
-  results: ActionOutcome[];
-  current: number;
+  results: RosterOutcome[];
+  rosterTotal: number;
   tokens: number;
 }) {
   const best = results[0];
-  const rescued = results.filter((o) => o.delta < 0 && o.planDelta > 0);
+  const skipped = results.find((r) => r.action.target === "skip");
+  const bestIsSkip = best.action.target === "skip";
+  const rescued = results.filter((o) => o.action.target !== "skip" && o.delta < 0 && o.planDelta > 0);
 
   return (
     <div className="stack">
@@ -264,9 +334,9 @@ function Results({
         <table>
           <thead>
             <tr>
-              <th>Option</th>
+              <th>Banner</th><th>Option</th>
               <th style={{ textAlign: "right" }}>Cost</th>
-              <th style={{ textAlign: "right" }}>Rolls you can afford</th>
+              <th style={{ textAlign: "right" }}>Rolls</th>
               <th style={{ textAlign: "right" }}>One roll</th>
               <th style={{ textAlign: "right" }}>Improves</th>
               <th style={{ textAlign: "right" }}>Break-even</th>
@@ -275,29 +345,30 @@ function Results({
           </thead>
           <tbody>
             {results.map((o, index) => (
-              <tr key={o.action.id}>
+              <tr key={`${o.role}:${o.action.id}`} className={o.action.target === "skip" ? "row-skip" : ""}>
+                <td className="muted">{o.action.target === "skip" ? "—" : ROLE_LABELS[o.role]}</td>
                 <td>
-                  {index === 0 && o.planDelta > 0 && (
-                    <span className="tag" style={{ marginRight: 6 }}>best</span>
-                  )}
+                  {index === 0 && <span className="tag" style={{ marginRight: 6 }}>best</span>}
                   {o.action.label}
                 </td>
                 <td className="num muted" style={{ textAlign: "right" }}>{o.action.cost}</td>
                 <td className="num muted" style={{ textAlign: "right" }}>
-                  {o.attempts || <span className="faint">can&rsquo;t afford</span>}
+                  {o.action.target === "skip" ? "—" : o.attempts || <span className="faint">n/a</span>}
                 </td>
                 <td className="num" style={{ textAlign: "right", color: o.delta >= 0 ? "var(--green)" : "var(--red)" }}>
-                  {signed(o.delta)}
+                  {o.action.target === "skip" ? "—" : signed(o.delta)}
                 </td>
                 <td className="num muted" style={{ textAlign: "right" }}>
-                  {(o.improveChance * 100).toFixed(0)}%
+                  {o.action.target === "skip" ? "—" : `${(o.improveChance * 100).toFixed(0)}%`}
                 </td>
                 <td className="num faint" style={{ textAlign: "right" }}>
-                  {o.breakEvenAttempts === null
-                    ? "never"
-                    : `${o.breakEvenAttempts} roll${o.breakEvenAttempts === 1 ? "" : "s"}`}
+                  {o.action.target === "skip"
+                    ? "—"
+                    : o.breakEvenAttempts === null
+                      ? "never"
+                      : `${o.breakEvenAttempts} roll${o.breakEvenAttempts === 1 ? "" : "s"}`}
                 </td>
-                <td className="num" style={{ textAlign: "right", fontWeight: 650, color: o.planDelta > 0 ? "var(--accent)" : "var(--red)" }}>
+                <td className="num" style={{ textAlign: "right", fontWeight: 650, color: o.planDelta > 0 ? "var(--accent)" : "var(--muted)" }}>
                   {signed(o.planDelta)}
                 </td>
               </tr>
@@ -307,41 +378,34 @@ function Results({
       </div>
 
       <div className="verdict">
-        {best.planDelta <= 0 ? (
+        {bestIsSkip ? (
           <>
-            <strong>Hold.</strong> None of these beats the {fmt(current)} you already have,
-            even with all {tokens} tokens behind them. Bank the tokens.
+            <strong>Skip.</strong> Nothing on offer beats the {fmt(rosterTotal)} the roster
+            is already worth, even with all {tokens} tokens behind it. Keep them —
+            a better offer costs nothing to wait for.
           </>
         ) : (
           <>
-            <strong>Take &ldquo;{best.action.label}&rdquo;.</strong> Committing the budget to it
-            is worth {signed(best.planDelta)} over standing pat, reaching {fmt(best.planValue)}.
+            <strong>Take &ldquo;{best.action.label}&rdquo;</strong> on{" "}
+            <strong>{ROLE_LABELS[best.role]}</strong>. Committing the budget to it is worth{" "}
+            {signed(best.planDelta)}, taking the roster to {fmt(best.rosterPlanValue)}.
             {best.breakEvenAttempts !== null && best.breakEvenAttempts > 1 && (
-              <> It only pays from the {best.breakEvenAttempts}
-                {best.breakEvenAttempts === 2 ? "nd" : best.breakEvenAttempts === 3 ? "rd" : "th"} roll
-                onward, so start it only if you mean to keep going.</>
+              <> It only pays from roll {best.breakEvenAttempts} onward, so start it only
+                if you mean to keep going.</>
             )}
+            {skipped && ` Skipping is worth ${fmt(rosterTotal)}.`}
           </>
         )}
       </div>
 
       {rescued.length > 0 && (
         <p className="faint" style={{ maxWidth: 720 }}>
-          {rescued.length === 1 ? "One option is" : `${rescued.length} options are`} a loss on the
-          next roll but a gain by the end of the budget — that is the whole point of the last
-          column. You never get a rerolled emblem back, but you do choose after every roll
-          whether to stop, so a bad average with a fat upside is worth chasing when you can
-          afford to chase it repeatedly.
+          {rescued.length === 1 ? "One option is" : `${rescued.length} options are`} a loss on
+          the next roll but a gain by the end of the budget. You never get a rerolled emblem
+          back, but you do choose after every roll whether to stop, so a bad average with a
+          fat upside is worth chasing when you can afford to chase it repeatedly.
         </p>
       )}
-
-      <p className="faint" style={{ maxWidth: 720 }}>
-        <strong>One roll</strong> is the average change from a single reroll.{" "}
-        <strong>End of budget</strong> is what the option is worth if you spend every
-        affordable token on it and stop the moment you are happy — always at least zero,
-        because holding is allowed. <strong>Break-even</strong> is the first roll at which
-        the plan overtakes doing nothing.
-      </p>
     </div>
   );
 }

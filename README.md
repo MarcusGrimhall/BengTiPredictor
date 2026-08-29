@@ -143,12 +143,45 @@ reads percentiles from — floor, median and ceiling are all per match.
 
 A roster is **one Core pair, one Mid, one Support pair**, and each pair must come
 from the same team. So those are the entries that get ranked: `buildLineups()`
-adds two team-mates together game by game, matched on match id, and the ranking
-lists `Yatoro & Collapse` rather than two separate carries. Only Mid is a single
+combines two team-mates game by game, matched on match id, and the ranking lists
+`Yatoro & Collapse` rather than two separate carries. Only Mid is a single
 player.
 
-This is not cosmetic. A pair's stat line is the sum of both players', so the
-optimal banner for a pair is not always the optimal banner for either member.
+A pair is valued as the **average** of its two members, not their sum, which
+keeps all three roles on one scale so a title multiplier means the same thing
+everywhere. It does not reorder anything within a role — every pair is halved by
+the same factor — but it makes Core, Mid and Support directly comparable.
+
+This is not cosmetic. A pair's line is the two players combined, so the optimal
+banner for a pair is not always the optimal banner for either member.
+
+## Team strength moves the score, but less than you would think
+
+A player's past numbers were earned against whoever they happened to draw. Facing
+a harder field should cost them something. How much is measured, not assumed:
+regress each map's score on the Elo gap in that match, normalised by the
+player's own mean so "good players are on good teams" cannot leak in.
+
+```
+score / own mean  =  1 + 0.0184 × (Elo edge / 100)
+n = 2,910 player-games      SE 0.0045      t = 4.05      r = 0.075
+```
+
+A 200-point Elo advantage is worth about **3.7%** on a per-map score. Real — a
+t of 4 is not noise — but small. A naive bucket average suggests +10%, and most
+of that is the confound. `lib/strength.ts` applies the fitted version.
+
+The stats that move most with a rating edge are GPM, runes, kills and towers,
+and deaths move the other way. All of them weakly.
+
+## The reroll budget is shared
+
+40 tokens for the group stage and 30 for the playoffs, and they cover **all three
+banners**. So the question is never "is this reroll good" but "is this reroll, on
+this banner, the best thing to spend the roster's tokens on". The simulator holds
+all three banners, takes offers tagged by role, and always compares **skip**
+alongside them — a comparison without skip makes every option look like the best
+option, because the only alternative is another option.
 
 ## Trainer titles
 
@@ -180,6 +213,18 @@ Conditions are evaluated per game at fetch time and stored as a bitmask, so the
 trigger rate is measured over the games each entry actually played rather than
 assumed.
 
+Measured across both TI group stages and playoffs:
+
+| Suffix | Bonus | Fires | Worth |
+| --- | --- | --- | --- |
+| the Underdog | +6% | 53.8% | +3.23% |
+| the Clutch | +16% | 19.3% | +3.10% |
+| the Lucky | +21% | 13.4% | +2.81% |
+| the Patient | +23% | 2.5% | +0.58% |
+| the Decisive | +24% | 0.7% | +0.16% |
+
+The Decisive pays the most and is worth the least: TI games are not short.
+
 **Two of them depend on who you pick, not just on the title.** The Underdog pays
 on a map your team *loses*, so it fires least on the strongest team — the one you
 most want. At TI 2026:
@@ -192,8 +237,19 @@ Iron Wing      fires 80%                   +4.80%
 ```
 
 The Clutch is the mirror image: it pays on the last possible game of a series,
-which happens when sides are evenly matched, so it is worth least to a team that
-sweeps. Both rates therefore come from *simulating the stage* rather than from a
+which happens when sides are evenly matched.
+
+Put together, the field-average table above is misleading for the pick you
+actually want. For the TI 2026 champion:
+
+```
+the Clutch     fires 20%    worth +3.20%     <- best for them
+the Lucky      fires 13%           +2.80%     <- indifferent to who you are
+the Underdog   fires 27%           +1.60%     <- best on average, worst here
+```
+
+The Underdog tops the field average and is nearly the worst choice for the team
+you most want to pick. The Lucky is the only one that does not care. Both rates therefore come from *simulating the stage* rather than from a
 historical average — the bracket simulation already plays every series map by
 map, so it reports maps lost and deciding maps alongside maps played. For a
 stage that is already finished, the measured rate is used, because that is what
@@ -284,6 +340,38 @@ maps   E = the same sum weighted by how long each ending takes
 A best-of-3 amplifies the favourite: 60% per map becomes 65% per series, and a
 best-of-5 pushes it to 68%. The bracket is therefore simulated map by map, not
 series by series — which also makes the map count a real draw rather than an average.
+
+## Risk is a number of runs
+
+The slider reads a percentile of your own outcome distribution, and the expected
+best of N runs lands near the N/(N+1)th percentile. Inverting that, a percentile
+`p` is what you would target if you were going for the best of `N = p / (1 - p)`
+runs:
+
+```
+risk  50   →  53rd pct  →  a typical run
+risk  70   →  70th pct  →  the best of about 2
+risk  86   →  83rd pct  →  the best of about 5
+risk 100   →  95th pct  →  the best of about 19
+```
+
+So the slider is not "how brave am I", it is "how many attempts am I effectively
+aiming to beat". If you get five shots and only the best counts, risk 86 is the
+setting that matches.
+
+Measured on TI 2026, five chances is worth **+17.2%** over one:
+
+```
+ 1 chance    168,044
+ 2 chances   182,166   +8.4%
+ 5 chances   196,927  +17.2%
+10 chances   205,426  +22.2%
+20 chances   212,822  +26.6%
+```
+
+And the lift depends on what you picked. The safe pick gains +4% from five
+chances; the aggressive one gains +15%. Extra attempts are only worth having if
+you spend them on variance.
 
 ## Risk: floor, median and ceiling
 

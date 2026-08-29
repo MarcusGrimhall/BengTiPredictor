@@ -241,25 +241,34 @@ export type Ranked = {
  *
  * Values are **per match**, not per map, and the projection multiplies by
  * expected series. That is the unit fantasy pays on.
+ *
+ * `strengthByTeam` optionally scales a team's per-match score for the quality
+ * of the field it is entering. Past numbers were earned against whoever the
+ * player happened to draw; a stronger side facing the same field scores a
+ * little more. The effect is measured rather than assumed and it is small -
+ * see lib/strength.ts - so it moves the board less than who the player is.
  */
 export function rankPlayers(
   players: PlayerEntry[],
   role: Role,
   emblems: Emblem[],
   risk = 50,
-  seriesByTeam: Record<string, number> = {}
+  seriesByTeam: Record<string, number> = {},
+  strengthByTeam: Record<string, number> = {}
 ): Ranked[] {
   const p = riskToPercentile(risk);
   return players
     .filter((entry) => entry.role === role)
     .map((player) => {
-      const dist = matchScores(player, emblems);
-      const score = dist.length ? percentile(dist, p) : scorePlayer(player, emblems);
+      const raw = matchScores(player, emblems);
+      const strength = strengthByTeam[player.teamName] ?? 1;
+      const dist = strength === 1 ? raw : raw.map((x) => x * strength);
+      const score = dist.length ? percentile(dist, p) : scorePlayer(player, emblems) * strength;
       const series = seriesByTeam[player.teamName] ?? 1;
       return {
         player,
         score,
-        mean: dist.length ? dist.reduce((a, b) => a + b, 0) / dist.length : scorePlayer(player, emblems),
+        mean: dist.length ? dist.reduce((a, b) => a + b, 0) / dist.length : score,
         median: percentile(dist, 50),
         floor: percentile(dist, 10),
         ceiling: percentile(dist, 95),
@@ -305,7 +314,14 @@ export function buildLineups(players: PlayerEntry[]): PlayerEntry[] {
   return out;
 }
 
-/** Adds two team-mates together game by game into one pickable entry. */
+/**
+ * Combines two team-mates into one pickable entry, game by game.
+ *
+ * The pair's value is the **average** of the two players, not their sum. That
+ * keeps a pair on the same scale as a Mid, so the three roles can be compared
+ * and so a title multiplier means the same thing everywhere. It does not
+ * reorder anything within a role - every pair is halved by the same factor.
+ */
 function pairUp(a: PlayerEntry, b: PlayerEntry, teamName: string, role: Role): PlayerEntry {
   // Match ids align the two players exactly. Without them - older generated
   // data - fall back to position: team-mates appear in the same matches in the
@@ -328,7 +344,7 @@ function pairUp(a: PlayerEntry, b: PlayerEntry, teamName: string, role: Role): P
     const right = b.gameLines[j];
     const combined = {} as Record<StatKey, number>;
     for (const stat of Object.keys(left) as StatKey[]) {
-      combined[stat] = (left[stat] ?? 0) + (right[stat] ?? 0);
+      combined[stat] = ((left[stat] ?? 0) + (right[stat] ?? 0)) / 2;
     }
     gameLines.push(combined);
     gameSeries.push(a.gameSeries?.[i] ?? -matchId);
@@ -344,7 +360,7 @@ function pairUp(a: PlayerEntry, b: PlayerEntry, teamName: string, role: Role): P
 
   const perGame = {} as Record<StatKey, number>;
   for (const stat of Object.keys(a.perGame) as StatKey[]) {
-    perGame[stat] = (a.perGame[stat] ?? 0) + (b.perGame[stat] ?? 0);
+    perGame[stat] = ((a.perGame[stat] ?? 0) + (b.perGame[stat] ?? 0)) / 2;
   }
 
   return {

@@ -250,8 +250,20 @@ export type TeamOutlook = {
   seriesDistribution: number[];
 };
 
+/**
+ * Valve's Compendium payout for bracket predictions, indexed by how many of the
+ * 14 picks came in. The scale is on the total, not on which match was right, so
+ * the marginal value of one more correct pick rises the further you get: the
+ * first is worth 120, the fourteenth another 1,080.
+ */
+export const PREDICTION_POINTS = [
+  0, 120, 360, 720, 1200, 1800, 2520, 3360, 4320, 5400, 6600, 7920, 9360, 10920, 12000
+];
+
 export type SimulationResult = {
   expectedCorrect: number;
+  /** Expected Compendium points, given the picks made so far. */
+  expectedPoints: number;
   teams: Record<string, TeamOutlook>;
   runs: number;
 };
@@ -288,6 +300,7 @@ export function simulate(
   for (const name of seeds) slot(name);
 
   let totalCorrect = 0;
+  let totalPoints = 0;
 
   for (let run = 0; run < runs; run += 1) {
     const outcomes: Selections = {};
@@ -345,7 +358,10 @@ export function simulate(
       dist[count] = (dist[count] ?? 0) + 1;
     }
 
-    for (const [id, team] of picked) if (outcomes[id] === team) totalCorrect += 1;
+    let correctThisRun = 0;
+    for (const [id, team] of picked) if (outcomes[id] === team) correctThisRun += 1;
+    totalCorrect += correctThisRun;
+    totalPoints += PREDICTION_POINTS[Math.min(correctThisRun, PREDICTION_POINTS.length - 1)] ?? 0;
 
     const final = structure[structure.length - 1];
     const champion = outcomes[final.id] ?? null;
@@ -366,5 +382,10 @@ export function simulate(
     for (let i = 0; i < dist.length; i += 1) dist[i] = (dist[i] ?? 0) / runs;
   }
 
-  return { expectedCorrect: totalCorrect / runs, teams: tally, runs };
+  return {
+    expectedCorrect: totalCorrect / runs,
+    expectedPoints: totalPoints / runs,
+    teams: tally,
+    runs
+  };
 }

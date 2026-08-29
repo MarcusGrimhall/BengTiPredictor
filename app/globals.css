@@ -286,3 +286,9 @@ footer.site-footer {
 .notice-warn { border-left-color: var(--red); }
 .row-on { background: var(--accent-soft); }
 .row-on td { color: var(--text); }
+.row-skip td { color: var(--text-faint); font-style: italic; }
+.link-button {
+  background: none; border: none; padding: 0 0 0 6px;
+  color: var(--accent); font: inherit; cursor: pointer; text-decoration: underline;
+}
+.link-button:hover { border: none; }

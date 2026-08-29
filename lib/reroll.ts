@@ -30,7 +30,7 @@ export const TRAIT_WEIGHTS: Record<Trait, number> = {
   none: 0.40, fractal: 0.12, benevolent: 0.12, vampiric: 0.12, unique: 0.12, friendly: 0.12
 };
 
-export type RerollTarget = "stat" | "tier" | "trait" | "qualityUp" | "qualityUpTwoDownOne";
+export type RerollTarget = "stat" | "tier" | "trait" | "qualityUp" | "qualityUpTwoDownOne" | "skip";
 export type RerollScope = "all" | "first" | "last" | "random";
 
 export type RerollAction = {
@@ -327,6 +327,90 @@ export function compareActions(
   return actions
     .map((action) => evaluateAction(banner, role, action, valueOf, runs, tokens))
     .sort((a, b) => b.planDelta - a.planDelta || b.perToken - a.perToken);
+}
+
+/**
+ * Doing nothing. Always on the menu, always free, and often correct.
+ *
+ * A comparison without it is misleading: every option looks like the best
+ * option when the only alternative is another option.
+ */
+export const SKIP_ACTION: RerollAction = {
+  id: "skip",
+  label: "Skip — keep the tokens",
+  target: "skip",
+  scope: "random",
+  color: "any",
+  cost: 0
+};
+
+/**
+ * One reroll offer: an action, and which of the three banners it lands on.
+ *
+ * The token pool is shared across Core, Mid and Support - 40 for the group
+ * stage, 30 for the main event, for the whole roster rather than per banner.
+ * So the real question is never "is this reroll good" but "is this reroll, on
+ * this banner, the best thing to spend the roster's tokens on".
+ */
+export type RosterOffer = { role: Role; action: RerollAction };
+
+export type RosterOutcome = ActionOutcome & {
+  role: Role;
+  /** Roster total after the reroll: this role's outcome plus the other two. */
+  rosterMean: number;
+  /** Roster total once the budget is played out on this option. */
+  rosterPlanValue: number;
+};
+
+/**
+ * Compares reroll offers across all three banners against one shared budget.
+ *
+ * `valueOf` scores a single role's banner. `others` is what the rest of the
+ * roster is already worth, so the numbers shown are roster totals and the
+ * three roles are directly comparable.
+ *
+ * Skip is scored as standing pat: it can never lose, which is exactly why it
+ * belongs in the table.
+ */
+export function compareRosterOffers(
+  offers: RosterOffer[],
+  banners: Record<Role, Emblem[]>,
+  valueOf: (role: Role, banner: Emblem[]) => number,
+  tokens: number,
+  runs = 800
+): RosterOutcome[] {
+  const current: Record<string, number> = {};
+  for (const role of Object.keys(banners) as Role[]) {
+    current[role] = valueOf(role, banners[role]);
+  }
+  const rosterTotal = Object.values(current).reduce((sum, v) => sum + v, 0);
+
+  const rows: RosterOutcome[] = [];
+  for (const { role, action } of offers) {
+    if (action.target === "skip") {
+      rows.push({
+        action, role, mean: current[role], median: current[role],
+        p10: current[role], p90: current[role], improveChance: 0, delta: 0,
+        perToken: 0, runs: 0, attempts: 0, curve: [], planValue: current[role],
+        planDelta: 0, breakEvenAttempts: null,
+        rosterMean: rosterTotal, rosterPlanValue: rosterTotal
+      });
+      continue;
+    }
+    const outcome = evaluateAction(
+      banners[role], role, action, (b) => valueOf(role, b), runs, tokens
+    );
+    const rest = rosterTotal - current[role];
+    rows.push({
+      ...outcome, role,
+      rosterMean: outcome.mean + rest,
+      rosterPlanValue: outcome.planValue + rest
+    });
+  }
+
+  // Best over the whole budget first; skip sits wherever it lands, which is
+  // top whenever nothing on offer is worth the tokens.
+  return rows.sort((a, b) => b.planDelta - a.planDelta || b.perToken - a.perToken);
 }
 
 /** Rolls a fresh random banner, the way a stage starts. */

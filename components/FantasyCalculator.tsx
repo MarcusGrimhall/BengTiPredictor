@@ -10,7 +10,7 @@ import {
 } from "../lib/scoring";
 import { useMainEventMaps, type MainEventMaps } from "./useMainEventMaps";
 import type { TeamEntry } from "../lib/data";
-import { GROUP_STAGE_SHAPE, STAGES, STAGE_LABELS, STAGE_SLOTS, type Stage } from "../lib/stages";
+import { GROUP_STAGE_SHAPE, STAGES, STAGE_LABELS, STAGE_SLOTS, STAGE_TOKENS, type Stage } from "../lib/stages";
 import FantasySimulator, { riskLabel } from "./FantasySimulator";
 import TrainerTitles from "./TrainerTitles";
 import { effectiveSuffixValue, prefixValue, type PrefixKey, type SuffixKey } from "../lib/titles";
@@ -47,6 +47,7 @@ export default function FantasyCalculator({
   playersByStage,
   actualByStage,
   groupProjection,
+  strengthByTeam,
   leagueName,
   teams,
   stageSplit,
@@ -55,6 +56,8 @@ export default function FantasyCalculator({
   playersByStage: Record<Stage, PlayerEntry[]>;
   actualByStage: Record<Stage, Record<string, number>>;
   groupProjection: Record<string, number>;
+  /** Per-team score multiplier for the strength of the field. */
+  strengthByTeam: Record<string, number>;
   leagueName: string;
   teams: TeamEntry[];
   stageSplit: boolean;
@@ -63,7 +66,6 @@ export default function FantasyCalculator({
   // Use the bracket the user built if there is one, else the Elo-seeded default.
   const playoffProjection = useMainEventMaps(teams, projection);
   const [banners, setBanners] = useState<Record<Role, Emblem[]>>(defaultBanners);
-  const [role, setRole] = useState<Role>("core");
   const [stage, setStage] = useState<Stage>("groupStage");
   const [risk, setRisk] = useState(50);
   const [prefix, setPrefix] = useState<PrefixKey | null>(null);
@@ -101,11 +103,20 @@ export default function FantasyCalculator({
   const slots = STAGE_SLOTS[stage];
   // A banner picks a same-team pair at Core and Support and a single player at
   // Mid, so those are the entries that get ranked - not individuals.
-  const players = useMemo(
+  const allEntries = useMemo(
     () => buildLineups(playersByStage[stage] ?? []),
     [playersByStage, stage]
   );
-  const card = useMemo(() => banners[role].slice(0, slots), [banners, role, slots]);
+  const playersByRole = useMemo(
+    () => Object.fromEntries(
+      ROLES.map((r) => [r, allEntries.filter((e) => e.role === r)])
+    ) as Record<Role, PlayerEntry[]>,
+    [allEntries]
+  );
+  const cards = useMemo(
+    () => Object.fromEntries(ROLES.map((r) => [r, banners[r].slice(0, slots)])) as Record<Role, Emblem[]>,
+    [banners, slots]
+  );
 
   /**
    * Series each team plays in this stage - the multiplier on a fantasy value.
@@ -132,55 +143,55 @@ export default function FantasyCalculator({
     [mapsSource, playoffProjection]
   );
 
-  const slotOptions = useMemo(
-    () => BANNER_SLOTS[role].slice(0, slots).map((color) => statsForColor(color)),
-    [role, slots]
-  );
-
-  const baseRanked = useMemo(
-    () => rankPlayers(players, role, card, risk, seriesByTeam),
-    [players, role, card, risk, seriesByTeam]
-  );
+  const slotOptionsFor = (r: Role) =>
+    BANNER_SLOTS[r].slice(0, slots).map((color) => statsForColor(color));
 
   /**
-   * Titles multiply the whole roster, but the Underdog fires on losses, so the
-   * rate is per entry and the order can change. Applied after ranking and
-   * re-sorted rather than folded into the emblem maths.
+   * One ranking per role, since a roster picks all three. Titles multiply the
+   * whole roster but the Underdog fires on losses, so the rate is per entry and
+   * the order can change - applied after ranking and re-sorted.
    */
-  const ranked = useMemo(() => {
-    if (!prefix && !suffix) return baseRanked;
-    return baseRanked
-      .map((entry) => {
-        const p = prefix ? prefixValue(entry.player, prefix).multiplier : 1;
-        const s = suffix ? effectiveSuffixValue(entry.player, suffix, titleOutlook).multiplier : 1;
-        const factor = p * s;
-        return { ...entry, score: entry.score * factor, total: entry.total * factor,
-                 floor: entry.floor * factor, ceiling: entry.ceiling * factor };
-      })
-      .sort((a, b) => b.total - a.total);
-  }, [baseRanked, prefix, suffix, titleOutlook]);
+  const rankedByRole = useMemo(() => {
+    const out = {} as Record<Role, Ranked[]>;
+    for (const r of ROLES) {
+      const base = rankPlayers(playersByRole[r] ?? [], r, cards[r], risk, seriesByTeam, strengthByTeam);
+      out[r] = (!prefix && !suffix)
+        ? base
+        : base
+            .map((entry) => {
+              const pf = prefix ? prefixValue(entry.player, prefix).multiplier : 1;
+              const sf = suffix ? effectiveSuffixValue(entry.player, suffix, titleOutlook).multiplier : 1;
+              const factor = pf * sf;
+              return {
+                ...entry,
+                score: entry.score * factor, total: entry.total * factor,
+                floor: entry.floor * factor, ceiling: entry.ceiling * factor
+              };
+            })
+            .sort((a, b) => b.total - a.total);
+    }
+    return out;
+  }, [playersByRole, cards, risk, seriesByTeam, strengthByTeam, prefix, suffix, titleOutlook]);
 
-  const update = (index: number, patch: Partial<Emblem>) =>
-    setBanners((current) => {
-      const next = [...current[role]];
-      next[index] = { ...next[index], ...patch };
-      return { ...current, [role]: next };
-    });
+  const rosterTotal = ROLES.reduce((sum, r) => sum + (rankedByRole[r][0]?.total ?? 0), 0);
+
+  const setBanner = (r: Role, banner: Emblem[]) =>
+    setBanners((current) => ({ ...current, [r]: banner }));
 
   // Only the emblems this stage scores are optimised; the rest are left alone
   // so switching stages does not quietly rewrite the other card.
-  const optimize = () =>
+  const optimize = (r: Role) =>
     setBanners((current) => ({
       ...current,
-      [role]: [
-        ...optimizeEmblems(players, role, slotOptions, current[role].slice(0, slots), risk, seriesByTeam),
-        ...current[role].slice(slots)
+      [r]: [
+        ...optimizeEmblems(playersByRole[r] ?? [], r, slotOptionsFor(r), current[r].slice(0, slots), risk, seriesByTeam),
+        ...current[r].slice(slots)
       ]
     }));
 
-  const reset = () => setBanners((current) => ({ ...current, [role]: defaultBanner(role) }));
+  const optimizeAll = () => ROLES.forEach(optimize);
+  const resetAll = () => setBanners(defaultBanners());
 
-  const best = ranked[0];
   const info = riskLabel(risk);
   const hasProjection = Object.keys(seriesByTeam).length > 0;
   const { championByTeam, seeds } = playoffProjection;
@@ -197,157 +208,130 @@ export default function FantasyCalculator({
                 onClick={() => setStage(s)}
               >
                 {STAGE_LABELS[s]}{" "}
-                <span className="faint">· {STAGE_SLOTS[s]} emblems</span>
+                <span className="faint">· {STAGE_SLOTS[s]} emblems · {STAGE_TOKENS[s]} tokens</span>
               </button>
             ))}
           </div>
           <p className="faint" style={{ margin: 0 }}>
             Two separate cards. This one scores over the{" "}
             <strong>{stage === "groupStage" ? "group stage" : "playoff"}</strong> matches
-            only — {players.length} players from {Object.keys(seriesByTeam).length} teams
-            {stage === "playoffs" && " that made the bracket"}. Group stage points do
-            not carry into the playoff card.
+            only — {allEntries.length} entries from {Object.keys(seriesByTeam).length} teams
+            {stage === "playoffs" && " that made the bracket"}. Group stage points do not
+            carry into the playoff card, but the first three emblems do.
           </p>
         </section>
       )}
 
-      <div className="pill-row" role="tablist" aria-label="Role">
-        {ROLES.map((r) => (
-          <button
-            key={r} className="pill" role="tab"
-            aria-pressed={role === r} aria-selected={role === r}
-            onClick={() => setRole(r)}
-          >
-            {ROLE_LABELS[r]} <span className="faint">· {ROLE_HINTS[r]}</span>
-          </button>
-        ))}
-      </div>
-
-      <div className="grid grid-2">
-        <section className="card stack">
-          <div className="row-between">
-            <h2>Banner · {ROLE_LABELS[role]}{stageSplit && ` · ${STAGE_LABELS[stage]}`}</h2>
-            <div style={{ display: "flex", gap: 8 }}>
-              <button onClick={optimize} className="btn-primary">Optimise</button>
-              <button onClick={reset}>Reset</button>
-            </div>
-          </div>
-          <p className="faint">
-            {slots} emblems, each a different stat — the same stat never appears twice
-            on one banner. The slot colour decides which stats can go there. Optimise
-            maximises this stage&rsquo;s projected total at the current risk level.
-            {slots < banners[role].length && " The playoff card keeps these three and adds two."}
-          </p>
-
-          {card.map((emblem, index) => {
-            const color = BANNER_SLOTS[role][index];
-            return (
-              <div key={index} className="emblem-row">
-                <span className={`dot dot-${color}`} aria-label={color} />
-                <select value={emblem.stat} aria-label={`Emblem ${index + 1} stat`}
-                  onChange={(e) => update(index, { stat: e.target.value as StatKey })}>
-                  {/* Stats used by another slot are excluded - no duplicates. */}
-                  {availableStats(card, index, slotOptions).map((stat) => (
-                    <option key={stat} value={stat}>{STAT_LABELS[stat]}</option>
-                  ))}
-                </select>
-                <select value={emblem.tier} aria-label={`Emblem ${index + 1} tier`}
-                  onChange={(e) => update(index, { tier: e.target.value as Tier })}>
-                  {TIERS.map((tier) => (
-                    <option key={tier} value={tier}>{tier} · +{TIER_BONUSES[tier]}%</option>
-                  ))}
-                </select>
-                <select value={emblem.trait} aria-label={`Emblem ${index + 1} trait`}
-                  title={TRAIT_DESCRIPTIONS[emblem.trait]}
-                  onChange={(e) => update(index, { trait: e.target.value as Trait })}>
-                  {TRAITS.map((trait) => (
-                    <option key={trait} value={trait}>{trait === "none" ? "—" : trait}</option>
-                  ))}
-                </select>
-              </div>
-            );
-          })}
-        </section>
-
-        <section className="card stack">
-          <h2>Best {ROLE_LABELS[role]} {ROLE_ENTRY[role]}</h2>
-          {!ranked.length && (
-            <p className="muted">
-              No {role === "mid" ? "mid players" : `complete ${role} pairs`} in this stage&rsquo;s data.
-            </p>
-          )}
-          {best && <Breakdown ranked={best} banner={card} risk={risk} />}
-        </section>
-      </div>
+      <FantasySimulator
+        playersByRole={playersByRole}
+        banners={banners}
+        risk={risk}
+        stage={stage}
+        onRisk={setRisk}
+        seriesByTeam={seriesByTeam}
+        onBanner={setBanner}
+      />
 
       <section className="card stack">
         <div className="row-between">
-          <h2>Ranking · {ROLE_LABELS[role]}</h2>
-          <span className="faint">
-            {leagueName} · risk {info.label.toLowerCase()},{" "}
-            <a href="#simulator">set it in the simulator below</a>
-          </span>
+          <div>
+            <h2>Roster · {fmt(rosterTotal)}</h2>
+            <p className="faint" style={{ marginTop: 2 }}>
+              The best entry at each role under the banners above, at risk {risk}.
+              Optimise picks the emblems that maximise this stage&rsquo;s total.
+            </p>
+          </div>
+          <div style={{ display: "flex", gap: 8 }}>
+            <button onClick={optimizeAll} className="btn-primary">Optimise all</button>
+            <button onClick={resetAll}>Reset</button>
+          </div>
         </div>
-        <div className="scroll-x">
-          <table>
-            <thead>
-              <tr>
-                <th>#</th><th>Player</th><th>Team</th>
-                <th style={{ textAlign: "right" }}>Floor</th>
-                <th style={{ textAlign: "right" }}>At risk</th>
-                <th style={{ textAlign: "right" }}>Ceiling</th>
-                {hasProjection && <th style={{ textAlign: "right" }}>Series</th>}
-                <th style={{ textAlign: "right" }}>{stageSplit ? STAGE_LABELS[stage] : "Tournament"}</th>
-              </tr>
-            </thead>
-            <tbody>
-              {ranked.slice(0, 20).map((entry, index) => (
-                <tr key={entry.player.id}>
-                  <td className="num faint">{index + 1}</td>
-                  <td>
-                    <strong>{entry.player.name}</strong>
+        <div className="grid grid-3">
+          {ROLES.map((r) => {
+            const best = rankedByRole[r][0];
+            return (
+              <div key={r} className="sub-card stack" style={{ gap: 6 }}>
+                <div className="row-between">
+                  <strong>{ROLE_LABELS[r]}</strong>
+                  <span className="faint">{ROLE_HINTS[r]}</span>
+                </div>
+                {best ? (
+                  <>
+                    <div className="num" style={{ fontSize: "1.4rem", fontWeight: 700, color: "var(--accent)" }}>
+                      {fmt(best.total)}
+                    </div>
+                    <div>{best.player.name}</div>
                     <span className="faint">
-                      {" "}· {entry.player.games}g
-                      {entry.player.members && " · pair"}
+                      {best.player.teamName} · {fmt(best.score)} per match × {best.series.toFixed(1)} series
                     </span>
-                  </td>
-                  <td className="muted">{entry.player.teamName}</td>
-                  <td className="num faint" style={{ textAlign: "right" }}>{fmt(entry.floor)}</td>
-                  <td className="num" style={{ textAlign: "right", fontWeight: 650 }}>{fmt(entry.score)}</td>
-                  <td className="num faint" style={{ textAlign: "right" }}>{fmt(entry.ceiling)}</td>
-                  {hasProjection && (
-                    <td className="num muted" style={{ textAlign: "right" }}>{entry.series.toFixed(1)}</td>
-                  )}
-                  <td className="num" style={{ textAlign: "right", fontWeight: 650, color: "var(--accent)" }}>
-                    {fmt(entry.total)}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+                  </>
+                ) : (
+                  <span className="muted">No entries</span>
+                )}
+              </div>
+            );
+          })}
         </div>
       </section>
 
+      {ROLES.map((r) => (
+        <section key={r} className="card stack">
+          <div className="row-between">
+            <h2>Ranking · {ROLE_LABELS[r]}</h2>
+            <span className="faint">
+              {leagueName} · {cards[r].map((e) => STAT_LABELS[e.stat]).join(" · ")}{" "}
+              <button className="link-button" onClick={() => optimize(r)}>optimise</button>
+            </span>
+          </div>
+          <div className="scroll-x">
+            <table>
+              <thead>
+                <tr>
+                  <th>#</th><th>{ROLE_ENTRY[r] === "pair" ? "Pair" : "Player"}</th><th>Team</th>
+                  <th style={{ textAlign: "right" }}>Floor</th>
+                  <th style={{ textAlign: "right" }}>At risk</th>
+                  <th style={{ textAlign: "right" }}>Ceiling</th>
+                  {hasProjection && <th style={{ textAlign: "right" }}>Series</th>}
+                  <th style={{ textAlign: "right" }}>{stageSplit ? STAGE_LABELS[stage] : "Tournament"}</th>
+                </tr>
+              </thead>
+              <tbody>
+                {rankedByRole[r].slice(0, 10).map((entry, index) => (
+                  <tr key={entry.player.id}>
+                    <td className="num faint">{index + 1}</td>
+                    <td>
+                      <strong>{entry.player.name}</strong>
+                      <span className="faint"> · {entry.player.games}g</span>
+                    </td>
+                    <td className="muted">{entry.player.teamName}</td>
+                    <td className="num faint" style={{ textAlign: "right" }}>{fmt(entry.floor)}</td>
+                    <td className="num" style={{ textAlign: "right", fontWeight: 650 }}>{fmt(entry.score)}</td>
+                    <td className="num faint" style={{ textAlign: "right" }}>{fmt(entry.ceiling)}</td>
+                    {hasProjection && (
+                      <td className="num muted" style={{ textAlign: "right" }}>{entry.series.toFixed(1)}</td>
+                    )}
+                    <td className="num" style={{ textAlign: "right", fontWeight: 650, color: "var(--accent)" }}>
+                      {fmt(entry.total)}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          {rankedByRole[r][0] && (
+            <Breakdown ranked={rankedByRole[r][0]} banner={cards[r]} risk={risk} />
+          )}
+        </section>
+      ))}
+
       <TrainerTitles
-        entries={players.filter((p) => p.role === role)}
+        entries={allEntries}
         prefix={prefix}
         suffix={suffix}
         onPrefix={setPrefix}
         onSuffix={setSuffix}
         outlookByTeam={playoffProjection.outlookByTeam ?? {}}
         projecting={mapsSource !== "actual"}
-      />
-
-      <FantasySimulator
-        players={players}
-        role={role}
-        roleLabel={ROLE_LABELS[role]}
-        stage={stage}
-        banner={banners[role]}
-        risk={risk}
-        onRisk={setRisk}
-        seriesByTeam={seriesByTeam}
-        onApply={(next) => setBanners((current) => ({ ...current, [role]: next }))}
       />
 
       {hasProjection && (
@@ -374,15 +358,13 @@ export default function FantasyCalculator({
             )}
             {mapsSource === "rating" && stage === "playoffs" && (
               <>No bracket built and no playoffs played, so this seeds the eight
-                highest-rated teams and simulates that bracket from Elo. Build one on
-                the Bracket page and this follows it.</>
+                highest-rated teams and simulates that bracket from Elo.</>
             )}
             {mapsSource === "rating" && stage === "groupStage" && (
               <>The group stage is 44 Bo3 series over 16 teams, so the field averages{" "}
                 {GROUP_STAGE_SHAPE.seriesPerTeam} each. How many a given team plays — four to
                 six — falls out of the standings, and no rating predicts that, so every team
-                gets the average. Flat is the honest answer here, and it means the group
-                stage board is decided by per-match scoring rather than by a volume guess.</>
+                gets the average.</>
             )}
           </p>
           <div className="scroll-x">
@@ -421,11 +403,10 @@ export default function FantasyCalculator({
 
       <p className="notice">
         Values are <strong>per match</strong>: a series scores as the sum of its two
-        highest games, so a Bo3 that goes the distance still banks only two. Core and
-        Support are ranked as same-team pairs, Mid as one player. OpenDota does not
-        expose {UNAVAILABLE_STATS.join(", ")} reliably, so those emblems are missing.
-        Floor and ceiling are the 10th and 95th percentile of the matches actually
-        played — a small sample makes both unstable.
+        highest games. Core and Support are ranked as same-team pairs and valued as the
+        <strong> average</strong> of the two players, so all three roles are on one scale.
+        OpenDota does not expose {UNAVAILABLE_STATS.join(", ")} reliably, so those emblems
+        are missing.
       </p>
     </div>
   );

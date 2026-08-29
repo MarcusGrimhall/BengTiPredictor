@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import {
   Format, MatchNode, Selections, TeamRatings,
-  buildStructure, matchExpectedMaps, resolveBracket, simulate, winProbability
+  PREDICTION_POINTS, buildStructure, matchExpectedMaps, resolveBracket, simulate, winProbability
 } from "../lib/bracket";
 import { DEFAULT_ELO, mapWinProbability } from "../lib/elo";
 import type { TeamEntry } from "../lib/data";
@@ -222,6 +222,13 @@ export default function BracketBuilder({ teams }: { teams: TeamEntry[] }) {
                 <small>Expected correct</small>
                 <b>{sim.expectedCorrect.toFixed(1)}</b>
                 <span className="faint">of {picked.length} picked</span>
+              </div>
+              <div className="stat-tile">
+                <small>Expected points</small>
+                <b>{Math.round(sim.expectedPoints).toLocaleString("en-US")}</b>
+                <span className="faint">
+                  of {PREDICTION_POINTS[PREDICTION_POINTS.length - 1].toLocaleString("en-US")} if every pick lands
+                </span>
               </div>
               <div className="stat-tile">
                 <small>Favourite</small>
