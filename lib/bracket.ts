@@ -256,6 +256,20 @@ export type TeamOutlook = {
  * the marginal value of one more correct pick rises the further you get: the
  * first is worth 120, the fourteenth another 1,080.
  */
+/**
+ * Chance a team plays at least `k` series, from the simulated distribution.
+ *
+ * A fantasy entry only scores while its team is still in, so "will they play a
+ * third series at all" is often a sharper question than "how many on average".
+ * A team with a 4.4 series average that is 50% likely to be out after two is a
+ * different bet from one that reliably plays four.
+ */
+export function atLeastSeries(distribution: number[], k: number): number {
+  let total = 0;
+  for (let i = k; i < distribution.length; i += 1) total += distribution[i] ?? 0;
+  return total;
+}
+
 export const PREDICTION_POINTS = [
   0, 120, 360, 720, 1200, 1800, 2520, 3360, 4320, 5400, 6600, 7920, 9360, 10920, 12000
 ];

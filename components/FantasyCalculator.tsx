@@ -14,6 +14,7 @@ import { GROUP_STAGE_SHAPE, STAGES, STAGE_LABELS, STAGE_SLOTS, STAGE_TOKENS, typ
 import FantasySimulator, { riskLabel } from "./FantasySimulator";
 import TrainerTitles from "./TrainerTitles";
 import { effectiveSuffixValue, prefixValue, type PrefixKey, type SuffixKey } from "../lib/titles";
+import { decodeSetup, encodeSetup } from "../lib/share";
 
 const ROLES: Role[] = ["core", "mid", "support"];
 const ROLE_LABELS: Record<Role, string> = { core: "Core", mid: "Mid", support: "Support" };
@@ -71,8 +72,21 @@ export default function FantasyCalculator({
   const [prefix, setPrefix] = useState<PrefixKey | null>(null);
   const [suffix, setSuffix] = useState<SuffixKey | null>(null);
   const [ready, setReady] = useState(false);
+  const [copied, setCopied] = useState(false);
 
   useEffect(() => {
+    // A shared link is an explicit request to see that setup, so it beats
+    // whatever this browser happened to have saved.
+    const shared = decodeSetup(window.location.search);
+    if (shared) {
+      setBanners({ ...defaultBanners(), ...shared.banners });
+      setRisk(shared.risk);
+      setStage(shared.stage);
+      setPrefix(shared.prefix as PrefixKey | null);
+      setSuffix(shared.suffix as SuffixKey | null);
+      setReady(true);
+      return;
+    }
     try {
       const saved = window.localStorage.getItem(STORAGE_KEY);
       if (saved) {
@@ -193,8 +207,26 @@ export default function FantasyCalculator({
   const resetAll = () => setBanners(defaultBanners());
 
   const info = riskLabel(risk);
+
+  /** Copies a link that reproduces exactly what is on screen. */
+  const share = async () => {
+    const url = `${window.location.origin}${window.location.pathname}?${encodeSetup({ banners, risk, stage, prefix, suffix })}`;
+    try {
+      await navigator.clipboard.writeText(url);
+    } catch {
+      // Clipboard access can be refused; putting it in the address bar still
+      // gives the user something to copy by hand.
+      window.history.replaceState(null, "", url);
+    }
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
   const hasProjection = Object.keys(seriesByTeam).length > 0;
   const { championByTeam, seeds } = playoffProjection;
+  // "Will they still be playing" is a sharper question than "how many on
+  // average", and it only exists for a stage that has not happened yet.
+  const atLeast = playoffProjection.atLeastByTeam ?? {};
+  const showAtLeast = mapsSource !== "actual" && stage === "playoffs" && Object.keys(atLeast).length > 0;
 
   return (
     <div className="stack">
@@ -243,6 +275,9 @@ export default function FantasyCalculator({
           </div>
           <div style={{ display: "flex", gap: 8 }}>
             <button onClick={optimizeAll} className="btn-primary">Optimise all</button>
+            <button onClick={share} title="Copy a link that reproduces this exact setup">
+              {copied ? "Link copied" : "Share setup"}
+            </button>
             <button onClick={resetAll}>Reset</button>
           </div>
         </div>
@@ -373,6 +408,13 @@ export default function FantasyCalculator({
                 <tr>
                   <th>#</th><th>Team</th>
                   {stage === "playoffs" && <th style={{ textAlign: "right" }}>Wins event</th>}
+                  {showAtLeast && (
+                    <>
+                      <th style={{ textAlign: "right" }}>2+ series</th>
+                      <th style={{ textAlign: "right" }}>3+</th>
+                      <th style={{ textAlign: "right" }}>4+</th>
+                    </>
+                  )}
                   <th style={{ textAlign: "right" }}>Series</th>
                 </tr>
               </thead>
@@ -389,6 +431,19 @@ export default function FantasyCalculator({
                             ? `${((championByTeam[team] ?? 0) * 100).toFixed(1)}%`
                             : "—"}
                         </td>
+                      )}
+                      {showAtLeast && (
+                        <>
+                          <td className="num muted" style={{ textAlign: "right" }}>
+                            {atLeast[team] ? `${(atLeast[team].two * 100).toFixed(0)}%` : "—"}
+                          </td>
+                          <td className="num muted" style={{ textAlign: "right" }}>
+                            {atLeast[team] ? `${(atLeast[team].three * 100).toFixed(0)}%` : "—"}
+                          </td>
+                          <td className="num muted" style={{ textAlign: "right" }}>
+                            {atLeast[team] ? `${(atLeast[team].four * 100).toFixed(0)}%` : "—"}
+                          </td>
+                        </>
                       )}
                       <td className="num" style={{ textAlign: "right", fontWeight: 650 }}>
                         {count.toFixed(1)}

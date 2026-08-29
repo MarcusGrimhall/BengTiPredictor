@@ -629,6 +629,22 @@ Full reference with every flag: **[COMMANDS.md](COMMANDS.md)**.
 Set `OPENDOTA_API_KEY` in the environment for a paid key — the script speeds up
 automatically.
 
+## Sharing a setup
+
+Everything the calculator holds — three banners, risk, stage, both titles — is
+also encodable as a URL. **Share setup** copies a link that reproduces exactly
+what is on screen, so a roster can be sent to someone rather than described, and
+two setups can be bookmarked and flipped between.
+
+```
+/fantasy?b=gpm.IV.vampiric,teamfight.III.none,creeps.V.fractal|…&r=86&s=playoffs&x=clutch
+```
+
+A link beats whatever this browser had saved, because opening one is an explicit
+request to see that setup. Anything malformed is rejected whole rather than
+partly applied — a link that half works is worse than one that plainly does not,
+since the numbers would still look real.
+
 ## Credits and prior art
 
 Inspired by [Kadadji1/dota2-fantasy-optimizer-2026](https://github.com/Kadadji1/dota2-fantasy-optimizer-2026)
@@ -643,6 +659,15 @@ several things that are not published anywhere official:
 - that Core and Support banners pick a **same-team pair**, not one player;
 - the Compendium prediction payout scale, 120 points for one correct pick up to
   12,000 for all fourteen.
+
+Their per-player Prefix trigger rates were **computed from real hero picks**, not
+invented — the evidence is in the numbers. The eight percentages per player sum
+to 172 on average with a tight spread, implying a hero sits in about 1.72 groups;
+77 of 79 players have a greatest common divisor of 1, which is what rounding real
+frequencies over differing sample sizes looks like; and the role signature is
+coherent (mids trigger Otherworldly 41% against supports' 13%, supports trigger
+Heroic 32% against mids' 10%). Nobody making numbers up produces that structure.
+What they had and did not publish is the hero-to-group classification itself.
 
 Its published table of average per-player emblem values is used as an
 independent cross-check in `npm run validate` — different sample, different

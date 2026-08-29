@@ -6,7 +6,7 @@
 // A player only scores in games their team actually plays, so this is what
 // turns a per-game projection into a tournament projection.
 
-import { buildStructure, simulate, TeamRatings } from "./bracket";
+import { atLeastSeries, buildStructure, simulate, TeamRatings } from "./bracket";
 import { DEFAULT_ELO } from "./elo";
 import type { TeamEntry } from "./data";
 
@@ -18,6 +18,8 @@ export type MapsProjection = {
   championByTeam: Record<string, number>;
   /** Probability of playing exactly k series, per team. Indexed by k. */
   seriesDistribution: Record<string, number[]>;
+  /** Probability of playing at least 2, 3 and 4 series, per team. */
+  atLeastByTeam: Record<string, { two: number; three: number; four: number }>;
   /** Per-team map totals the conditional titles depend on. */
   outlookByTeam: Record<string, { maps: number; mapsLost: number; decidingMaps: number }>;
   seeds: string[];
@@ -40,7 +42,7 @@ export function projectMainEvent(teams: TeamEntry[], runs = 20000): MapsProjecti
   const seeds = seedByRating(teams, TI_MAIN_EVENT_TEAMS);
   const empty: MapsProjection = {
     mapsByTeam: {}, seriesByTeam: {}, championByTeam: {},
-    seriesDistribution: {}, outlookByTeam: {}, seeds
+    seriesDistribution: {}, outlookByTeam: {}, atLeastByTeam: {}, seeds
   };
   if (seeds.length < TI_MAIN_EVENT_TEAMS) return empty;
 
@@ -55,7 +57,13 @@ export function projectMainEvent(teams: TeamEntry[], runs = 20000): MapsProjecti
   const championByTeam: Record<string, number> = {};
   const seriesDistribution: Record<string, number[]> = {};
   const outlookByTeam: Record<string, { maps: number; mapsLost: number; decidingMaps: number }> = {};
+  const atLeastByTeam: Record<string, { two: number; three: number; four: number }> = {};
   for (const [team, outlook] of Object.entries(sim.teams)) {
+    atLeastByTeam[team] = {
+      two: atLeastSeries(outlook.seriesDistribution, 2),
+      three: atLeastSeries(outlook.seriesDistribution, 3),
+      four: atLeastSeries(outlook.seriesDistribution, 4)
+    };
     outlookByTeam[team] = {
       maps: outlook.maps, mapsLost: outlook.mapsLost, decidingMaps: outlook.decidingMaps
     };
@@ -64,5 +72,8 @@ export function projectMainEvent(teams: TeamEntry[], runs = 20000): MapsProjecti
     championByTeam[team] = outlook.champion;
     seriesDistribution[team] = outlook.seriesDistribution;
   }
-  return { mapsByTeam, seriesByTeam, championByTeam, seriesDistribution, outlookByTeam, seeds };
+  return {
+    mapsByTeam, seriesByTeam, championByTeam,
+    seriesDistribution, outlookByTeam, atLeastByTeam, seeds
+  };
 }

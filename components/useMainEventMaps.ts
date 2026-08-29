@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { buildStructure, simulate, TeamRatings } from "../lib/bracket";
+import { atLeastSeries, buildStructure, simulate, TeamRatings } from "../lib/bracket";
 import { DEFAULT_ELO } from "../lib/elo";
 import type { TeamEntry } from "../lib/data";
 
@@ -16,6 +16,8 @@ export type MainEventMaps = {
   championByTeam: Record<string, number>;
   /** Map totals the conditional titles depend on - see lib/titles.ts. */
   outlookByTeam: Record<string, { maps: number; mapsLost: number; decidingMaps: number }>;
+  /** Chance of playing at least 2, 3 and 4 series. */
+  atLeastByTeam: Record<string, { two: number; three: number; four: number }>;
   seeds: string[];
   source: MapsSource;
 };
@@ -64,7 +66,13 @@ export function useMainEventMaps(
     const seriesByTeam: Record<string, number> = {};
     const championByTeam: Record<string, number> = {};
     const outlookByTeam: Record<string, { maps: number; mapsLost: number; decidingMaps: number }> = {};
+    const atLeastByTeam: Record<string, { two: number; three: number; four: number }> = {};
     for (const [team, outlook] of Object.entries(sim.teams)) {
+      atLeastByTeam[team] = {
+        two: atLeastSeries(outlook.seriesDistribution, 2),
+        three: atLeastSeries(outlook.seriesDistribution, 3),
+        four: atLeastSeries(outlook.seriesDistribution, 4)
+      };
       mapsByTeam[team] = Number(outlook.maps.toFixed(2));
       seriesByTeam[team] = Number(outlook.series.toFixed(2));
       championByTeam[team] = outlook.champion;
@@ -72,6 +80,9 @@ export function useMainEventMaps(
         maps: outlook.maps, mapsLost: outlook.mapsLost, decidingMaps: outlook.decidingMaps
       };
     }
-    return { mapsByTeam, seriesByTeam, championByTeam, outlookByTeam, seeds, source: "bracket" };
+    return {
+      mapsByTeam, seriesByTeam, championByTeam,
+      outlookByTeam, atLeastByTeam, seeds, source: "bracket"
+    };
   }, [seeds, teams, fallback]);
 }

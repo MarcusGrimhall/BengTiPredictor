@@ -62,6 +62,7 @@ export default async function FantasyPage() {
           mapsByTeam: projection.mapsByTeam,
           seriesByTeam: projection.seriesByTeam,
           outlookByTeam: projection.outlookByTeam,
+          atLeastByTeam: projection.atLeastByTeam,
           championByTeam: projection.championByTeam,
           seeds: projection.seeds,
           source: "rating"
