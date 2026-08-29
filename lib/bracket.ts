@@ -226,6 +226,28 @@ export type TeamOutlook = {
   maps: number;
   /** Expected number of series this team plays. */
   series: number;
+  /**
+   * Expected maps this team LOSES. The Underdog suffix pays on a loss, so a
+   * favourite triggers it less often - the bonus is worth least to exactly the
+   * team you most want to pick.
+   */
+  mapsLost: number;
+  /**
+   * Expected maps that are the last possible game of their series - a Bo3 that
+   * reaches game 3, a Bo5 that reaches game 5. The Clutch suffix pays on these,
+   * so it is worth most to teams in close series.
+   */
+  decidingMaps: number;
+  /**
+   * How often the team played exactly k series, as a probability per k.
+   *
+   * The mean alone is not enough to simulate a tournament total. Most of the
+   * variance in what a player banks is how far their team goes - out in two
+   * series or all the way to the grand final - and collapsing that to its
+   * average throws the tail away. Anything sampling tournament outcomes should
+   * draw from this.
+   */
+  seriesDistribution: number[];
 };
 
 export type SimulationResult = {
@@ -257,7 +279,10 @@ export function simulate(
   const tally: Record<string, TeamOutlook> = {};
   const slot = (team: string | null): TeamOutlook | null => {
     if (!team) return null;
-    tally[team] ??= { champion: 0, finalist: 0, maps: 0, series: 0 };
+    tally[team] ??= {
+      champion: 0, finalist: 0, maps: 0, series: 0,
+      mapsLost: 0, decidingMaps: 0, seriesDistribution: []
+    };
     return tally[team];
   };
   for (const name of seeds) slot(name);
@@ -267,6 +292,8 @@ export function simulate(
   for (let run = 0; run < runs; run += 1) {
     const outcomes: Selections = {};
     const resolved = new Map<string, [string | null, string | null]>();
+    // Series this team played in THIS run, so the spread survives averaging.
+    const seriesThisRun = new Map<string, number>();
 
     const winnerOf = (id: string) => outcomes[id] ?? null;
     const loserOf = (id: string) => {
@@ -298,14 +325,24 @@ export function simulate(
         }
         const played = winsA + winsB;
         outcomes[match.id] = winsA > winsB ? a : b;
-        for (const team of [a, b]) {
+        // A series that runs its full length ends on the last possible game.
+        const deciding = played === match.bestOf ? 1 : 0;
+        for (const [team, lost] of [[a, winsB], [b, winsA]] as const) {
           const entry = slot(team)!;
           entry.maps += played;
           entry.series += 1;
+          entry.mapsLost += lost;
+          entry.decidingMaps += deciding;
+          seriesThisRun.set(team, (seriesThisRun.get(team) ?? 0) + 1);
         }
       } else {
         outcomes[match.id] = a ?? b ?? undefined;
       }
+    }
+
+    for (const [team, count] of seriesThisRun) {
+      const dist = tally[team].seriesDistribution;
+      dist[count] = (dist[count] ?? 0) + 1;
     }
 
     for (const [id, team] of picked) if (outcomes[id] === team) totalCorrect += 1;
@@ -323,6 +360,10 @@ export function simulate(
     tally[key].finalist /= runs;
     tally[key].maps /= runs;
     tally[key].series /= runs;
+    tally[key].mapsLost /= runs;
+    tally[key].decidingMaps /= runs;
+    const dist = tally[key].seriesDistribution;
+    for (let i = 0; i < dist.length; i += 1) dist[i] = (dist[i] ?? 0) / runs;
   }
 
   return { expectedCorrect: totalCorrect / runs, teams: tally, runs };

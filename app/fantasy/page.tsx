@@ -59,6 +59,7 @@ export default async function FantasyPage() {
         projection={{
           mapsByTeam: projection.mapsByTeam,
           seriesByTeam: projection.seriesByTeam,
+          outlookByTeam: projection.outlookByTeam,
           championByTeam: projection.championByTeam,
           seeds: projection.seeds,
           source: "rating"

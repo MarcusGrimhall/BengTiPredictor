@@ -14,6 +14,8 @@ export type MainEventMaps = {
   /** Expected series - what a fantasy value is multiplied by. */
   seriesByTeam: Record<string, number>;
   championByTeam: Record<string, number>;
+  /** Map totals the conditional titles depend on - see lib/titles.ts. */
+  outlookByTeam: Record<string, { maps: number; mapsLost: number; decidingMaps: number }>;
   seeds: string[];
   source: MapsSource;
 };
@@ -61,11 +63,15 @@ export function useMainEventMaps(
     const mapsByTeam: Record<string, number> = {};
     const seriesByTeam: Record<string, number> = {};
     const championByTeam: Record<string, number> = {};
+    const outlookByTeam: Record<string, { maps: number; mapsLost: number; decidingMaps: number }> = {};
     for (const [team, outlook] of Object.entries(sim.teams)) {
       mapsByTeam[team] = Number(outlook.maps.toFixed(2));
       seriesByTeam[team] = Number(outlook.series.toFixed(2));
       championByTeam[team] = outlook.champion;
+      outlookByTeam[team] = {
+        maps: outlook.maps, mapsLost: outlook.mapsLost, decidingMaps: outlook.decidingMaps
+      };
     }
-    return { mapsByTeam, seriesByTeam, championByTeam, seeds, source: "bracket" };
+    return { mapsByTeam, seriesByTeam, championByTeam, outlookByTeam, seeds, source: "bracket" };
   }, [seeds, teams, fallback]);
 }

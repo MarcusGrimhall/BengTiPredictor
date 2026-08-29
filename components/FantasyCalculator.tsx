@@ -13,7 +13,7 @@ import type { TeamEntry } from "../lib/data";
 import { GROUP_STAGE_SHAPE, STAGES, STAGE_LABELS, STAGE_SLOTS, type Stage } from "../lib/stages";
 import FantasySimulator, { riskLabel } from "./FantasySimulator";
 import TrainerTitles from "./TrainerTitles";
-import { prefixValue, suffixValue, type PrefixKey, type SuffixKey } from "../lib/titles";
+import { effectiveSuffixValue, prefixValue, type PrefixKey, type SuffixKey } from "../lib/titles";
 
 const ROLES: Role[] = ["core", "mid", "support"];
 const ROLE_LABELS: Record<Role, string> = { core: "Core", mid: "Mid", support: "Support" };
@@ -125,6 +125,13 @@ export default function FantasyCalculator({
     return { seriesByTeam: groupProjection, mapsSource: "rating" as const };
   }, [stage, actualByStage, groupProjection, playoffProjection]);
 
+  // A finished stage has real trigger rates; a projected one takes the
+  // team-dependent titles from the bracket simulation instead.
+  const titleOutlook = useMemo(
+    () => (mapsSource === "actual" ? {} : playoffProjection.outlookByTeam ?? {}),
+    [mapsSource, playoffProjection]
+  );
+
   const slotOptions = useMemo(
     () => BANNER_SLOTS[role].slice(0, slots).map((color) => statsForColor(color)),
     [role, slots]
@@ -145,13 +152,13 @@ export default function FantasyCalculator({
     return baseRanked
       .map((entry) => {
         const p = prefix ? prefixValue(entry.player, prefix).multiplier : 1;
-        const s = suffix ? suffixValue(entry.player, suffix).multiplier : 1;
+        const s = suffix ? effectiveSuffixValue(entry.player, suffix, titleOutlook).multiplier : 1;
         const factor = p * s;
         return { ...entry, score: entry.score * factor, total: entry.total * factor,
                  floor: entry.floor * factor, ceiling: entry.ceiling * factor };
       })
       .sort((a, b) => b.total - a.total);
-  }, [baseRanked, prefix, suffix]);
+  }, [baseRanked, prefix, suffix, titleOutlook]);
 
   const update = (index: number, patch: Partial<Emblem>) =>
     setBanners((current) => {
@@ -327,6 +334,8 @@ export default function FantasyCalculator({
         suffix={suffix}
         onPrefix={setPrefix}
         onSuffix={setSuffix}
+        outlookByTeam={playoffProjection.outlookByTeam ?? {}}
+        projecting={mapsSource !== "actual"}
       />
 
       <FantasySimulator

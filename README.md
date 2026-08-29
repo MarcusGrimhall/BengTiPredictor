@@ -180,6 +180,25 @@ Conditions are evaluated per game at fetch time and stored as a bitmask, so the
 trigger rate is measured over the games each entry actually played rather than
 assumed.
 
+**Two of them depend on who you pick, not just on the title.** The Underdog pays
+on a map your team *loses*, so it fires least on the strongest team — the one you
+most want. At TI 2026:
+
+```
+Team Spirit    fires 27%    Underdog worth +1.60%
+TEAM VISION    fires 43%                   +2.57%
+Team Falcons   fires 67%                   +4.00%
+Iron Wing      fires 80%                   +4.80%
+```
+
+The Clutch is the mirror image: it pays on the last possible game of a series,
+which happens when sides are evenly matched, so it is worth least to a team that
+sweeps. Both rates therefore come from *simulating the stage* rather than from a
+historical average — the bracket simulation already plays every series map by
+map, so it reports maps lost and deciding maps alongside maps played. For a
+stage that is already finished, the measured rate is used, because that is what
+happened.
+
 **Prefixes cannot be valued yet.** All eight fire on the hero's colour or theme
 group — red, blue, green, purple, yellow/brown, elemental, otherworldly,
 masked/cloaked — and that is Valve's classification. It is in no public API:
@@ -505,6 +524,8 @@ data/
 
 ## Commands
 
+Full reference with every flag: **[COMMANDS.md](COMMANDS.md)**.
+
 | Command | Does |
 | --- | --- |
 | `npm run leagues -- <term>` | Search league IDs |
@@ -513,6 +534,7 @@ data/
 | `npm run fetch -- <id> --min-games 5` | Raise the inclusion threshold |
 | `npm run fetch -- <id> --training` | Fetch an earlier event as model input only |
 | `npm run train -- <id>` | Merge training events into a pre-event sample |
+| `npm run simulate -- --help` | Simulate a roster: risk, runs, chances, lookback |
 | `npm run validate` | Grade the model against the fetched tournaments |
 | `npm run dev` / `build` / `start` | Next.js |
 

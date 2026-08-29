@@ -134,6 +134,68 @@ export function suffixValue(player: PlayerEntry, suffix: SuffixKey): {
 }
 
 /**
+ * Projected Suffix trigger rates for one team at the event being predicted.
+ *
+ * This is the difference between "how often did this fire in the past" and
+ * "how often will it fire here", and for two Suffixes it matters a lot:
+ *
+ *   Underdog fires on a map the team LOSES. Pick the strongest team and it
+ *   fires least - the bonus is worth least on exactly the entry you most want.
+ *   A historical loss rate from a weaker field flatters it badly.
+ *
+ *   Clutch fires on the last possible game of a series - a Bo3 reaching game 3.
+ *   That happens when sides are evenly matched, so it is worth most to teams in
+ *   close brackets and least to a team that sweeps.
+ *
+ * Both fall straight out of the bracket simulation, which already plays every
+ * series map by map. The other three measurable Suffixes (Lucky, Decisive,
+ * Patient) are properties of the game itself rather than of who is playing, so
+ * their measured rate carries over unchanged.
+ */
+export type TeamMatchOutlook = {
+  maps: number;
+  mapsLost: number;
+  decidingMaps: number;
+};
+
+export function projectedSuffixRate(
+  suffix: SuffixKey,
+  outlook: TeamMatchOutlook | undefined
+): number | null {
+  if (!outlook || outlook.maps <= 0) return null;
+  if (suffix === "underdog") return outlook.mapsLost / outlook.maps;
+  if (suffix === "clutch") return outlook.decidingMaps / outlook.maps;
+  return null; // not team-dependent - use the measured rate
+}
+
+/**
+ * The rate to actually use: projected where the team matters, measured where it
+ * does not, null where the condition cannot be derived at all.
+ */
+export function effectiveSuffixRate(
+  player: PlayerEntry,
+  suffix: SuffixKey,
+  outlookByTeam: Record<string, TeamMatchOutlook> = {}
+): { rate: number | null; source: "projected" | "measured" | "unknown" } {
+  const projected = projectedSuffixRate(suffix, outlookByTeam[player.teamName]);
+  if (projected !== null) return { rate: projected, source: "projected" };
+  const measured = suffixTriggerRate(player, suffix);
+  return measured === null
+    ? { rate: null, source: "unknown" }
+    : { rate: measured, source: "measured" };
+}
+
+export function effectiveSuffixValue(
+  player: PlayerEntry,
+  suffix: SuffixKey,
+  outlookByTeam: Record<string, TeamMatchOutlook> = {}
+): { rate: number | null; multiplier: number; bonus: number; source: "projected" | "measured" | "unknown" } {
+  const { bonus } = SUFFIXES[suffix];
+  const { rate, source } = effectiveSuffixRate(player, suffix, outlookByTeam);
+  return { rate, source, multiplier: rate === null ? 1 : 1 + (bonus / 100) * rate, bonus };
+}
+
+/**
  * Hero groups for the Prefixes.
  *
  * Valve classifies every hero into colour and theme groups for the Compendium.

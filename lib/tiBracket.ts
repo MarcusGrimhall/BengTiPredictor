@@ -16,6 +16,10 @@ export type MapsProjection = {
   mapsByTeam: Record<string, number>;
   seriesByTeam: Record<string, number>;
   championByTeam: Record<string, number>;
+  /** Probability of playing exactly k series, per team. Indexed by k. */
+  seriesDistribution: Record<string, number[]>;
+  /** Per-team map totals the conditional titles depend on. */
+  outlookByTeam: Record<string, { maps: number; mapsLost: number; decidingMaps: number }>;
   seeds: string[];
 };
 
@@ -34,7 +38,10 @@ export function seedByRating(teams: TeamEntry[], count: number): string[] {
 
 export function projectMainEvent(teams: TeamEntry[], runs = 20000): MapsProjection {
   const seeds = seedByRating(teams, TI_MAIN_EVENT_TEAMS);
-  const empty: MapsProjection = { mapsByTeam: {}, seriesByTeam: {}, championByTeam: {}, seeds };
+  const empty: MapsProjection = {
+    mapsByTeam: {}, seriesByTeam: {}, championByTeam: {},
+    seriesDistribution: {}, outlookByTeam: {}, seeds
+  };
   if (seeds.length < TI_MAIN_EVENT_TEAMS) return empty;
 
   const ratings: TeamRatings = Object.fromEntries(
@@ -46,10 +53,16 @@ export function projectMainEvent(teams: TeamEntry[], runs = 20000): MapsProjecti
   const mapsByTeam: Record<string, number> = {};
   const seriesByTeam: Record<string, number> = {};
   const championByTeam: Record<string, number> = {};
+  const seriesDistribution: Record<string, number[]> = {};
+  const outlookByTeam: Record<string, { maps: number; mapsLost: number; decidingMaps: number }> = {};
   for (const [team, outlook] of Object.entries(sim.teams)) {
+    outlookByTeam[team] = {
+      maps: outlook.maps, mapsLost: outlook.mapsLost, decidingMaps: outlook.decidingMaps
+    };
     mapsByTeam[team] = Number(outlook.maps.toFixed(2));
     seriesByTeam[team] = Number(outlook.series.toFixed(2));
     championByTeam[team] = outlook.champion;
+    seriesDistribution[team] = outlook.seriesDistribution;
   }
-  return { mapsByTeam, seriesByTeam, championByTeam, seeds };
+  return { mapsByTeam, seriesByTeam, championByTeam, seriesDistribution, outlookByTeam, seeds };
 }

@@ -3,8 +3,8 @@
 import { useMemo } from "react";
 import type { PlayerEntry } from "../lib/fantasy";
 import {
-  PREFIXES, SUFFIXES, PrefixKey, SuffixKey,
-  heroGroupsKnown, prefixValue, suffixValue
+  PREFIXES, SUFFIXES, PrefixKey, SuffixKey, TeamMatchOutlook,
+  effectiveSuffixValue, heroGroupsKnown, prefixValue
 } from "../lib/titles";
 
 const pct = (n: number) => `${(n * 100).toFixed(0)}%`;
@@ -18,27 +18,39 @@ const pct = (n: number) => `${(n * 100).toFixed(0)}%`;
  * this stage's data.
  */
 export default function TrainerTitles({
-  entries, prefix, suffix, onPrefix, onSuffix
+  entries, prefix, suffix, onPrefix, onSuffix, outlookByTeam, projecting
 }: {
   entries: PlayerEntry[];
   prefix: PrefixKey | null;
   suffix: SuffixKey | null;
   onPrefix: (key: PrefixKey | null) => void;
   onSuffix: (key: SuffixKey | null) => void;
+  /** Simulated map totals per team, when this stage is being projected. */
+  outlookByTeam: Record<string, TeamMatchOutlook>;
+  /** True when the stage has not been played, so rates come from the model. */
+  projecting: boolean;
 }) {
   // Rates are averaged across the field: most conditions are game-level and
   // identical for everyone, and the Underdog varies only by how often a team
   // loses. A per-entry rate is applied when the ranking is scored.
+  const outlook = projecting ? outlookByTeam : {};
   const suffixRows = useMemo(
     () => (Object.keys(SUFFIXES) as SuffixKey[]).map((key) => {
-      const values = entries.map((e) => suffixValue(e, key));
+      const values = entries.map((e) => effectiveSuffixValue(e, key, outlook));
       const known = values.filter((v) => v.rate !== null);
       const rate = known.length
         ? known.reduce((sum, v) => sum + (v.rate ?? 0), 0) / known.length
         : null;
-      return { key, ...SUFFIXES[key], rate, multiplier: rate === null ? null : 1 + (SUFFIXES[key].bonus / 100) * rate };
+      const spread = known.map((v) => v.rate as number).sort((a, b) => a - b);
+      return {
+        key, ...SUFFIXES[key], rate,
+        source: known[0]?.source ?? "unknown",
+        low: spread[0] ?? null,
+        high: spread[spread.length - 1] ?? null,
+        multiplier: rate === null ? null : 1 + (SUFFIXES[key].bonus / 100) * rate
+      };
     }).sort((a, b) => (b.multiplier ?? 0) - (a.multiplier ?? 0)),
-    [entries]
+    [entries, outlook]
   );
 
   const prefixRows = useMemo(
@@ -61,7 +73,11 @@ export default function TrainerTitles({
           <p className="faint" style={{ marginTop: 2 }}>
             One Prefix and one Suffix apply to the whole roster. Both are conditional,
             so what counts is the bonus multiplied by how often the condition actually
-            fires — measured here over this stage&rsquo;s games.
+            fires. <strong>Range</strong> is the spread across entries: the Underdog pays
+            on a loss, so it is worth least on the strongest team — the one you most want
+            to pick. {projecting
+              ? "Rates for the Underdog and the Clutch come from simulating this stage; the rest are measured from the games played."
+              : "This stage is finished, so every rate is what actually happened."}
           </p>
         </div>
         <button onClick={() => { onPrefix(null); onSuffix(null); }}>Clear</button>
@@ -76,6 +92,7 @@ export default function TrainerTitles({
                 <th></th><th>Suffix</th><th>Fires when</th>
                 <th style={{ textAlign: "right" }}>Bonus</th>
                 <th style={{ textAlign: "right" }}>Fires</th>
+                <th style={{ textAlign: "right" }}>Range</th>
                 <th style={{ textAlign: "right" }}>Worth</th>
               </tr>
             </thead>
@@ -101,6 +118,11 @@ export default function TrainerTitles({
                   <td className="num muted" style={{ textAlign: "right" }}>+{row.bonus}%</td>
                   <td className="num" style={{ textAlign: "right" }}>
                     {row.rate === null ? <span className="faint">unknown</span> : pct(row.rate)}
+                  </td>
+                  <td className="num faint" style={{ textAlign: "right" }}>
+                    {row.low === null || row.high === null || row.high - row.low < 0.01
+                      ? "—"
+                      : `${pct(row.low)}–${pct(row.high)}`}
                   </td>
                   <td className="num" style={{ textAlign: "right", fontWeight: 650, color: "var(--accent)" }}>
                     {row.multiplier === null ? <span className="faint">—</span> : `+${((row.multiplier - 1) * 100).toFixed(1)}%`}
