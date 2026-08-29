@@ -1,0 +1,101 @@
+[
+  {
+    "leagueId": 19719,
+    "leagueName": "The International 2026",
+    "fetchedAt": "2026-08-29T14:32:27.227Z",
+    "matchesUsed": 147,
+    "teams": 16,
+    "players": 80,
+    "training": false
+  },
+  {
+    "leagueId": 19696,
+    "leagueName": "DreamLeague Season 29",
+    "fetchedAt": "2026-08-29T14:32:21.729Z",
+    "matchesUsed": 185,
+    "teams": 17,
+    "players": 80,
+    "training": true
+  },
+  {
+    "leagueId": 19543,
+    "leagueName": "PGL Wallachia 2026 Season 8",
+    "fetchedAt": "2026-08-29T14:32:15.547Z",
+    "matchesUsed": 119,
+    "teams": 16,
+    "players": 80,
+    "training": true
+  },
+  {
+    "leagueId": 19435,
+    "leagueName": "PGL Wallachia 2026 Season 7",
+    "fetchedAt": "2026-08-29T14:32:09.748Z",
+    "matchesUsed": 124,
+    "teams": 16,
+    "players": 81,
+    "training": true
+  },
+  {
+    "leagueId": 19422,
+    "leagueName": "ESL One Birmingham 2026",
+    "fetchedAt": "2026-08-29T14:32:13.412Z",
+    "matchesUsed": 142,
+    "teams": 16,
+    "players": 80,
+    "training": true
+  },
+  {
+    "leagueId": 19269,
+    "leagueName": "DreamLeague Season 28",
+    "fetchedAt": "2026-08-29T14:32:07.480Z",
+    "matchesUsed": 195,
+    "teams": 16,
+    "players": 83,
+    "training": true
+  },
+  {
+    "leagueId": 19239,
+    "leagueName": "FISSURE Universe Episode 8",
+    "fetchedAt": "2026-08-29T14:32:03.828Z",
+    "matchesUsed": 96,
+    "teams": 21,
+    "players": 106,
+    "training": true
+  },
+  {
+    "leagueId": 19101,
+    "leagueName": "BLAST SLAM VII",
+    "fetchedAt": "2026-08-29T14:32:17.963Z",
+    "matchesUsed": 102,
+    "teams": 12,
+    "players": 61,
+    "training": true
+  },
+  {
+    "leagueId": 19099,
+    "leagueName": "BLAST SLAM VI",
+    "fetchedAt": "2026-08-29T14:32:01.662Z",
+    "matchesUsed": 100,
+    "teams": 12,
+    "players": 61,
+    "training": true
+  },
+  {
+    "leagueId": 18988,
+    "leagueName": "DreamLeague Season 27",
+    "fetchedAt": "2026-08-29T14:31:59.498Z",
+    "matchesUsed": 206,
+    "teams": 24,
+    "players": 121,
+    "training": true
+  },
+  {
+    "leagueId": 18324,
+    "leagueName": "The International 2025",
+    "fetchedAt": "2026-08-29T14:32:24.511Z",
+    "matchesUsed": 144,
+    "teams": 16,
+    "players": 80,
+    "training": false
+  }
+]
