@@ -1,5 +1,77 @@
 [
   {
+    "leagueId": 20009,
+    "leagueName": "1win Essence II",
+    "fetchedAt": "2026-08-30T15:43:30.157Z",
+    "matchesUsed": 60,
+    "teams": 10,
+    "players": 50,
+    "training": true
+  },
+  {
+    "leagueId": 19917,
+    "leagueName": "The Games of the Future 2026",
+    "fetchedAt": "2026-08-30T15:48:54.785Z",
+    "matchesUsed": 72,
+    "teams": 19,
+    "players": 80,
+    "training": true
+  },
+  {
+    "leagueId": 19894,
+    "leagueName": "The International 2026 - Regional Qualifier Southeast Asia",
+    "fetchedAt": "2026-08-30T15:46:10.246Z",
+    "matchesUsed": 44,
+    "teams": 10,
+    "players": 50,
+    "training": true
+  },
+  {
+    "leagueId": 19893,
+    "leagueName": "The International 2026 - Regional Qualifier China",
+    "fetchedAt": "2026-08-30T15:45:18.368Z",
+    "matchesUsed": 29,
+    "teams": 8,
+    "players": 41,
+    "training": true
+  },
+  {
+    "leagueId": 19892,
+    "leagueName": "The International 2026 - Regional Qualifier Europe",
+    "fetchedAt": "2026-08-30T15:44:44.125Z",
+    "matchesUsed": 63,
+    "teams": 16,
+    "players": 80,
+    "training": true
+  },
+  {
+    "leagueId": 19891,
+    "leagueName": "The International 2026 - Regional Qualifier South America",
+    "fetchedAt": "2026-08-30T15:47:02.933Z",
+    "matchesUsed": 39,
+    "teams": 10,
+    "players": 50,
+    "training": true
+  },
+  {
+    "leagueId": 19890,
+    "leagueName": "The International 2026 - Regional Qualifier North America",
+    "fetchedAt": "2026-08-30T15:47:23.115Z",
+    "matchesUsed": 13,
+    "teams": 4,
+    "players": 20,
+    "training": true
+  },
+  {
+    "leagueId": 19785,
+    "leagueName": "Esports World Cup 2026",
+    "fetchedAt": "2026-08-30T15:41:01.854Z",
+    "matchesUsed": 157,
+    "teams": 24,
+    "players": 120,
+    "training": true
+  },
+  {
     "leagueId": 19719,
     "leagueName": "The International 2026",
     "fetchedAt": "2026-08-30T13:05:02.644Z",
