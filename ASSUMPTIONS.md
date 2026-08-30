@@ -15,7 +15,11 @@ wrong, the numbers that depend on it are wrong.
 | One stat per banner, never repeated | You |
 | Core and Support are same-team pairs, Mid is one player | Reference project, confirmed by you |
 | A pair is the **average** of its two players | You |
-| A series is the **sum** of its two best games | You, from a worked example |
+| A series is the **sum** of its two best games | You, and the in-game rules |
+| A period pays only the **best single series** | In-game rules |
+| The same three options serve every banner; you choose which to apply one to | In-game rules |
+| Using an option **replaces all three** | In-game rules |
+| Titles are free to change and cost no rerolls | In-game rules |
 | Group stage 3 emblems / 40 tokens, playoffs 5 / 30 | You |
 | Tokens are one shared pool across all three banners | You |
 | Three random options per deal, ~40 deals | You |
@@ -65,3 +69,10 @@ Things I asserted that turned out to be invented or wrong, and have been fixed:
 - **A quality reroll could return the tier it replaced** — it cannot.
 - **Top teams ranked by pre-event win rate** — a win rate ignores who you
   played. Now an Elo built from the pre-event matches.
+- **A period banks every series** — it banks only the best one. This inflated
+  every score on the site by three to five times, and was the largest error in
+  the project.
+- **Reroll options are tied to a banner** — the same three serve all three
+  banners, and you choose which to apply one to.
+- **Declining waits for a better deal** — the options only change when one is
+  used, so declining means stopping.

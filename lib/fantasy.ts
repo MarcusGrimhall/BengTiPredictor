@@ -196,6 +196,64 @@ export function scoreDistribution(player: PlayerEntry, emblems: Emblem[]): numbe
   return gameScores(player, emblems).sort((a, b) => a - b);
 }
 
+/**
+ * What a role banks over a whole period.
+ *
+ * Only the **single best series** counts. Playing four series does not bank
+ * four series' worth - it gives you four attempts at one number, and the
+ * highest of them is your score. That makes depth worth far less than a
+ * per-series total would suggest: a team playing six series instead of three
+ * does not double anything, it gets three more draws at the same distribution.
+ *
+ * With `chances`, this returns the expected best of that many draws from the
+ * player's own series scores, which is what a projection needs. Without it, the
+ * best series they actually had.
+ */
+export function periodScore(
+  player: PlayerEntry,
+  emblems: Emblem[],
+  chances?: number
+): number {
+  const series = matchScores(player, emblems);
+  if (!series.length) return 0;
+  if (chances === undefined) return series[series.length - 1];
+  return expectedBestOf(series, chances);
+}
+
+/**
+ * Expected maximum of `n` draws from a sorted sample.
+ *
+ * P(max <= x) = P(one draw <= x)^n, so for the i-th of m sorted values the
+ * chance it is the maximum is (i/m)^n - ((i-1)/m)^n. Exact for the sample,
+ * and it is the same order-statistics idea the reroll planner uses.
+ */
+export function expectedBestOf(sortedAscending: number[], n: number): number {
+  const m = sortedAscending.length;
+  if (!m) return 0;
+  if (n <= 1) return sortedAscending.reduce((a, b) => a + b, 0) / m;
+  let total = 0;
+  for (let i = 1; i <= m; i += 1) {
+    const weight = (i / m) ** n - ((i - 1) / m) ** n;
+    total += weight * sortedAscending[i - 1];
+  }
+  return total;
+}
+
+/** Percentile of the best-of-n distribution, for the risk slider. */
+export function periodPercentile(
+  player: PlayerEntry,
+  emblems: Emblem[],
+  chances: number,
+  p: number
+): number {
+  const series = matchScores(player, emblems);
+  if (!series.length) return 0;
+  const m = series.length;
+  // Invert P(max <= x) = (rank/m)^n.
+  const target = Math.pow(p / 100, 1 / Math.max(1, chances));
+  return percentile(series, target * 100);
+}
+
 /** How many series the player's sample covers. */
 export function seriesCount(player: PlayerEntry): number {
   const series = player.gameSeries;
@@ -230,16 +288,16 @@ export function riskToPercentile(risk: number): number {
 
 export type Ranked = {
   player: PlayerEntry;
-  /** Score at the selected risk percentile, per match (two best games). */
+  /** Score at the selected risk percentile - the period score, not per series. */
   score: number;
-  /** Mean per-match score, for reference. */
+  /** Expected best series, the neutral estimate. */
   mean: number;
   median: number;
   floor: number;    // 10th percentile
   ceiling: number;  // 95th percentile
-  /** Expected series the team plays in this stage, 1 if unknown. */
+  /** Series the team plays - attempts at a high one, not a multiplier. */
   series: number;
-  /** score x series: what the entry is projected to bank over the stage. */
+  /** What the entry banks over the period. Equals `score`. */
   total: number;
   contributions: Contribution[];
 };
@@ -247,14 +305,14 @@ export type Ranked = {
 /**
  * Ranks the entries that can actually be picked for a role.
  *
- * Values are **per match**, not per map, and the projection multiplies by
- * expected series. That is the unit fantasy pays on.
+ * A period pays out the entry's **best single series**, so there is no
+ * multiplier here. `seriesByTeam` says how many attempts the team gets at a
+ * high one, and more attempts help - but as the expected maximum of more draws,
+ * which grows slowly, not as a sum.
  *
- * `strengthByTeam` optionally scales a team's per-match score for the quality
- * of the field it is entering. Past numbers were earned against whoever the
- * player happened to draw; a stronger side facing the same field scores a
- * little more. The effect is measured rather than assumed and it is small -
- * see lib/strength.ts - so it moves the board less than who the player is.
+ * `strengthByTeam` optionally scales a team's scoring for the quality of the
+ * field it is entering. Measured rather than assumed, and small - see
+ * lib/strength.ts.
  */
 export function rankPlayers(
   players: PlayerEntry[],
@@ -271,17 +329,23 @@ export function rankPlayers(
       const raw = matchScores(player, emblems);
       const strength = strengthByTeam[player.teamName] ?? 1;
       const dist = strength === 1 ? raw : raw.map((x) => x * strength);
-      const score = dist.length ? percentile(dist, p) : scorePlayer(player, emblems) * strength;
-      const series = seriesByTeam[player.teamName] ?? 1;
+      const series = Math.max(1, seriesByTeam[player.teamName] ?? dist.length ?? 1);
+
+      // The period pays the best series, so every figure is a percentile of the
+      // best-of-`series` distribution rather than of one series.
+      const at = (q: number) =>
+        dist.length ? percentile(dist, Math.pow(q / 100, 1 / series) * 100) : 0;
+      const score = dist.length ? at(p) : scorePlayer(player, emblems) * strength;
+
       return {
         player,
         score,
-        mean: dist.length ? dist.reduce((a, b) => a + b, 0) / dist.length : score,
-        median: percentile(dist, 50),
-        floor: percentile(dist, 10),
-        ceiling: percentile(dist, 95),
+        mean: expectedBestOf(dist, series),
+        median: at(50),
+        floor: at(10),
+        ceiling: at(95),
         series,
-        total: score * series,
+        total: score,
         contributions: contributions(player, emblems)
       };
     })

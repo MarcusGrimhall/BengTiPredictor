@@ -147,13 +147,44 @@ game 3   Satanic  425, Noticed  229   pair average   327.0   dropped
 all four ways of combining, so the convention can be checked against something
 seen in game.
 
-A third game adds nothing unless it beats one of the first two, so paying a team
-for playing one would be wrong. Scoring per map and multiplying by expected maps
-does exactly that, so the model counts **series** instead:
+### And a period pays only your best series
 
 ```
-stage total = (score at your risk level, per match) × (expected series)
+Om en roll deltar i mer än en serie under en period,
+används serien med högst poäng.
 ```
+
+Playing four series does not bank four series' worth. It gives you **four
+attempts at one number**, and the highest of them is your score for the period.
+
+So there is no multiplier anywhere in the projection. Depth still helps, but as
+the expected maximum of more draws — which grows slowly — not as a sum. A team
+playing six series instead of three does not double anything.
+
+This was the single biggest error in the project. Multiplying a per-series score
+by expected series inflated every figure by three to five times; a roster that
+should read around 100,000 read 400,000.
+
+Checked against a known number: the best group stage roster in the world at
+TI 2026 scored **106,966**. A perfect-hindsight banner — best stats, every emblem
+tier V — comes to **126,731** under this rule. Nobody had a perfect banner, so
+84% of the theoretical maximum is where the real best should sit.
+
+### What that costs the model
+
+Predicting a maximum is much harder than predicting a total. One good night
+decides a period, and one good night is largely luck. Fitted before TI 2026 and
+graded on it:
+
+```
+                      against a per-series total     against the real rule
+rank correlation               0.78                          0.20
+```
+
+The picks still beat an average pick more often than not, and the average pick
+lands around the 55th percentile of the field. But the honest reading is that a
+best-of is substantially luck, and no amount of prior form changes that. The
+earlier 0.78 was not a better model — it was the wrong target.
 
 `matchScores()` in `lib/fantasy.ts` groups a player's games by series id and
 sums the top two of each. That is the distribution the risk slider

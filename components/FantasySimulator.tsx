@@ -76,7 +76,7 @@ export default function FantasySimulator({
   // left" were the same number shown twice.
   const [rerolls, setRerolls] = useState<number>(STAGE_TOKENS[stage]);
   const [chosen, setChosen] = useState<string[]>([]);
-  const [offerRole, setOfferRole] = useState<Role>("core");
+
   // How many times each offer is rolled. More is tighter and slower; the
   // numbers stop moving meaningfully somewhere around 2,000.
   const [results, setResults] = useState<OfferPlan | null>(null);
@@ -129,21 +129,27 @@ export default function FantasySimulator({
   );
   const rosterTotal = ROLES.reduce((sum, r) => sum + roleValues[r], 0);
 
-  const key = (role: Role, id: string) => `${role}:${id}`;
-  const toggle = (k: string) =>
-    setChosen((now) => (now.includes(k) ? now.filter((x) => x !== k) : [...now, k]));
+  /**
+   * One deal serves all three banners, so the options are a single list rather
+   * than one per role. An option that only exists on some banners - "all blue
+   * emblems" has no meaning on a Core banner - can still be dealt; it just
+   * cannot be applied there.
+   */
+  const shared = useMemo(() => {
+    const seen = new Map<string, ReturnType<typeof actionCatalogue>[number]>();
+    for (const role of ROLES) for (const a of catalogue[role]) if (!seen.has(a.id)) seen.set(a.id, a);
+    return [...seen.values()];
+  }, [catalogue]);
+
+  const toggle = (id: string) =>
+    setChosen((now) => (now.includes(id) ? now.filter((x) => x !== id) : [...now, id]));
 
   const run = () => {
-    const offers: RosterOffer[] = [];
-    for (const role of ROLES) {
-      for (const action of catalogue[role]) {
-        if (chosen.includes(key(role, action.id))) offers.push({ role, action });
-      }
-    }
-    if (!offers.length) return;
+    const options = shared.filter((a) => chosen.includes(a.id));
+    if (!options.length) return;
     setBusy(true);
     setTimeout(() => {
-      setResults(planOffers(staged, offers, catalogue, valueOf, rerolls, rerolls, FUTURES));
+      setResults(planOffers(staged, options, shared, catalogue, valueOf, rerolls, FUTURES));
       setBusy(false);
     }, 0);
   };
@@ -251,33 +257,19 @@ export default function FantasySimulator({
           </div>
         </div>
         <p className="faint">
-          Tick the <strong>three options the game just dealt you</strong>, on whichever
-          banners they landed. The question is not which is best in the abstract — it is
-          whether any of them beats declining and seeing the next deal — and with{" "}
-          {rerolls} rerolls left that bar is high.
+          Tick the <strong>three options the game is showing you</strong>. They are the
+          same three for every banner, so the answer is a pair: which option, and which
+          banner to spend it on. Using one replaces all three, so declining means stopping
+          rather than waiting.
         </p>
-        <div className="pill-row" role="tablist" aria-label="Offer banner">
-          {ROLES.map((r) => (
-            <button key={r} className="pill" role="tab" aria-pressed={offerRole === r}
-              onClick={() => setOfferRole(r)}>
-              {ROLE_LABELS[r]}
-              {chosen.some((k) => k.startsWith(`${r}:`)) && (
-                <span className="faint"> · {chosen.filter((k) => k.startsWith(`${r}:`)).length}</span>
-              )}
-            </button>
-          ))}
-        </div>
         <div className="option-grid">
-          {catalogue[offerRole].map((action) => {
-            const k = key(offerRole, action.id);
-            return (
-              <label key={k} className={`option-chip ${chosen.includes(k) ? "on" : ""}`}>
-                <input type="checkbox" checked={chosen.includes(k)} onChange={() => toggle(k)} />
-                <span>{action.label}</span>
-                <em className="num">{action.cost}t</em>
-              </label>
-            );
-          })}
+          {shared.map((action) => (
+            <label key={action.id} className={`option-chip ${chosen.includes(action.id) ? "on" : ""}`}>
+              <input type="checkbox" checked={chosen.includes(action.id)}
+                onChange={() => toggle(action.id)} />
+              <span>{action.label}</span>
+            </label>
+          ))}
         </div>
       </div>
 
@@ -367,16 +359,15 @@ function Results({
         </div>
         <div className="stat-tile">
           <small>
-            If you decline{" "}
-            <Info title="If you decline">
-              What the roster is worth if you take none of these and play your remaining{" "}
-              {plan.rounds} rerolls out. It is far above what you hold now, because more
-              offers are coming and some of them will be good. That is the number every
-              offer has to beat.
+            If you stop{" "}
+            <Info title="If you stop">
+              What the roster is worth if you use none of these. The three options only
+              change when one is used, so declining is not waiting for something better —
+              it is stopping. That makes this simply what you already hold.
             </Info>
           </small>
           <b>{fmt(plan.skipValue)}</b>
-          <span className="faint">over {plan.rounds} more rerolls</span>
+          <span className="faint">{plan.rounds} rerolls unspent</span>
         </div>
         <div className="stat-tile">
           <small>Verdict</small>
@@ -384,7 +375,7 @@ function Results({
             {worthTaking ? "Take one" : "Decline"}
           </b>
           <span className="faint">
-            {worthTaking ? `${signed(best.edge)} over waiting` : "none of them beat waiting"}
+            {worthTaking ? `${signed(best.edge)} over stopping` : "none of them beat what you hold"}
           </span>
         </div>
       </div>
@@ -393,19 +384,19 @@ function Results({
         <table>
           <thead>
             <tr>
-              <th>Banner</th><th>Offer</th>
+              <th>Option</th><th>Apply to</th>
               <th style={{ textAlign: "right" }}>
                 If you take it <Info title="If you take it" align="right">
-                  What the roster ends up worth if you take this now and then play the
-                  remaining deals out. It already includes everything you expect to gain
-                  from future offers, which is why it is close to the decline figure.
+                  Where the roster ends up if you spend a reroll on this pair and then keep
+                  going with the {plan.rounds - 1} you have left, taking whatever the
+                  reshuffles offer while it still helps.
                 </Info>
               </th>
               <th style={{ textAlign: "right" }}>
-                Against waiting <Info title="Against waiting" align="right">
-                  Taking it minus declining. Positive means this offer is better than the
-                  next deal is expected to be. Small numbers are normal — one offer out of
-                  many rarely decides a card.
+                Against stopping <Info title="Against stopping" align="right">
+                  Taking it minus keeping what you hold. Using a reroll is also the only
+                  way to see three new options, so a pair can be worth taking for the
+                  reshuffle even when the option itself is unremarkable.
                 </Info>
               </th>
               <th></th>
@@ -414,13 +405,13 @@ function Results({
           <tbody>
             {plan.decisions.map((d, index) => (
               <tr key={`${d.role}:${d.action.id}`}>
-                <td className="muted">{ROLE_LABELS[d.role]}</td>
                 <td>
                   {index === 0 && d.edge > 0 && (
                     <span className="tag" style={{ marginRight: 6 }}>best</span>
                   )}
                   {d.action.label}
                 </td>
+                <td className="muted">{ROLE_LABELS[d.role]}</td>
                 <td className="num" style={{ textAlign: "right" }}>{fmt(d.takeValue)}</td>
                 <td className="num" style={{
                   textAlign: "right", fontWeight: 650,
@@ -437,15 +428,12 @@ function Results({
               </tr>
             ))}
             <tr className="row-skip">
+              <td>Stop — keep what you have</td>
               <td className="muted">—</td>
-              <td>Skip — wait for the next deal</td>
               <td className="num" style={{ textAlign: "right" }}>{fmt(plan.skipValue)}</td>
               <td className="num muted" style={{ textAlign: "right" }}>—</td>
               <td style={{ textAlign: "right" }}>
-                <button onClick={onSpend} disabled={rerolls <= 0}
-                  title="Declining still uses up one of your rerolls">
-                  Take
-                </button>
+                <span className="faint">costs nothing</span>
               </td>
             </tr>
           </tbody>
@@ -455,26 +443,26 @@ function Results({
       <div className="verdict">
         {worthTaking ? (
           <>
-            <strong>Take &ldquo;{best.action.label}&rdquo;</strong> on{" "}
+            <strong>Take &ldquo;{best.action.label}&rdquo;</strong> and apply it to{" "}
             <strong>{ROLE_LABELS[best.role]}</strong> — worth {signed(best.edge)} against
-            declining and waiting for the next deal.
+            keeping what you hold.
           </>
         ) : (
           <>
-            <strong>Decline all three.</strong> With {plan.rounds} rerolls still to come,
-            waiting is worth {fmt(plan.skipValue)} and none of these beats it. Skipping
-            costs no tokens.
+            <strong>Stop here.</strong> None of the three improves any banner enough to be
+            worth a reroll, and spending one is the only way to see different options — so
+            there is nothing to wait for. Your {plan.rounds} remaining rerolls are better
+            unspent than spent making a banner worse.
           </>
         )}
       </div>
 
       <p className="faint" style={{ maxWidth: 740 }}>
-        Every figure here already assumes you keep playing afterwards, which is why they
-        cluster: one offer out of {plan.rounds} rarely decides a card. The value of
-        declining is simulated over {plan.runs} random futures per option, because what
-        comes up next genuinely is random — there is nothing to enumerate. The play-out
-        policy is greedy, so the decline figure is a floor: a perfect player would
-        sometimes pass on a small gain to keep tokens, and do slightly better than shown.
+        Each figure assumes you keep rerolling afterwards while it still helps, over{" "}
+        {plan.runs} simulated futures — what the reshuffles turn up is genuinely random,
+        so there is nothing to enumerate. The play-out never pays a small loss just to
+        reshuffle, so these are a floor: a perfect player would sometimes burn a reroll on
+        the least-bad option to see three new ones, and finish slightly ahead of this.
       </p>
     </div>
   );

@@ -60,8 +60,15 @@ const series = {
   playoffs: actualSeriesByStage(league, "playoffs")
 };
 
-/** What an entry actually banked at TI under a given banner. */
-const banked = (entry, banner) => matchScores(entry, banner).reduce((a, b) => a + b, 0);
+/**
+ * What an entry actually banked at TI under a given banner.
+ *
+ * The best single series, since that is what a period pays.
+ */
+const banked = (entry, banner) => {
+  const series = matchScores(entry, banner);
+  return series.length ? series[series.length - 1] : 0;
+};
 
 /** A distinct-stat banner from a fixed slot ordering. */
 function bannerOf(role, slots, order = 0) {
