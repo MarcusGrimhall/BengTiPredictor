@@ -629,6 +629,56 @@ Full reference with every flag: **[COMMANDS.md](COMMANDS.md)**.
 Set `OPENDOTA_API_KEY` in the environment for a paid key — the script speeds up
 automatically.
 
+## What the backtest says
+
+`npm run study` grades pre-TI decisions against what happened at TI 2026. Some
+of it is not obvious.
+
+**Traits are not worth what the tooltip implies.** On a tier III core banner:
+
+```
+vampiric     +12.4%   best on the last slot
+unique        +7.9%
+benevolent    +9.2%   best next to the biggest earners
+fractal        0.0%   alone
+friendly       0.0%   alone
+```
+
+Fractal and Friendly read zero because one of either never meets its own
+condition. As a plan they are the strongest things on the board:
+
+```
+three Friendly                  +32.6%
+Fractal + five different tiers   +8.8%
+two Unique instead of one        −6.4%   they cancel each other
+```
+
+Three Friendly beats every single trait by a factor of three. It also costs the
+most tokens to build, which is exactly what the reroll planner is for.
+
+**Tiers are worth more than traits.** A whole banner at tier V banks 127% more
+than the same banner at tier I. One emblem from III to V is worth +11% to +15%
+depending on the slot — more than any single trait except Vampiric.
+
+**Risk 0 was actively bad.** The model's pick at each risk level, graded on what
+it actually banked in the playoffs:
+
+```
+risk    core        mid         support
+   0    1 of 8      5 of 8      6 of 8
+  50    1 of 8      1 of 8      3 of 8
+  86    1 of 8      1 of 8      3 of 8
+ 100    1 of 8      1 of 8      3 of 8
+```
+
+Playing for the floor cost two of three roles. Risk 50–86 was the range, and
+risk 100 slightly hurt the core pick.
+
+**Everyone scores more at TI than before it.** Every stat came in above its
+pre-TI level — last hits +52%, towers +37%, GPM +33%. Longer games and a higher
+standard, so absolute pre-event projections read low across the board. The
+*ranking* still holds, which is what the pick depends on.
+
 ## Sharing a setup
 
 Everything the calculator holds — three banners, risk, stage, both titles — is

@@ -18,6 +18,7 @@ Run from the project root. Nothing here talks to the internet except
 | `npm run fetch -- <id> --training` | Fetch an earlier event as model input only |
 | `npm run train -- <id>` | Merge training events into a pre-event sample |
 | `npm run simulate -- --help` | Simulate a roster (all options below) |
+| `npm run study` | Backtest: what actually won fantasy at the last event |
 | `npm run validate` | Grade the model against finished tournaments |
 
 ---
@@ -123,6 +124,28 @@ npm run simulate -- --chances 5 --json > out.json
 Two sources of randomness are simulated: how many series the team plays (drawn
 from the bracket simulation, not fixed at its average) and how the entry scores
 in each (resampled from its own observed matches, so the tail keeps its shape).
+
+---
+
+## What actually wins
+
+```bash
+npm run study
+```
+
+A backtest, not a fit. Everything on the left of each comparison is decided from
+data that existed **before** the event; everything on the right is what happened.
+Nothing here tunes a parameter — the point is that the reasoning transfers to the
+next event rather than to this one.
+
+Six sections:
+
+1. **Banner vs entry** — how much the emblems matter against picking the right duo
+2. **Stats** — which paid at the event, and whether the pre-event data knew
+3. **Traits** — what each is worth on a real banner, in every slot
+4. **Tiers** — what a quality upgrade actually buys
+5. **Suffixes** — trigger rates graded on what happened
+6. **Risk** — what the model's pick at each risk level actually banked
 
 ---
 

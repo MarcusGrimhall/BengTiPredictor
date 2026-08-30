@@ -292,3 +292,9 @@ footer.site-footer {
   color: var(--accent); font: inherit; cursor: pointer; text-decoration: underline;
 }
 .link-button:hover { border: none; }
+
+/* Dense matrix: tight cells, sticky first column so names stay visible. */
+.grid-table { font-size: 0.86rem; }
+.grid-table th, .grid-table td { padding: 6px 9px; }
+.grid-table tbody td:first-child { position: sticky; left: 0; background: var(--bg-card); }
+.grid-table tbody tr:hover td:first-child { background: var(--bg-inset); }

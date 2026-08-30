@@ -11,7 +11,8 @@
     "leagues": "node scripts/list-leagues.mjs",
     "validate": "tsc -p tsconfig.validate.json && node scripts/validate.mjs",
     "train": "node scripts/build-training.mjs",
-    "simulate": "tsc -p tsconfig.validate.json && node scripts/simulate.mjs"
+    "simulate": "tsc -p tsconfig.validate.json && node scripts/simulate.mjs",
+    "study": "tsc -p tsconfig.validate.json && node scripts/study.mjs"
   },
   "dependencies": {
     "next": "^16.3.3",

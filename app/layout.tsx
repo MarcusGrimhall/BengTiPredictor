@@ -23,6 +23,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               <Link href="/">Overview</Link>
               <Link href="/fantasy">Fantasy</Link>
               <Link href="/bracket">Bracket</Link>
+              <Link href="/information">Information</Link>
               <Link href="/method">Method</Link>
             </nav>
           </div>
