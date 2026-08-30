@@ -175,6 +175,90 @@ export function applyAction(
   return next;
 }
 
+/**
+ * Every outcome a reroll can produce, with its exact probability.
+ *
+ * Rerolls have small outcome spaces. Rerolling one emblem's quality has five
+ * outcomes; its stat has at most five; its trait six. Even "all three red
+ * qualities" is 5^3 = 125. So the whole distribution can be enumerated rather
+ * than sampled, which makes the numbers exact instead of approximate and means
+ * the page is doing arithmetic rather than running a simulation.
+ *
+ * Returns null when the space is too large to enumerate, and the caller falls
+ * back to sampling.
+ */
+export function enumerateOutcomes(
+  banner: Emblem[],
+  role: Role,
+  action: RerollAction,
+  limit = 4096
+): Array<{ banner: Emblem[]; probability: number }> | null {
+  if (action.target === "qualityUp" || action.target === "qualityUpTwoDownOne") {
+    return null; // these pick slots at random; enumeration would be a rewrite
+  }
+
+  const slots = action.color === "any"
+    ? banner.map((_, i) => i)
+    : banner.map((_, i) => i).filter((i) => BANNER_SLOTS[role][i] === action.color);
+  if (!slots.length) return null;
+
+  let targets: number[];
+  switch (action.scope) {
+    case "all": targets = slots; break;
+    case "first": targets = [slots[0]]; break;
+    case "last": targets = [slots[slots.length - 1]]; break;
+    default: targets = slots; break; // "random": one of these, each equally likely
+  }
+
+  /** Possible values for one slot, with probabilities. */
+  const optionsFor = (slot: number, sofar: Emblem[]): Array<[Emblem, number]> => {
+    if (action.target === "tier") {
+      const total = Object.values(TIER_WEIGHTS).reduce((a, b) => a + b, 0);
+      return TIERS_ORDER.map((tier) => [{ ...sofar[slot], tier }, TIER_WEIGHTS[tier] / total]);
+    }
+    if (action.target === "trait") {
+      const total = Object.values(TRAIT_WEIGHTS).reduce((a, b) => a + b, 0);
+      return (Object.keys(TRAIT_WEIGHTS) as Trait[])
+        .map((trait) => [{ ...sofar[slot], trait }, TRAIT_WEIGHTS[trait] / total]);
+    }
+    const taken = new Set(sofar.filter((_, i) => i !== slot).map((e) => e.stat));
+    const pool = statsForColor(BANNER_SLOTS[role][slot]).filter((x) => !taken.has(x));
+    if (!pool.length) return [[sofar[slot], 1]];
+    return pool.map((stat) => [{ ...sofar[slot], stat }, 1 / pool.length]);
+  };
+
+  const out: Array<{ banner: Emblem[]; probability: number }> = [];
+
+  /** "random" rerolls one of the eligible slots, chosen uniformly. */
+  const slotGroups: Array<{ slots: number[]; weight: number }> =
+    action.scope === "random"
+      ? targets.map((i) => ({ slots: [i], weight: 1 / targets.length }))
+      : [{ slots: targets, weight: 1 }];
+
+  for (const group of slotGroups) {
+    // Cartesian product over the slots this branch rerolls.
+    let states: Array<{ banner: Emblem[]; probability: number }> =
+      [{ banner: banner.map((e) => ({ ...e })), probability: group.weight }];
+
+    for (const slot of group.slots) {
+      const next: typeof states = [];
+      for (const state of states) {
+        for (const [emblem, p] of optionsFor(slot, state.banner)) {
+          const copy = state.banner.map((e) => ({ ...e }));
+          copy[slot] = emblem;
+          next.push({ banner: copy, probability: state.probability * p });
+        }
+      }
+      states = next;
+      if (states.length > limit) return null;
+    }
+    out.push(...states);
+    if (out.length > limit) return null;
+  }
+
+  return out;
+}
+
 export type ActionOutcome = {
   action: RerollAction;
   /** Mean banner value one roll from now. */
@@ -188,7 +272,10 @@ export type ActionOutcome = {
   delta: number;
   /** delta per token spent. */
   perToken: number;
+  /** Sampling runs used. Zero when the outcome space was enumerated exactly. */
   runs: number;
+  /** True when every outcome was enumerated rather than sampled. */
+  exact: boolean;
 
   // --- planning all the way to the end of the token budget ---
 
@@ -272,17 +359,32 @@ export function evaluateAction(
   tokens: number = STAGE_TOKENS.playoffs,
   seed = "reroll"
 ): ActionOutcome {
-  const random = seededRandom(`${seed}::${action.id}::${JSON.stringify(banner)}::${runs}`);
   const current = valueOf(banner);
   const results: number[] = [];
   let better = 0;
 
-  for (let i = 0; i < runs; i += 1) {
-    const rolled = applyAction(banner, role, action, random);
-    // Should never happen, but a duplicate banner is worthless if it does.
-    const value = hasDuplicateStats(rolled) ? current : valueOf(rolled);
-    results.push(value);
-    if (value > current) better += 1;
+  // Exact where the outcome space allows it, sampled only where it does not.
+  const exact = enumerateOutcomes(banner, role, action);
+  if (exact) {
+    // Weighted outcomes are expanded into a flat sample so every downstream
+    // percentile and stopping curve works unchanged. 2000 slots is finer than
+    // any probability the tables produce.
+    const GRAIN = 2000;
+    for (const { banner: rolled, probability } of exact) {
+      const value = hasDuplicateStats(rolled) ? current : valueOf(rolled);
+      const copies = Math.max(1, Math.round(probability * GRAIN));
+      for (let i = 0; i < copies; i += 1) results.push(value);
+      if (value > current) better += copies;
+    }
+  } else {
+    const random = seededRandom(`${seed}::${action.id}::${JSON.stringify(banner)}::${runs}`);
+    for (let i = 0; i < runs; i += 1) {
+      const rolled = applyAction(banner, role, action, random);
+      // Should never happen, but a duplicate banner is worthless if it does.
+      const value = hasDuplicateStats(rolled) ? current : valueOf(rolled);
+      results.push(value);
+      if (value > current) better += 1;
+    }
   }
 
   results.sort((a, b) => a - b);
@@ -300,10 +402,11 @@ export function evaluateAction(
     median: at(50),
     p10: at(10),
     p90: at(90),
-    improveChance: better / runs,
+    improveChance: better / results.length,
     delta: mean - current,
     perToken: (mean - current) / Math.max(1, action.cost),
-    runs,
+    runs: exact ? 0 : runs,
+    exact: Boolean(exact),
     attempts,
     curve,
     planValue,
@@ -391,7 +494,7 @@ export function compareRosterOffers(
       rows.push({
         action, role, mean: current[role], median: current[role],
         p10: current[role], p90: current[role], improveChance: 0, delta: 0,
-        perToken: 0, runs: 0, attempts: 0, curve: [], planValue: current[role],
+        perToken: 0, runs: 0, exact: true, attempts: 0, curve: [], planValue: current[role],
         planDelta: 0, breakEvenAttempts: null,
         rosterMean: rosterTotal, rosterPlanValue: rosterTotal
       });

@@ -12,7 +12,8 @@
     "validate": "tsc -p tsconfig.validate.json && node scripts/validate.mjs",
     "train": "node scripts/build-training.mjs",
     "simulate": "tsc -p tsconfig.validate.json && node scripts/simulate.mjs",
-    "study": "tsc -p tsconfig.validate.json && node scripts/study.mjs"
+    "study": "tsc -p tsconfig.validate.json && node scripts/study.mjs",
+    "explain": "tsc -p tsconfig.validate.json && node scripts/explain.mjs"
   },
   "dependencies": {
     "next": "^16.3.3",

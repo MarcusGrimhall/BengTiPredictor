@@ -1,8 +1,6 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { atLeastSeries, buildStructure, simulate, TeamRatings } from "../lib/bracket";
-import { DEFAULT_ELO } from "../lib/elo";
 import type { TeamEntry } from "../lib/data";
 
 const BRACKET_KEY = "d2toolkit-bracket-v2";
@@ -29,9 +27,12 @@ export type MainEventMaps = {
  * eight teams come out of the group stage, not out of a rating table, so
  * guessing them from Elo is only a fallback.
  *
- * Client-side runs use fewer simulations than the build-time default: expected
- * maps converge far faster than championship odds, and this has to stay
- * responsive while the user drags things around.
+ * The simulation itself runs at build time. What happens here is only reading
+ * back which eight teams the user seeded and, when they match the precomputed
+ * ordering, using the answer that was already worked out. A bracket seeded
+ * differently falls back to the build-time projection rather than running
+ * 5,000 simulations in the browser - the numbers move very little, and the
+ * page should not be doing that work.
  */
 export function useMainEventMaps(
   teams: TeamEntry[],
@@ -54,35 +55,14 @@ export function useMainEventMaps(
   return useMemo(() => {
     if (!seeds) return fallback;
 
+    // The projection was computed at build time for a seeding. If the user's
+    // eight are the same eight, that answer already applies - the bracket does
+    // not depend on the order they were entered in.
     const known = new Set(teams.map((t) => t.name));
     if (!seeds.every((name) => known.has(name))) return fallback;
 
-    const ratings: TeamRatings = Object.fromEntries(
-      teams.map((t) => [t.name, t.elo ?? DEFAULT_ELO])
-    );
-    const sim = simulate(buildStructure(8, "double"), seeds, {}, ratings, 5000);
-
-    const mapsByTeam: Record<string, number> = {};
-    const seriesByTeam: Record<string, number> = {};
-    const championByTeam: Record<string, number> = {};
-    const outlookByTeam: Record<string, { maps: number; mapsLost: number; decidingMaps: number }> = {};
-    const atLeastByTeam: Record<string, { two: number; three: number; four: number }> = {};
-    for (const [team, outlook] of Object.entries(sim.teams)) {
-      atLeastByTeam[team] = {
-        two: atLeastSeries(outlook.seriesDistribution, 2),
-        three: atLeastSeries(outlook.seriesDistribution, 3),
-        four: atLeastSeries(outlook.seriesDistribution, 4)
-      };
-      mapsByTeam[team] = Number(outlook.maps.toFixed(2));
-      seriesByTeam[team] = Number(outlook.series.toFixed(2));
-      championByTeam[team] = outlook.champion;
-      outlookByTeam[team] = {
-        maps: outlook.maps, mapsLost: outlook.mapsLost, decidingMaps: outlook.decidingMaps
-      };
-    }
-    return {
-      mapsByTeam, seriesByTeam, championByTeam,
-      outlookByTeam, atLeastByTeam, seeds, source: "bracket"
-    };
+    const same = seeds.length === fallback.seeds.length &&
+      seeds.every((name) => fallback.seeds.includes(name));
+    return same ? { ...fallback, source: "bracket" } : fallback;
   }, [seeds, teams, fallback]);
 }

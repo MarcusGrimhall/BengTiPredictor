@@ -18,6 +18,7 @@ Run from the project root. Nothing here talks to the internet except
 | `npm run fetch -- <id> --training` | Fetch an earlier event as model input only |
 | `npm run train -- <id>` | Merge training events into a pre-event sample |
 | `npm run simulate -- --help` | Simulate a roster (all options below) |
+| `npm run explain` | Show the full arithmetic behind one stat's number |
 | `npm run study` | Backtest: what actually won fantasy at the last event |
 | `npm run validate` | Grade the model against finished tournaments |
 
@@ -127,6 +128,28 @@ in each (resampled from its own observed matches, so the tail keeps its shape).
 
 ---
 
+## Checking a number by hand
+
+```bash
+npm run explain -- --stat creeps --role core --stage playoffs --tier V
+```
+
+Prints every step from the raw match files to the figure on the page: the point
+scale, the tier multiplier, how the two players in a slot combine, which games
+in a series count, and the mean across series. It also prints the same series
+under all four ways of combining pairs and games, so the convention in use can
+be checked against something you actually saw in game.
+
+| Flag | Default | Does |
+| --- | --- | --- |
+| `--league <id>` | newest | Tournament |
+| `--stat <key>` | `creeps` | `creeps`, `gpm`, `kills`, `wards`, … |
+| `--role <name>` | `core` | `core`, `mid`, `support` |
+| `--stage <name>` | `playoffs` | `groupStage` or `playoffs` |
+| `--tier <I-V>` | `III` | Emblem tier |
+
+---
+
 ## What actually wins
 
 ```bash
@@ -183,25 +206,35 @@ It runs nine groups of checks:
 
 ---
 
-## How much is being simulated
+## What runs where
 
-| Where | Runs | Configurable |
+**The site does not simulate.** Everything heavy happens at build time or in a
+command, and the pages read the answer.
+
+| Where | What it does | Cost |
 | --- | --- | --- |
-| Bracket projection (build time) | 20,000 | `--runs` on `simulate`, `validate`, `study` |
-| Bracket page | 20,000 | — |
-| Bracket re-simulated in the browser | 5,000 | — |
-| Reroll offer comparison | 800 per option | dropdown in the simulator |
-| Reroll library default | 3,000 | `runs` argument |
+| Reroll comparison | Enumerates **every** outcome exactly | arithmetic, 24 of 26 actions |
+| Reroll wildcards | Sampled — they pick slots at random | dropdown, default 800 |
+| Bracket picks | Counted against a build-time ensemble | ~6ms for 10,000 outcomes |
+| Bracket, custom seeding | Falls back to simulating | 20,000 runs |
+| Map/series projection | Computed at build time | — |
+
+The bracket ensemble is the trick: the outcome of a bracket depends on the
+seeding and the ratings, never on which winners you picked. Your picks only
+decide which outcomes count as correct. So 10,000 brackets are simulated once at
+build time and shipped as data, and any pick set is scored by counting — 6ms
+against 101ms to re-simulate, agreeing within 0.05 expected picks.
+
+Commands still simulate, and every count is a flag:
+
+| Command | Default | Flag |
+| --- | --- | --- |
 | `npm run simulate` | 20,000 per entry | `--runs` |
-| Brute-force check in `validate` | 60,000 | `--brute` |
+| `npm run validate` | 20,000 bracket, 60,000 brute-force | `--runs`, `--brute` |
+| `npm run study` | 20,000 | `--runs` |
 
-A default `npm run simulate` on the playoffs draws roughly **800,000** tournament
-outcomes: 20,000 runs for each of ~40 entries. `npm run validate` runs about
-**240,000** — 60,000 brute-force plus six bracket simulations.
-
-Raising a count tightens the estimate at a linear cost in time. The defaults are
-past the point where the numbers move in the third significant figure, so the
-main reason to raise them is to confirm that for yourself.
+The defaults are past the point where numbers move in the third significant
+figure, so the main reason to raise them is to confirm that for yourself.
 
 ## Typical workflows
 

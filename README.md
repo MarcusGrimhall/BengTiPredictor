@@ -782,6 +782,43 @@ Everyone shows up to fights. Not everyone takes Roshan.
 **Emblem mechanics** — what each tier and trait is worth on a real banner, in
 every slot, plus a trait-by-duo heatmap and the stage's records.
 
+## The site does not simulate
+
+Everything heavy happens at build time or in a command; the pages read answers.
+
+**Rerolls are exact, not sampled.** A reroll's outcome space is small — one
+emblem's quality has five outcomes, its trait six, "all three red qualities" is
+5³ = 125. So every outcome is enumerated with its exact probability rather than
+estimated by rolling. 24 of the 26 actions are exact; only the two wildcards,
+which pick slots at random, are still sampled.
+
+**The bracket is counted, not re-simulated.** A bracket's outcome depends on the
+seeding and the ratings, never on which winners you picked — your picks only
+decide which outcomes count as correct. So 10,000 brackets are simulated once at
+build time and shipped as data, and any set of picks is scored by counting
+against them: 6ms against 101ms to re-simulate, agreeing to within 0.05 expected
+picks. Changing the seeding is a different bracket, and that one says so.
+
+## A time-aware Elo: tried, and not adopted
+
+The known weakness is that OpenDota rates teams as of now, not as of the event,
+so the ratings are worse than a coin flip for TI 2025 and TI 2022. `/teams/{id}/matches`
+returns a team's entire history in one call, so a rating can be rebuilt from only
+the matches that preceded an event. Built that way, K=24 from a 1300 start:
+
+```
+              OpenDota current      time-aware
+TI 2026    0.6050  (69.4%)      0.6844  (59.2%)
+TI 2025    0.8031  (51.9%)      0.7005  (53.5%)
+TI 2022    0.8098  (48.4%)      0.7311  (54.1%)
+                                 coin flip 0.6931
+```
+
+It fixes the direction on the old events and is **still worse than guessing** on
+both, while being clearly worse on the event that actually matters. So it is not
+shipped. The honest position stays: the ratings work for the current event, they
+are graded per event, and the app says so when they fail.
+
 ## Sharing a setup
 
 Everything the calculator holds — three banners, risk, stage, both titles — is

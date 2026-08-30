@@ -386,9 +386,20 @@ function pairUp(a: PlayerEntry, b: PlayerEntry, teamName: string, role: Role): P
 }
 
 /**
- * Finds the best emblem set for a given role and slot colouring. We try
- * every stat allowed in each slot and keep the combination that maximises
- * the top player's score.
+ * Finds the best banner for a role, sweeping stats, traits and tier placement.
+ *
+ * Four kinds of move, repeated until nothing improves:
+ *   - the stat in each slot, restricted to the slot's colour and to stats not
+ *     already on the banner;
+ *   - the trait in each slot, since a trait's value depends on its position;
+ *   - swapping two tiers between slots, which redistributes the qualities you
+ *     actually hold rather than inventing better ones;
+ *   - swapping two stats, which a per-slot sweep cannot reach because it moves
+ *     both at once.
+ *
+ * Tiers are moved, never raised. Raising them would return a banner of five
+ * tier Vs, which is not a banner anybody has - the useful question is where to
+ * put the qualities already on the board.
  *
  * The search space is small (5 slots x ~5 stats per colour), so a greedy
  * sweep to convergence is enough - no need for full brute force.
@@ -420,6 +431,42 @@ export function optimizeEmblems(
         if (stat === best[slot].stat) continue;
         const candidate = [...best];
         candidate[slot] = { ...candidate[slot], stat };
+        const score = top(candidate);
+        if (score > bestScore + 1e-6) {
+          best = candidate;
+          bestScore = score;
+          improved = true;
+        }
+      }
+    }
+
+    // Traits, one slot at a time. A trait's value depends on where it sits -
+    // Vampiric's penalty falls on its neighbours, Benevolent's bonus does -
+    // so this has to be a per-slot sweep rather than a per-trait choice.
+    for (let slot = 0; slot < best.length; slot += 1) {
+      for (const trait of TRAITS) {
+        if (trait === best[slot].trait) continue;
+        const candidate = [...best];
+        candidate[slot] = { ...candidate[slot], trait };
+        const score = top(candidate);
+        if (score > bestScore + 1e-6) {
+          best = candidate;
+          bestScore = score;
+          improved = true;
+        }
+      }
+    }
+
+    // Tiers. Left free the optimiser would put everything at V, which is not a
+    // banner anybody holds - so the tiers on the board are kept and only moved
+    // between slots. That answers the question actually being asked: given the
+    // qualities I have, where should they go?
+    for (let a = 0; a < best.length; a += 1) {
+      for (let b = a + 1; b < best.length; b += 1) {
+        if (best[a].tier === best[b].tier) continue;
+        const candidate = [...best];
+        candidate[a] = { ...candidate[a], tier: best[b].tier };
+        candidate[b] = { ...candidate[b], tier: best[a].tier };
         const score = top(candidate);
         if (score > bestScore + 1e-6) {
           best = candidate;

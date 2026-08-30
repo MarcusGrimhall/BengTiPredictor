@@ -3,7 +3,8 @@
 import { useEffect, useMemo, useState } from "react";
 import {
   Format, MatchNode, Selections, TeamRatings,
-  PREDICTION_POINTS, buildStructure, matchExpectedMaps, resolveBracket, simulate, winProbability
+  BracketEnsemble, PREDICTION_POINTS, TeamOutlook, buildStructure, matchExpectedMaps,
+  resolveBracket, scoreAgainstEnsemble, simulate, winProbability
 } from "../lib/bracket";
 import { DEFAULT_ELO, mapWinProbability } from "../lib/elo";
 import type { TeamEntry } from "../lib/data";
@@ -13,7 +14,17 @@ const STORAGE_KEY = "d2toolkit-bracket-v2";
 
 type Saved = { size: number; format: Format; seeds: (string | null)[]; selections: Selections };
 
-export default function BracketBuilder({ teams }: { teams: TeamEntry[] }) {
+export default function BracketBuilder({
+  teams, precomputed
+}: {
+  teams: TeamEntry[];
+  /** Built at build time so the browser never simulates. */
+  precomputed: {
+    ensemble: BracketEnsemble | null;
+    teams: Record<string, TeamOutlook>;
+  } | null;
+}) {
+  const ensemble = precomputed?.ensemble ?? null;
   const [size, setSize] = useState<number>(8);
   const [format, setFormat] = useState<Format>("double");
   const [seeds, setSeeds] = useState<(string | null)[]>([]);
@@ -76,11 +87,30 @@ export default function BracketBuilder({ teams }: { teams: TeamEntry[] }) {
     [structure, resolved, selections]
   );
 
+  /**
+   * Picks are scored against the ensemble generated at build time whenever the
+   * seeding still matches it, which is the normal case - changing your picks
+   * does not change the bracket, only which outcomes count as correct. A
+   * changed seeding is a different bracket, and that one is simulated here.
+   */
+  const usesEnsemble = useMemo(
+    () => Boolean(ensemble) && size === 8 && format === "double" &&
+      seeds.length === ensemble!.teams.length &&
+      seeds.every((s, i) => s === ensemble!.teams[i]),
+    [ensemble, seeds, size, format]
+  );
+
   const sim = useMemo(() => {
     if (seeds.some((s) => !s)) return null;
     const valid: Selections = {};
     for (const m of picked) valid[m.id] = selections[m.id];
-    return simulate(structure, seeds as string[], valid, ratings, 20000);
+    if (usesEnsemble) {
+      const scored = scoreAgainstEnsemble(ensemble!, valid);
+      // Team-level outlooks do not depend on the picks, so the build-time
+      // simulation already answered them.
+      return { ...scored, teams: precomputed!.teams, precomputed: true };
+    }
+    return { ...simulate(structure, seeds as string[], valid, ratings, 20000), precomputed: false };
   }, [structure, seeds, selections, ratings, picked]);
 
   const changeSize = (next: number) => {
@@ -212,7 +242,14 @@ export default function BracketBuilder({ teams }: { teams: TeamEntry[] }) {
       <section className="card stack">
         <div className="row-between">
           <h2>Projection</h2>
-          {sim && <span className="faint">{sim.runs.toLocaleString("en-US")} simulations</span>}
+          {sim && (
+            <span className="faint" title={sim.precomputed
+              ? "The bracket was simulated at build time and shipped as data. Changing your picks only changes which of those outcomes count as correct, so scoring them is a count, not a simulation."
+              : "You changed the seeding, so this bracket is not the precomputed one and is being simulated here."}>
+              {sim.runs.toLocaleString("en-US")}{" "}
+              {sim.precomputed ? "precomputed outcomes" : "simulations (custom seeding)"}
+            </span>
+          )}
         </div>
         {!sim && <p className="muted">Pick teams for every slot first.</p>}
         {sim && (

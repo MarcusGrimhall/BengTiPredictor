@@ -102,17 +102,20 @@ export default function TraitMap({
             emblem it lands on. Every figure below is the real gain against the same
             banner with no traits at all.
           </p>
+          <p className="faint" style={{ maxWidth: 720 }}>
+            Slots are positions, not stats. What a trait is worth in slot 3 depends on
+            where it sits relative to its neighbours, not on which stat happens to be
+            there — that is what makes it a property of the trait rather than of the
+            banner.
+          </p>
         </div>
         <div className="scroll-x">
           <table className="grid-table">
             <thead>
               <tr>
                 <th>Trait</th>
-                {banner.map((e, i) => (
-                  <th key={i} style={{ textAlign: "center" }}>
-                    <span className="faint">slot {i + 1}</span><br />
-                    {STAT_LABELS[e.stat]}
-                  </th>
+                {banner.map((_, i) => (
+                  <th key={i} style={{ textAlign: "center" }}>slot {i + 1}</th>
                 ))}
                 <th style={{ textAlign: "right" }}>Best</th>
               </tr>

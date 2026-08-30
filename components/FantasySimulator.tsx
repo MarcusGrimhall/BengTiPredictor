@@ -20,15 +20,19 @@ const fmt = (n: number) => Math.round(n).toLocaleString("en-US");
 const signed = (n: number) =>
   `${n >= 0 ? "+" : "−"}${Math.abs(Math.round(n)).toLocaleString("en-US")}`;
 
+// The presets sit at 25 and 75 rather than the ends of the bar. Risk 0 reads
+// the 10th percentile and risk 100 the 95th, and the backtest found both to be
+// worse picks than the middle of the range - the ends are there to be dragged
+// to deliberately, not offered as one-click defaults.
 const RISK_LABELS: Array<{ at: number; label: string; hint: string }> = [
-  { at: 0, label: "Safe", hint: "the floor — what holds up on a bad day" },
+  { at: 25, label: "Safe", hint: "the floor — what holds up on a bad day" },
   { at: 50, label: "Balanced", hint: "a typical run" },
-  { at: 100, label: "Highroll", hint: "the ceiling — what a best-of-several run looks like" }
+  { at: 75, label: "Highroll", hint: "the ceiling — what a good run looks like" }
 ];
 
 export function riskLabel(risk: number) {
-  if (risk <= 25) return RISK_LABELS[0];
-  if (risk >= 75) return RISK_LABELS[2];
+  if (risk <= 37) return RISK_LABELS[0];
+  if (risk >= 63) return RISK_LABELS[2];
   return RISK_LABELS[1];
 }
 
@@ -56,6 +60,11 @@ export function riskAsOdds(risk: number): string {
   const n = riskAsRuns(risk);
   if (n < 1.3) return "a typical run";
   return `aiming for the best of about ${n < 2.5 ? 2 : Math.round(n)} runs`;
+}
+
+/** A small marker showing a heading carries an explanation. */
+function Q() {
+  return <span className="help-mark" aria-hidden="true">?</span>;
 }
 
 export default function FantasySimulator({
@@ -220,17 +229,15 @@ export default function FantasySimulator({
           <span className="faint">skip is always compared too</span>
         </div>
         <div className="stat-tile">
-          <small>Rolls per option</small>
+          <small>Wildcard sampling</small>
           <select value={runs} onChange={(e) => setRuns(Number(e.target.value))}
-            aria-label="Simulation runs per option" className="token-input">
-            <option value={200}>200 · instant</option>
-            <option value={800}>800 · default</option>
-            <option value={2000}>2,000 · tighter</option>
-            <option value={8000}>8,000 · slow</option>
+            aria-label="Sampling runs for the wildcards" className="token-input">
+            <option value={200}>200</option>
+            <option value={800}>800</option>
+            <option value={2000}>2,000</option>
+            <option value={8000}>8,000</option>
           </select>
-          <span className="faint">
-            {(runs * Math.max(1, chosenCount)).toLocaleString("en-US")} simulated rolls
-          </span>
+          <span className="faint">only the two wildcards need it</span>
         </div>
       </div>
 
@@ -246,8 +253,9 @@ export default function FantasySimulator({
         </div>
         <p className="faint">
           Pick the banner the offer is on, then tick it. The game normally shows three
-          at a time. Each is rolled {runs.toLocaleString("en-US")} times against the{" "}
-          {tokens} tokens you have left.
+          at a time. Every reroll except the two wildcards has few enough outcomes to be
+          worked out <strong>exactly</strong> rather than simulated — the page is doing
+          arithmetic against the {tokens} tokens you have left, not running a simulation.
         </p>
         <div className="pill-row" role="tablist" aria-label="Offer banner">
           {ROLES.map((r) => (
@@ -274,7 +282,14 @@ export default function FantasySimulator({
         </div>
       </div>
 
-      {results && <Results results={results} rosterTotal={rosterTotal} tokens={tokens} />}
+      {results && (
+        <Results
+          results={results}
+          rosterTotal={rosterTotal}
+          tokens={tokens}
+          onSpend={(cost) => setTokens((t) => Math.max(0, t - cost))}
+        />
+      )}
 
       <div className="stack" style={{ gap: 8 }}>
         <h3>What you hold now</h3>
@@ -332,12 +347,27 @@ export default function FantasySimulator({
   );
 }
 
+/** Plain-language notes for the column headers. */
+const COLUMN_HELP: Record<string, string> = {
+  cost: "Tokens this option costs each time you take it.",
+  rolls: "How many times you could take this option with the tokens you have left.",
+  oneRoll:
+    "Average change to the roster from taking this option ONCE. Negative means a single roll is expected to leave you worse off.",
+  improves:
+    "How often a single roll came out better than what you already hold. A high average with a low improve rate is a gamble that pays big and rarely.",
+  breakEven:
+    "The first roll at which committing to this option overtakes doing nothing. \"3 rolls\" means the first two are expected to be a loss.",
+  endOfBudget:
+    "What this option is worth if you spend every affordable token on it and stop the moment you are happy. Never below zero, because holding is always allowed. This is the column to rank on."
+};
+
 function Results({
-  results, rosterTotal, tokens
+  results, rosterTotal, tokens, onSpend
 }: {
   results: RosterOutcome[];
   rosterTotal: number;
   tokens: number;
+  onSpend: (cost: number) => void;
 }) {
   const best = results[0];
   const skipped = results.find((r) => r.action.target === "skip");
@@ -352,12 +382,13 @@ function Results({
           <thead>
             <tr>
               <th>Banner</th><th>Option</th>
-              <th style={{ textAlign: "right" }}>Cost</th>
-              <th style={{ textAlign: "right" }}>Rolls</th>
-              <th style={{ textAlign: "right" }}>One roll</th>
-              <th style={{ textAlign: "right" }}>Improves</th>
-              <th style={{ textAlign: "right" }}>Break-even</th>
-              <th style={{ textAlign: "right" }}>End of budget</th>
+              <th style={{ textAlign: "right" }} title={COLUMN_HELP.cost}>Cost <Q /></th>
+              <th style={{ textAlign: "right" }} title={COLUMN_HELP.rolls}>Rolls <Q /></th>
+              <th style={{ textAlign: "right" }} title={COLUMN_HELP.oneRoll}>One roll <Q /></th>
+              <th style={{ textAlign: "right" }} title={COLUMN_HELP.improves}>Improves <Q /></th>
+              <th style={{ textAlign: "right" }} title={COLUMN_HELP.breakEven}>Break-even <Q /></th>
+              <th style={{ textAlign: "right" }} title={COLUMN_HELP.endOfBudget}>End of budget <Q /></th>
+              <th></th>
             </tr>
           </thead>
           <tbody>
@@ -368,7 +399,12 @@ function Results({
                   {index === 0 && <span className="tag" style={{ marginRight: 6 }}>best</span>}
                   {o.action.label}
                 </td>
-                <td className="num muted" style={{ textAlign: "right" }}>{o.action.cost}</td>
+                <td className="num muted" style={{ textAlign: "right" }}
+                  title={o.action.target === "skip" ? "" : o.exact
+                    ? "Every outcome enumerated — this number is exact."
+                    : `Sampled: this action picks slots at random, so its outcomes were estimated over ${o.runs.toLocaleString("en-US")} rolls.`}>
+                  {o.action.cost}{o.action.target !== "skip" && !o.exact && <span className="faint">*</span>}
+                </td>
                 <td className="num muted" style={{ textAlign: "right" }}>
                   {o.action.target === "skip" ? "—" : o.attempts || <span className="faint">n/a</span>}
                 </td>
@@ -388,11 +424,30 @@ function Results({
                 <td className="num" style={{ textAlign: "right", fontWeight: 650, color: o.planDelta > 0 ? "var(--accent)" : "var(--muted)" }}>
                   {signed(o.planDelta)}
                 </td>
+                <td style={{ textAlign: "right" }}>
+                  {o.action.target !== "skip" && (
+                    <button
+                      onClick={() => onSpend(o.action.cost)}
+                      disabled={o.action.cost > tokens}
+                      title={`Deduct ${o.action.cost} tokens — use this once you have actually taken the reroll in game`}
+                    >
+                      Take
+                    </button>
+                  )}
+                </td>
               </tr>
             ))}
           </tbody>
         </table>
       </div>
+
+      <p className="faint">
+        {results.every((r) => r.exact)
+          ? "Every number here is exact — all outcomes enumerated, nothing sampled. "
+          : "Rows marked * were sampled; the rest are exact. "}
+        Hover any column heading for what it means. <strong>Take</strong> deducts the
+        cost from your tokens — press it once you have actually taken the reroll in game.
+      </p>
 
       <div className="verdict">
         {bestIsSkip ? (

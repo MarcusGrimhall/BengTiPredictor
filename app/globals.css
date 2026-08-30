@@ -339,3 +339,9 @@ footer.site-footer {
   .spread-row { grid-template-columns: 120px 1fr 80px; gap: 8px; }
   .spread-label { font-size: 0.78rem; }
 }
+.help-mark {
+  display: inline-block; width: 13px; height: 13px; line-height: 13px;
+  border-radius: 50%; border: 1px solid var(--border-strong);
+  font-size: 9px; text-align: center; color: var(--text-faint);
+  vertical-align: 1px; cursor: help; font-weight: 400;
+}

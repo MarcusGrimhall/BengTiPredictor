@@ -278,6 +278,8 @@ export type SimulationResult = {
   expectedCorrect: number;
   /** Expected Compendium points, given the picks made so far. */
   expectedPoints: number;
+  /** Every run's winners, when the caller asked to keep them. */
+  outcomes?: Selections[];
   teams: Record<string, TeamOutlook>;
   runs: number;
 };
@@ -290,12 +292,93 @@ export type SimulationResult = {
  * the fantasy side needs: a player on a team that goes deep simply gets more
  * games to score in.
  */
+/**
+ * An ensemble of simulated brackets: for each run, who won each match.
+ *
+ * This is what lets the page stop simulating. The bracket outcome depends only
+ * on the seeding and the ratings, never on which winners you picked - your
+ * picks only decide which of those outcomes count as correct. So the ensemble
+ * can be generated once, away from the browser, and any pick set scored against
+ * it by counting. Scoring 20,000 stored outcomes is a loop over an array; the
+ * simulation that produced them is not repeated.
+ *
+ * Stored as one string per run, one character per match, indexing into `teams`.
+ */
+export type BracketEnsemble = {
+  teams: string[];
+  matchIds: string[];
+  /** One row per run; row[i] is the index into `teams` that won matchIds[i]. */
+  runs: string[];
+};
+
+const CODE_START = 48; // '0'
+
+export function buildEnsemble(
+  structure: MatchNode[],
+  seeds: (string | null)[],
+  ratings: TeamRatings,
+  runs = 20000
+): BracketEnsemble | null {
+  if (seeds.some((s) => !s)) return null;
+  const teams = seeds.filter(Boolean) as string[];
+  if (teams.length > 40) return null; // one char per team index
+  const index = new Map(teams.map((t, i) => [t, i]));
+  const matchIds = structure.map((m) => m.id);
+
+  const sim = simulate(structure, seeds, {}, ratings, runs, true);
+  if (!sim.outcomes) return null;
+
+  return {
+    teams,
+    matchIds,
+    runs: sim.outcomes.map((row) =>
+      matchIds.map((id) => {
+        const w = row[id];
+        const i = w ? index.get(w) : undefined;
+        return String.fromCharCode(CODE_START + (i ?? 0));
+      }).join("")
+    )
+  };
+}
+
+/**
+ * Scores a set of picks against a stored ensemble. No simulation.
+ */
+export function scoreAgainstEnsemble(
+  ensemble: BracketEnsemble,
+  selections: Selections
+): { expectedCorrect: number; expectedPoints: number; runs: number } {
+  const picked = ensemble.matchIds
+    .map((id, i) => ({ i, team: selections[id] }))
+    .filter((p) => p.team) as Array<{ i: number; team: string }>;
+
+  if (!picked.length) return { expectedCorrect: 0, expectedPoints: 0, runs: ensemble.runs.length };
+
+  const codes = picked.map((p) => ({
+    i: p.i,
+    code: String.fromCharCode(CODE_START + ensemble.teams.indexOf(p.team))
+  }));
+
+  let totalCorrect = 0;
+  let totalPoints = 0;
+  const kept: Selections[] = [];
+  for (const row of ensemble.runs) {
+    let correct = 0;
+    for (const { i, code } of codes) if (row[i] === code) correct += 1;
+    totalCorrect += correct;
+    totalPoints += PREDICTION_POINTS[Math.min(correct, PREDICTION_POINTS.length - 1)] ?? 0;
+  }
+  const n = ensemble.runs.length;
+  return { expectedCorrect: totalCorrect / n, expectedPoints: totalPoints / n, runs: n };
+}
+
 export function simulate(
   structure: MatchNode[],
   seeds: (string | null)[],
   selections: Selections,
   ratings: TeamRatings,
-  runs = 20000
+  runs = 20000,
+  keepOutcomes = false
 ): SimulationResult {
   const picked = Object.entries(selections).filter(([, team]) => team);
   const random = seededRandom(
@@ -315,6 +398,7 @@ export function simulate(
 
   let totalCorrect = 0;
   let totalPoints = 0;
+  const kept: Selections[] = [];
 
   for (let run = 0; run < runs; run += 1) {
     const outcomes: Selections = {};
@@ -367,6 +451,8 @@ export function simulate(
       }
     }
 
+    if (keepOutcomes) kept.push({ ...outcomes });
+
     for (const [team, count] of seriesThisRun) {
       const dist = tally[team].seriesDistribution;
       dist[count] = (dist[count] ?? 0) + 1;
@@ -400,6 +486,7 @@ export function simulate(
     expectedCorrect: totalCorrect / runs,
     expectedPoints: totalPoints / runs,
     teams: tally,
-    runs
+    runs,
+    ...(keepOutcomes ? { outcomes: kept } : {})
   };
 }
