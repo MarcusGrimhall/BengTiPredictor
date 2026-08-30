@@ -298,3 +298,44 @@ footer.site-footer {
 .grid-table th, .grid-table td { padding: 6px 9px; }
 .grid-table tbody td:first-child { position: sticky; left: 0; background: var(--bg-card); }
 .grid-table tbody tr:hover td:first-child { background: var(--bg-inset); }
+
+/* --- stat spread: one row per stat, one dot per entry --- */
+.spread { display: flex; flex-direction: column; gap: 3px; }
+.spread-row {
+  display: grid; grid-template-columns: 190px 1fr 110px;
+  align-items: center; gap: 12px; padding: 3px 0; border-radius: 4px;
+}
+.spread-row:hover { background: var(--bg-inset); }
+.spread-label { font-size: 0.86rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.spread-track { position: relative; height: 22px; }
+.spread-axis {
+  position: absolute; top: 50%; left: 0; right: 0; height: 1px;
+  background: var(--border); transform: translateY(-50%);
+}
+.spread-dot {
+  position: absolute; top: 50%; width: 8px; height: 8px; border-radius: 50%;
+  transform: translate(-50%, -50%); background: var(--text-faint);
+  border: 1px solid var(--bg-card); cursor: default;
+}
+.spread-dot.strong { background: var(--accent); width: 10px; height: 10px; z-index: 2; }
+.spread-dot:hover { z-index: 3; outline: 2px solid var(--accent); }
+.tick {
+  position: absolute; top: 50%; width: 2px; height: 18px;
+  transform: translate(-50%, -50%); z-index: 1;
+}
+.tick-avg { background: var(--text-faint); }
+.tick-savg { background: var(--green); }
+.spread-nums { display: flex; justify-content: space-between; font-size: 0.8rem; gap: 8px; }
+
+.legend { display: flex; flex-wrap: wrap; gap: 16px; font-size: 0.8rem; color: var(--text-faint); }
+.legend i { display: inline-block; vertical-align: middle; margin-right: 5px; }
+.dot-mark { width: 8px; height: 8px; border-radius: 50%; background: var(--text-faint); }
+.dot-mark.dot-strong { background: var(--accent); width: 10px; height: 10px; }
+.tick-mark { width: 2px; height: 12px; }
+.tick-mark.tick-avg { background: var(--text-faint); }
+.tick-mark.tick-savg { background: var(--green); }
+
+@media (max-width: 720px) {
+  .spread-row { grid-template-columns: 120px 1fr 80px; gap: 8px; }
+  .spread-label { font-size: 0.78rem; }
+}

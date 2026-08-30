@@ -63,6 +63,8 @@ export type LeagueData = {
   players: Array<{
     accountId: number | null;
     name: string;
+    /** The Steam handle, kept for reference when a pro name was resolved. */
+    steamName?: string;
     teamId: number | null;
     teamName: string;
     role: "core" | "mid" | "support";

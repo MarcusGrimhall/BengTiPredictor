@@ -59,14 +59,23 @@ async function main() {
   await mkdir(OUT_DIR, { recursive: true });
 
   console.log(`Fetching league ${leagueId}...`);
-  const [leagueInfo, matchList, allTeams] = await Promise.all([
+  const [leagueInfo, matchList, allTeams, proPlayers] = await Promise.all([
     odFetch(`/leagues/${leagueId}`).catch(() => null),
     odFetch(`/leagues/${leagueId}/matches`),
     // OpenDota maintains an Elo rating per team. This is what drives the
     // bracket model, so nobody has to invent strength numbers by hand.
-    odFetch(`/teams`).catch(() => [])
+    odFetch(`/teams`).catch(() => []),
+    // The pro registry: real names rather than whatever Steam handle a player
+    // happened to be using, plus the official fantasy role.
+    odFetch(`/proPlayers`).catch(() => [])
   ]);
   const eloById = new Map((allTeams ?? []).map((t) => [t.team_id, t]));
+  const proById = new Map((proPlayers ?? []).map((p) => [p.account_id, p]));
+
+  // OpenDota's fantasy_role codes. Verified against the role heuristic on
+  // TI 2026 (80/80 agreement) and TI 2025 (72/75), so where it exists it is
+  // used directly and the heuristic is only the fallback.
+  const FANTASY_ROLE = { 1: "core", 2: "support", 4: "mid" };
 
   const leagueName = leagueInfo?.name ?? `League ${leagueId}`;
   console.log(`${leagueName}: ${matchList.length} matcher\n`);
@@ -230,13 +239,19 @@ async function main() {
   const output = [...players.values()]
     .filter((p) => p.games >= minGames)
     .map((p) => {
-      const role = Object.entries(p.roleCounts).sort((a, b) => b[1] - a[1])[0][0];
+      const pro = proById.get(p.accountId);
+      // The registry role is authoritative; the heuristic decides only when a
+      // player is not in it.
+      const role = FANTASY_ROLE[pro?.fantasy_role]
+        ?? Object.entries(p.roleCounts).sort((a, b) => b[1] - a[1])[0][0];
       const perGame = Object.fromEntries(
         RAW_STATS.map((s) => [s, Number((p.totals[s] / p.games).toFixed(3))])
       );
       return {
         accountId: p.accountId,
-        name: p.name,
+        // Pro name where the player is in the registry, Steam handle otherwise.
+        name: pro?.name || p.name,
+        steamName: p.name,
         teamId: p.teamId,
         teamName: p.teamName,
         role,
@@ -360,7 +375,11 @@ async function main() {
   const withElo = payload.teams.filter((t) => t.elo != null).length;
   console.log(`  teams        : ${payload.teams.length} (${withElo} with Elo rating)`);
   const sampleRows = output.reduce((n, p) => n + p.samples.length, 0);
+  const named = output.filter((p) => p.name !== p.steamName).length;
+  const officialRoles = output.filter((p) => proById.get(p.accountId)?.fantasy_role).length;
   console.log(`  players      : ${output.length} (min ${minGames} games)`);
+  console.log(`  pro names    : ${named} resolved, ${output.length - named} kept their handle`);
+  console.log(`  roles        : ${officialRoles} from the pro registry, ${output.length - officialRoles} from the heuristic`);
   console.log(`  game samples : ${sampleRows}`);
   for (const [i, name] of STAGES.entries()) {
     const maps = output.reduce((n, p) => n + p.sampleStages.filter((s) => s === i).length, 0) / 10;

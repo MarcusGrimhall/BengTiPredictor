@@ -629,6 +629,24 @@ Full reference with every flag: **[COMMANDS.md](COMMANDS.md)**.
 Set `OPENDOTA_API_KEY` in the environment for a paid key — the script speeds up
 automatically.
 
+## Names and roles come from the pro registry
+
+Match data carries whatever Steam handle a player was using, which at TI 2026
+included `fffffffffffffffffffffffffff`, `1` and `;]`. OpenDota's `/proPlayers`
+resolves those to real names in one call, so the site shows **gpk~**, not a row
+of f's.
+
+The same endpoint carries an official `fantasy_role`, which is now used directly
+and the lane heuristic is only the fallback. Checking one against the other is
+also a free validation of the heuristic:
+
+```
+TI 2026   80 of 80 agree
+TI 2025   72 of 75 agree
+```
+
+The three disagreements are all a mid the registry files as a core.
+
 ## What the backtest says
 
 `npm run study` grades pre-TI decisions against what happened at TI 2026. Some
@@ -678,6 +696,35 @@ risk 100 slightly hurt the core pick.
 pre-TI level — last hits +52%, towers +37%, GPM +33%. Longer games and a higher
 standard, so absolute pre-event projections read low across the board. The
 *ranking* still holds, which is what the pick depends on.
+
+## The Information tab
+
+Two views.
+
+**Stats** — one row per stat, one dot per duo, showing what everyone actually
+produced. All stats share a scale, so a long row is genuinely worth more, and
+the shape of a row is the point: a leader far clear of a tight cluster is a stat
+somebody dominates; a row where every dot overlaps is a slot to fill with
+whatever is cheapest to reroll. Selectable by tournament, stage and role.
+
+The dots for the four teams that went deepest are marked separately, which
+exposes something useful — the stats that separate good teams are the objective
+ones, not the participation ones. TI 2026 playoff cores, top four against the
+field:
+
+```
+Roshan kills            +32%
+Towers                  +26%
+Deaths (fewer of them)  +14%
+Kills                    +8%
+Teamfight participation  +1%
+First Blood              −4%
+```
+
+Everyone shows up to fights. Not everyone takes Roshan.
+
+**Emblem mechanics** — what each tier and trait is worth on a real banner, in
+every slot, plus a trait-by-duo heatmap and the stage's records.
 
 ## Sharing a setup
 
