@@ -132,7 +132,7 @@ export default function StatSpreadChart({
               circular.
               <br /><br />
               {league?.strongBasis === "form"
-                ? "Ranked on their map win rate across the tournaments played before this one, shrunk towards even so a small sample cannot top the table."
+                ? "An Elo rating built only from the matches played before this event. Not a win rate — beating a bottom seed and beating the champion count the same in a win rate, so a team with an easy schedule outranks one that played everybody. At TI 2026 that is not hypothetical: Aurora Gaming led on win rate at 60.7% and sits seventh on rating."
                 : league?.strongBasis === "rating"
                   ? "No pre-event tournaments are loaded for this event, so the stored Elo rating is used — it passed its accuracy check here."
                   : "Neither pre-event form nor a trustworthy rating is available for this event, so final placement is used. Weaker, because it partly measures the result."}
@@ -242,7 +242,7 @@ export default function StatSpreadChart({
                 <th style={{ textAlign: "right" }}>
                   Top-4 avg <Info title="Top-4 average" align="right">
                     The mean across the four teams that looked strongest going in
-                    {league?.strongBasis === "form" ? ", by their form before the event"
+                    {league?.strongBasis === "form" ? ", rated on the matches played before it"
                       : league?.strongBasis === "rating" ? ", by rating"
                       : ", by final placement (nothing better available)"}. The percentage is
                     how far above or below the whole field they sit — a big positive is a

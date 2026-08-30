@@ -8,27 +8,43 @@
 // scope it to all / the first / the last / a random emblem of one colour. There
 // are also two wildcards that move qualities around.
 //
+// Every option costs the same: one of your rerolls. There is no price list -
+// forty rerolls for the group stage, thirty for the playoffs, and taking any
+// option spends one. So "can I afford this" is never the question; "is this
+// worth one of my forty" always is.
+//
 // IMPORTANT - what is assumed rather than known:
-//   * TOKEN COSTS. Valve does not publish them and no guide lists them, so the
-//     costs below are placeholders. Correct them in ACTION_COSTS.
-//   * TIER_WEIGHTS and TRAIT_WEIGHTS. The roll distributions are not published
-//     either. These are reasonable guesses, not measured values.
-// Everything else - banner rules, scoring, the uniqueness constraint - is exact.
+//   * The odds of landing on each quality or trait. No guide publishes them and
+//     no search turns them up, so every possible outcome is treated as equally
+//     likely. If the real distribution is skewed, every reroll valuation moves
+//     with it.
+// Everything else - banner rules, scoring, the uniqueness constraint, and the
+// rule that a reroll never returns what it replaced - is exact.
 
 import { seededRandom } from "./rng";
 import { Emblem, Tier, Trait, hasDuplicateStats } from "./fantasy";
 import { EmblemColor, Role, StatKey, BANNER_SLOTS, statsForColor } from "./scoring";
 import { STAGE_TOKENS } from "./stages";
 
-/** Probability of each tier on a fresh quality roll. ASSUMPTION - see above. */
-export const TIER_WEIGHTS: Record<Tier, number> = {
-  I: 0.40, II: 0.28, III: 0.18, IV: 0.10, V: 0.04
-};
+/**
+ * A reroll never gives back what it replaced.
+ *
+ * Rerolling the quality of a tier II lands on I, III, IV or V - four outcomes,
+ * not five. Rerolling a trait lands on any of the other five. Nothing publishes
+ * how those outcomes are weighted, so they are treated as equally likely; that
+ * is the one thing here still assumed rather than known.
+ */
+export const TIERS_ALL: Tier[] = ["I", "II", "III", "IV", "V"];
 
-/** Probability of each trait on a fresh trait roll. ASSUMPTION - see above. */
-export const TRAIT_WEIGHTS: Record<Trait, number> = {
-  none: 0.40, fractal: 0.12, benevolent: 0.12, vampiric: 0.12, unique: 0.12, friendly: 0.12
-};
+/** Uniform over every tier except the one held. */
+export function tierOptions(current: Tier): Tier[] {
+  return TIERS_ALL.filter((t) => t !== current);
+}
+
+/** Uniform over every trait except the one held. */
+export function traitOptions(current: Trait, all: Trait[]): Trait[] {
+  return all.filter((t) => t !== current);
+}
 
 export type RerollTarget = "stat" | "tier" | "trait" | "qualityUp" | "qualityUpTwoDownOne" | "skip";
 export type RerollScope = "all" | "first" | "last" | "random";
@@ -43,25 +59,18 @@ export type RerollAction = {
   cost: number;
 };
 
-/** Placeholder token costs. Replace with the real menu prices. */
-export const ACTION_COSTS: Record<string, number> = {
-  "stat-random": 1, "stat-first": 2, "stat-last": 2, "stat-all": 4,
-  "tier-random": 1, "tier-first": 2, "tier-last": 2, "tier-all": 4,
-  "trait-random": 1, "trait-first": 2, "trait-last": 2, "trait-all": 4,
-  "qualityUp-any": 3, "qualityUpTwoDownOne-any": 4
-};
+/**
+ * Every option costs one reroll. There is no menu of prices - a wildcard that
+ * moves three emblems costs exactly what rerolling one stat costs.
+ */
+export const REROLL_COST = 1;
 
-const TIERS_ORDER: Tier[] = ["I", "II", "III", "IV", "V"];
+const TIERS_ORDER: Tier[] = TIERS_ALL;
+const ALL_TRAITS: Trait[] = ["none", "fractal", "benevolent", "vampiric", "unique", "friendly"];
 
-function pickWeighted<T extends string>(weights: Record<T, number>, roll: number): T {
-  const entries = Object.entries(weights) as Array<[T, number]>;
-  const total = entries.reduce((sum, [, w]) => sum + w, 0);
-  let threshold = roll * total;
-  for (const [key, weight] of entries) {
-    threshold -= weight;
-    if (threshold <= 0) return key;
-  }
-  return entries[entries.length - 1][0];
+/** Uniform pick. */
+function pick<T>(options: T[], roll: number): T {
+  return options[Math.min(options.length - 1, Math.floor(roll * options.length))];
 }
 
 /** Every action offered for a role, given how many slots the stage has. */
@@ -93,7 +102,7 @@ export function actionCatalogue(role: Role, slots: number): RerollAction[] {
           target: target.key,
           scope: scope.key,
           color,
-          cost: ACTION_COSTS[`${target.key}-${scope.key}`] ?? 1
+          cost: REROLL_COST
         });
       }
     }
@@ -103,13 +112,13 @@ export function actionCatalogue(role: Role, slots: number): RerollAction[] {
     id: "qualityUp-any",
     label: "Wildcard · randomly increase one quality",
     target: "qualityUp", scope: "random", color: "any",
-    cost: ACTION_COSTS["qualityUp-any"] ?? 3
+    cost: REROLL_COST
   });
   actions.push({
     id: "qualityUpTwoDownOne-any",
     label: "Wildcard · increase two qualities, reduce one",
     target: "qualityUpTwoDownOne", scope: "random", color: "any",
-    cost: ACTION_COSTS["qualityUpTwoDownOne-any"] ?? 4
+    cost: REROLL_COST
   });
 
   return actions;
@@ -144,44 +153,56 @@ export function applyAction(
   const slots = targetSlots(next, role, action, random);
 
   if (action.target === "qualityUp" || action.target === "qualityUpTwoDownOne") {
-    // A quality change lands on a random tier out of the ones still available,
-    // not one step. Raising a II can give III, IV or V with equal chance;
-    // lowering a IV can give I, II or III. A tier V cannot be raised and a
-    // tier I cannot be lowered, which is what makes these near-deterministic
-    // on a short banner: with one V and two IIs, only the IIs can go up and
-    // only the V is worth bringing down.
+    // You do only what is possible, and what is possible is often forced.
+    //
+    // A tier V cannot be raised and a tier I cannot be lowered, so the wildcard
+    // works out which emblems it CAN act on - from the tiers as they are, before
+    // anything moves - and does that. Raises go to the lowest, the reduction to
+    // the highest, and where fewer are possible than asked for, fewer happen.
+    //
+    //   I  III  V      raise 2, lower 1  ->  raise the I and the III, lower the V
+    //   III III  V     raise 2, lower 1  ->  raise both IIIs, lower the V
+    //   V   V  II      raise 2, lower 1  ->  only the II can rise, so raise 1, lower 1
+    //   I   I   I      raise 2, lower 1  ->  nothing can fall, so raise 2
+    //
+    // Where the new tier lands is then random among the ones still open: a
+    // raised II can become III, IV or V; a lowered IV can become I, II or III.
     const upCount = action.target === "qualityUp" ? 1 : 2;
     const rank = (i: number) => TIERS_ORDER.indexOf(next[i].tier);
+    const order = next.map((_, i) => i);
 
-    // Raises go to the lowest tiers on the banner, reductions to the highest.
-    const raisable = next
-      .map((_, i) => i)
+    // Decided on the original banner, so a raise cannot change what gets lowered.
+    const raiseTargets = order
       .filter((i) => next[i].tier !== "V")
-      .sort((a, b) => rank(a) - rank(b) || (random() < 0.5 ? -1 : 1));
-    for (const pos of raisable.slice(0, upCount)) {
-      const above = TIERS_ORDER.slice(rank(pos) + 1);
-      next[pos].tier = above[Math.floor(random() * above.length)];
-    }
+      .sort((a, b) => rank(a) - rank(b) || (random() < 0.5 ? -1 : 1))
+      .slice(0, upCount);
+    const lowerTarget = action.target === "qualityUpTwoDownOne"
+      ? order
+          .filter((i) => next[i].tier !== "I" && !raiseTargets.includes(i))
+          .sort((a, b) => rank(b) - rank(a) || (random() < 0.5 ? -1 : 1))[0]
+        // If every lowerable emblem is already being raised, the reduction has
+        // to fall on one of them; take the highest.
+        ?? order
+          .filter((i) => next[i].tier !== "I")
+          .sort((a, b) => rank(b) - rank(a))[0]
+      : undefined;
 
-    if (action.target === "qualityUpTwoDownOne") {
-      const lowerable = next
-        .map((_, i) => i)
-        .filter((i) => next[i].tier !== "I")
-        .sort((a, b) => rank(b) - rank(a) || (random() < 0.5 ? -1 : 1));
-      if (lowerable.length) {
-        const pos = lowerable[0];
-        const below = TIERS_ORDER.slice(0, rank(pos));
-        next[pos].tier = below[Math.floor(random() * below.length)];
-      }
+    for (const i of raiseTargets) {
+      const above = TIERS_ORDER.slice(rank(i) + 1);
+      next[i].tier = above[Math.floor(random() * above.length)];
+    }
+    if (lowerTarget !== undefined) {
+      const below = TIERS_ORDER.slice(0, rank(lowerTarget));
+      if (below.length) next[lowerTarget].tier = below[Math.floor(random() * below.length)];
     }
     return next;
   }
 
   for (const slot of slots) {
     if (action.target === "tier") {
-      next[slot].tier = pickWeighted(TIER_WEIGHTS, random());
+      next[slot].tier = pick(tierOptions(next[slot].tier), random());
     } else if (action.target === "trait") {
-      next[slot].trait = pickWeighted(TRAIT_WEIGHTS, random());
+      next[slot].trait = pick(traitOptions(next[slot].trait, ALL_TRAITS), random());
     } else {
       // A stat already on the banner cannot be rolled again.
       const taken = new Set(next.filter((_, i) => i !== slot).map((e) => e.stat));
@@ -230,13 +251,12 @@ export function enumerateOutcomes(
   /** Possible values for one slot, with probabilities. */
   const optionsFor = (slot: number, sofar: Emblem[]): Array<[Emblem, number]> => {
     if (action.target === "tier") {
-      const total = Object.values(TIER_WEIGHTS).reduce((a, b) => a + b, 0);
-      return TIERS_ORDER.map((tier) => [{ ...sofar[slot], tier }, TIER_WEIGHTS[tier] / total]);
+      const options = tierOptions(sofar[slot].tier);
+      return options.map((tier) => [{ ...sofar[slot], tier }, 1 / options.length]);
     }
     if (action.target === "trait") {
-      const total = Object.values(TRAIT_WEIGHTS).reduce((a, b) => a + b, 0);
-      return (Object.keys(TRAIT_WEIGHTS) as Trait[])
-        .map((trait) => [{ ...sofar[slot], trait }, TRAIT_WEIGHTS[trait] / total]);
+      const options = traitOptions(sofar[slot].trait, ALL_TRAITS);
+      return options.map((trait) => [{ ...sofar[slot], trait }, 1 / options.length]);
     }
     const taken = new Set(sofar.filter((_, i) => i !== slot).map((e) => e.stat));
     const pool = statsForColor(BANNER_SLOTS[role][slot]).filter((x) => !taken.has(x));
@@ -542,8 +562,8 @@ export function randomBanner(role: Role, slots: number, random: () => number): E
     used.add(stat);
     return {
       stat,
-      tier: pickWeighted(TIER_WEIGHTS, random()),
-      trait: pickWeighted(TRAIT_WEIGHTS, random())
+      tier: pick(TIERS_ALL, random()),
+      trait: pick(ALL_TRAITS, random())
     };
   });
 }

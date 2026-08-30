@@ -38,7 +38,7 @@ export default async function InformationPage() {
   }
 
   // Pre-event form, where a training set exists for the event.
-  const preEventStrengthFor = new Map<number, Record<string, { winRate: number; maps: number }>>();
+  const preEventStrengthFor = new Map<number, Record<string, { rating: number; maps: number; schedule: number }>>();
   for (const league of leagues) {
     const training = await loadTraining(league.leagueId);
     if (!training) continue;
@@ -82,7 +82,7 @@ export default async function InformationPage() {
     const named = new Map(league.teams.map((t) => [t.name, t]));
     const byForm = Object.entries(priorForm)
       .filter(([name]) => named.has(name))
-      .sort((a, b) => b[1].winRate - a[1].winRate)
+      .sort((a, b) => b[1].rating - a[1].rating)
       .map(([name]) => name);
 
     const ratingsOk = league.ratingCheck?.usable ?? false;

@@ -58,43 +58,68 @@ export function strengthByTeam(teams: TeamEntry[]): Record<string, number> {
 }
 
 /**
- * Team strength going into an event, from results before it.
+ * Team strength going into an event: an Elo rating built from the matches
+ * before it, and nothing else.
  *
- * The alternative is a rating measured now, which for an older event is a
- * rating shaped by a year of things that had not happened yet. The alternative
- * to that is final placement, which makes any "do strong teams do more of X"
+ * A win rate will not do. Beating a bottom seed and beating the eventual
+ * champion count the same in a win rate, so a team that drew an easy schedule
+ * outranks one that played everybody. Elo prices each result by who it was
+ * against, which is the whole point of using it.
+ *
+ * The other two candidates are worse. The stored rating is measured now, so for
+ * an older event it has been reshaped by a year of matches that had not
+ * happened yet. Final placement makes any "do strong teams produce more of X"
  * comparison circular - of course the teams that won did well.
  *
- * So strength is taken from the pre-event tournaments the model was fitted on:
- * a team's map win rate across them, shrunk towards even for teams with few
- * games so a 2-0 start does not outrank a season of play.
+ * Ratings start level and update after every map, so a team's number is the sum
+ * of who it beat and who beat it across the pre-event season.
  */
+export const PRE_EVENT_K = 24;
+export const PRE_EVENT_START = 1300;
+
+export type TeamStrength = {
+  rating: number;
+  maps: number;
+  /** Mean rating of the opposition faced - how hard the schedule was. */
+  schedule: number;
+};
+
 export function preEventStrength(
   results: Array<{ radiant: number; dire: number; radiantWin: boolean }>,
   teamNames: Record<number, string>,
-  prior = 12
-): Record<string, { winRate: number; maps: number }> {
-  const tally = new Map<number, { won: number; played: number }>();
-  const bump = (id: number, won: boolean) => {
-    const t = tally.get(id) ?? { won: 0, played: 0 };
-    t.played += 1;
-    if (won) t.won += 1;
-    tally.set(id, t);
-  };
+  minMaps = 15
+): Record<string, TeamStrength> {
+  const rating = new Map<number, number>();
+  const maps = new Map<number, number>();
+  const facedTotal = new Map<number, number>();
+  const get = (id: number) => rating.get(id) ?? PRE_EVENT_START;
+
   for (const r of results) {
-    bump(r.radiant, r.radiantWin);
-    bump(r.dire, !r.radiantWin);
+    const ra = get(r.radiant);
+    const rb = get(r.dire);
+    const expectedA = 1 / (1 + 10 ** ((rb - ra) / 400));
+    const scoreA = r.radiantWin ? 1 : 0;
+
+    rating.set(r.radiant, ra + PRE_EVENT_K * (scoreA - expectedA));
+    rating.set(r.dire, rb + PRE_EVENT_K * ((1 - scoreA) - (1 - expectedA)));
+
+    for (const [id, faced] of [[r.radiant, rb], [r.dire, ra]] as const) {
+      maps.set(id, (maps.get(id) ?? 0) + 1);
+      facedTotal.set(id, (facedTotal.get(id) ?? 0) + faced);
+    }
   }
 
-  const out: Record<string, { winRate: number; maps: number }> = {};
-  for (const [id, t] of tally) {
+  const out: Record<string, TeamStrength> = {};
+  for (const [id, value] of rating) {
     const name = teamNames[id];
-    if (!name) continue;
-    // Shrunk towards 0.5: a team with `prior` fewer maps than that is pulled
-    // back accordingly, so a small sample cannot top the table on its own.
+    const played = maps.get(id) ?? 0;
+    // A handful of maps is not a rating; those teams are left out rather than
+    // allowed to top the table on a hot start.
+    if (!name || played < minMaps) continue;
     out[name] = {
-      winRate: (t.won + prior * 0.5) / (t.played + prior),
-      maps: t.played
+      rating: Math.round(value),
+      maps: played,
+      schedule: Math.round((facedTotal.get(id) ?? 0) / played)
     };
   }
   return out;

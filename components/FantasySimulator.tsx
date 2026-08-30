@@ -72,17 +72,14 @@ export default function FantasySimulator({
   seriesByTeam: Record<string, number>;
   onBanner: (role: Role, banner: Emblem[]) => void;
 }) {
-  const [tokens, setTokens] = useState<number>(STAGE_TOKENS[stage]);
+  // One counter. Every option costs one reroll, so "tokens left" and "deals
+  // left" were the same number shown twice.
+  const [rerolls, setRerolls] = useState<number>(STAGE_TOKENS[stage]);
   const [chosen, setChosen] = useState<string[]>([]);
   const [offerRole, setOfferRole] = useState<Role>("core");
   // How many times each offer is rolled. More is tighter and slower; the
   // numbers stop moving meaningfully somewhere around 2,000.
   const [results, setResults] = useState<OfferPlan | null>(null);
-  // How many more times the game will deal you three options. The stage grants
-  // 40 tokens for the group stage and 30 for the playoffs, and a reroll is
-  // taken to cost one, so the default is the token count. Editable because the
-  // per-action costs are not published and may not all be one.
-  const [rounds, setRounds] = useState(STAGE_TOKENS[stage]);
   const [busy, setBusy] = useState(false);
 
   // How many random futures to average when valuing "decline and wait". A
@@ -97,10 +94,9 @@ export default function FantasySimulator({
     [banners, slots]
   );
 
-  useEffect(() => { setResults(null); }, [banners, risk, tokens, rounds]);
+  useEffect(() => { setResults(null); }, [banners, risk, rerolls]);
   useEffect(() => {
-    setTokens(STAGE_TOKENS[stage]);
-    setRounds(STAGE_TOKENS[stage]);
+    setRerolls(STAGE_TOKENS[stage]);
     setChosen([]);
     setResults(null);
   }, [stage]);
@@ -147,7 +143,7 @@ export default function FantasySimulator({
     if (!offers.length) return;
     setBusy(true);
     setTimeout(() => {
-      setResults(planOffers(staged, offers, catalogue, valueOf, tokens, rounds, FUTURES));
+      setResults(planOffers(staged, offers, catalogue, valueOf, rerolls, rerolls, FUTURES));
       setBusy(false);
     }, 0);
   };
@@ -173,9 +169,9 @@ export default function FantasySimulator({
         <div>
           <h2>Fantasy simulator</h2>
           <p className="faint" style={{ marginTop: 2 }}>
-            One pool of {budget} tokens for the whole roster — Core, Mid and Support
-            share it. Tick the options the game is offering on each banner and see
-            which one is worth spending on, or whether to keep the tokens.
+            {budget} rerolls for the whole roster — Core, Mid and Support share them,
+            and every option costs one. Tick the three the game just dealt you and see
+            whether any beats waiting for the next deal.
           </p>
         </div>
         <span className="tag">{STAGE_LABELS[stage]} · {slots} emblems</span>
@@ -209,13 +205,25 @@ export default function FantasySimulator({
 
       <div className="stat-tiles">
         <div className="stat-tile">
-          <small>Tokens left</small>
+          <small>
+            Rerolls left{" "}
+            <Info title="Rerolls left">
+              Every option costs the same — one reroll. There is no price list, so a
+              wildcard that moves three emblems costs exactly what rerolling one stat
+              costs. The stage grants {STAGE_TOKENS.groupStage} for the group stage and{" "}
+              {STAGE_TOKENS.playoffs} for the playoffs.
+              <br /><br />
+              This is also how many more times you will be dealt three options, and that
+              is what sets the bar: with thirty left you can decline a mediocre offer,
+              with two left you cannot.
+            </Info>
+          </small>
           <input
-            type="number" min={0} max={99} value={tokens} aria-label="Tokens left"
-            onChange={(e) => setTokens(Math.max(0, Math.min(99, Number(e.target.value) || 0)))}
+            type="number" min={0} max={60} value={rerolls} aria-label="Rerolls left"
+            onChange={(e) => setRerolls(Math.max(0, Math.min(60, Number(e.target.value) || 0)))}
             className="token-input"
           />
-          <span className="faint">shared · stage grants {budget}</span>
+          <span className="faint">three options dealt each time</span>
         </div>
         <div className="stat-tile">
           <small>Roster now</small>
@@ -229,27 +237,7 @@ export default function FantasySimulator({
           <b>{chosenCount}</b>
           <span className="faint">skip is always compared too</span>
         </div>
-        <div className="stat-tile">
-          <small>
-            Deals left{" "}
-            <Info title="Deals left" align="right">
-              How many more times the game will deal you three options. This is what
-              decides whether an offer is worth taking: with thirty deals left you can
-              decline a mediocre one, with two left you cannot.
-              <br /><br />
-              Defaults to the stage&rsquo;s token count — {STAGE_TOKENS.groupStage} for the
-              group stage, {STAGE_TOKENS.playoffs} for the playoffs — which assumes a
-              reroll costs one token. Editable because the per-action costs are not
-              published, so that assumption is not verified.
-            </Info>
-          </small>
-          <input
-            type="number" min={1} max={60} value={rounds} aria-label="Deals left"
-            onChange={(e) => setRounds(Math.max(1, Math.min(60, Number(e.target.value) || 1)))}
-            className="token-input"
-          />
-          <span className="faint">three random options per deal</span>
-        </div>
+
       </div>
 
       <div className="stack" style={{ gap: 8 }}>
@@ -266,7 +254,7 @@ export default function FantasySimulator({
           Tick the <strong>three options the game just dealt you</strong>, on whichever
           banners they landed. The question is not which is best in the abstract — it is
           whether any of them beats declining and seeing the next deal — and with{" "}
-          {rounds} deals left that bar is high.
+          {rerolls} rerolls left that bar is high.
         </p>
         <div className="pill-row" role="tablist" aria-label="Offer banner">
           {ROLES.map((r) => (
@@ -296,11 +284,8 @@ export default function FantasySimulator({
       {results && (
         <Results
           plan={results}
-          onSpend={(cost) => {
-            setTokens((t) => Math.max(0, t - cost));
-            setRounds((r) => Math.max(1, r - 1));
-          }}
-          tokens={tokens}
+          onSpend={() => setRerolls((r) => Math.max(0, r - 1))}
+          rerolls={rerolls}
         />
       )}
 
@@ -361,11 +346,11 @@ export default function FantasySimulator({
 }
 
 function Results({
-  plan, tokens, onSpend
+  plan, rerolls, onSpend
 }: {
   plan: OfferPlan;
-  tokens: number;
-  onSpend: (cost: number) => void;
+  rerolls: number;
+  onSpend: () => void;
 }) {
   const best = plan.decisions[0];
   const worthTaking = best && best.edge > 0;
@@ -384,14 +369,14 @@ function Results({
           <small>
             If you decline{" "}
             <Info title="If you decline">
-              What the roster is worth if you take none of these and play the remaining{" "}
-              {plan.rounds} deals out. It is far above what you hold now, because more
+              What the roster is worth if you take none of these and play your remaining{" "}
+              {plan.rounds} rerolls out. It is far above what you hold now, because more
               offers are coming and some of them will be good. That is the number every
               offer has to beat.
             </Info>
           </small>
           <b>{fmt(plan.skipValue)}</b>
-          <span className="faint">over {plan.rounds} more deals</span>
+          <span className="faint">over {plan.rounds} more rerolls</span>
         </div>
         <div className="stat-tile">
           <small>Verdict</small>
@@ -409,9 +394,6 @@ function Results({
           <thead>
             <tr>
               <th>Banner</th><th>Offer</th>
-              <th style={{ textAlign: "right" }}>
-                Cost <Info title="Cost">Tokens this costs. The three banners share one pool.</Info>
-              </th>
               <th style={{ textAlign: "right" }}>
                 If you take it <Info title="If you take it" align="right">
                   What the roster ends up worth if you take this now and then play the
@@ -439,7 +421,6 @@ function Results({
                   )}
                   {d.action.label}
                 </td>
-                <td className="num muted" style={{ textAlign: "right" }}>{d.action.cost}</td>
                 <td className="num" style={{ textAlign: "right" }}>{fmt(d.takeValue)}</td>
                 <td className="num" style={{
                   textAlign: "right", fontWeight: 650,
@@ -448,8 +429,8 @@ function Results({
                   {signed(d.edge)}
                 </td>
                 <td style={{ textAlign: "right" }}>
-                  <button onClick={() => onSpend(d.action.cost)} disabled={d.action.cost > tokens}
-                    title={`Deduct ${d.action.cost} tokens and one deal — press once you have taken it in game`}>
+                  <button onClick={onSpend} disabled={rerolls <= 0}
+                    title="Spend one reroll — press once you have taken it in game">
                     Take
                   </button>
                 </td>
@@ -458,11 +439,11 @@ function Results({
             <tr className="row-skip">
               <td className="muted">—</td>
               <td>Skip — wait for the next deal</td>
-              <td className="num muted" style={{ textAlign: "right" }}>0</td>
               <td className="num" style={{ textAlign: "right" }}>{fmt(plan.skipValue)}</td>
               <td className="num muted" style={{ textAlign: "right" }}>—</td>
               <td style={{ textAlign: "right" }}>
-                <button onClick={() => onSpend(0)} title="Costs nothing, but uses up a deal">
+                <button onClick={onSpend} disabled={rerolls <= 0}
+                  title="Declining still uses up one of your rerolls">
                   Take
                 </button>
               </td>
@@ -480,7 +461,7 @@ function Results({
           </>
         ) : (
           <>
-            <strong>Decline all three.</strong> With {plan.rounds} deals still to come,
+            <strong>Decline all three.</strong> With {plan.rounds} rerolls still to come,
             waiting is worth {fmt(plan.skipValue)} and none of these beats it. Skipping
             costs no tokens.
           </>

@@ -22,7 +22,10 @@ wrong, the numbers that depend on it are wrong.
 | The same option cannot be offered twice in a row | You |
 | Skip is always available and free | You |
 | A quality change lands on a **random** available tier, not ±1 | You |
+| A reroll never returns the value it replaced | You |
 | A tier V cannot be raised, a tier I cannot be lowered | You |
+| The wildcard does what is possible, decided before anything moves | You, from four worked examples |
+| **Every option costs one reroll** — there is no price list | You, and [Escorenews](https://escorenews.com/en/dota-2/article/71615-fantasy-guide-for-the-international-2026-compendium-best-player-picks-and-rolls-for-ti15-fantasy) ("Players get 40 rerolls") |
 | Reroll scopes: stat / quality / trait × all / first / last / random of a colour | Reference project's guide |
 | Compendium prediction payout scale | Reference project |
 | Stage boundary, group stage format, series counts | Derived from the match data itself |
@@ -34,12 +37,11 @@ wrong, the numbers that depend on it are wrong.
 
 | Assumption | Where | What it affects |
 | --- | --- | --- |
-| **Token cost per action** (1 for random, 2 first/last, 4 all, 3–4 wildcards) | `ACTION_COSTS` in `lib/reroll.ts` | Which offers are affordable, and how many deals a budget buys |
-| **Tier roll distribution** (40/28/18/10/4% for I–V) | `TIER_WEIGHTS` | The value of any quality reroll |
-| **Trait roll distribution** (40% none, 12% each) | `TRAIT_WEIGHTS` | The value of any trait reroll |
-| **A reroll costs one token**, so deals ≈ tokens | Default for "deals left" | How high the bar is for taking an offer |
-| **Quality raises take the lowest tiers, reductions the highest** | `applyAction` | The two wildcards on an uneven banner |
+| **Every reroll outcome is equally likely** — a quality reroll on a tier II gives I, III, IV or V at 25% each; a trait reroll gives any of the other five at 20% each | `tierOptions`, `traitOptions` in `lib/reroll.ts` | The value of every quality and trait reroll. Searched for published odds and found none — no guide carries them. |
 | Hero colour/theme groups | `HERO_GROUPS`, empty | Prefix titles — reported as unknown rather than guessed |
+
+That is the whole list. It used to be six entries; the token costs turned out
+not to exist, and the rest were replaced by rules you confirmed.
 
 ## Retracted
 
@@ -57,3 +59,9 @@ Things I asserted that turned out to be invented or wrong, and have been fixed:
   hardcoded as though universal. TI 2022 ran 9.3 Bo2 series per team.
 - **Stage split at the longest schedule gap** — TI 2022's longest gap is inside
   the playoffs, so the event came out unsplit.
+- **A price list for rerolls** — I invented per-action token costs (1 for a
+  random emblem, 4 for all of a colour, and so on). There is no price list.
+  Every option costs one of your forty rerolls.
+- **A quality reroll could return the tier it replaced** — it cannot.
+- **Top teams ranked by pre-event win rate** — a win rate ignores who you
+  played. Now an Elo built from the pre-event matches.
