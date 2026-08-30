@@ -112,6 +112,50 @@ export function comboValues(entries: PlayerEntry[], banner: Emblem[]): Array<{
   return out;
 }
 
+/**
+ * The best trait arrangement there is, found by trying all of them.
+ *
+ * Six traits over five slots is 7,776 combinations, which is small enough to
+ * check exhaustively rather than search. Worth doing because the answer is not
+ * the one people expect, and it changes with the number of emblems:
+ *
+ *   3 emblems   Vampiric / Benevolent / Vampiric beats three Friendly. All
+ *               Friendly is a flat +50% everywhere; the pair of Vampirics puts
+ *               1.80 on both ends and 0.81 in the middle, which wins as long as
+ *               the weakest stat sits in the middle.
+ *
+ *   5 emblems   Friendly and Benevolent interleaved beats both. The middle
+ *               Friendly has a Benevolent on either side, so it lands on 2.16 -
+ *               higher than anything a three-emblem banner can reach.
+ */
+export function bestTraitArrangement(
+  entries: PlayerEntry[],
+  banner: Emblem[]
+): { traits: Trait[]; value: number; gain: number } | null {
+  if (!entries.length || banner.length > 5) return null;
+  const plain = banner.map((e) => ({ ...e, trait: "none" as Trait }));
+  const base = meanBanked(entries, plain);
+  if (!base) return null;
+
+  let bestTraits: Trait[] = [];
+  let bestValue = -Infinity;
+  const walk = (i: number, acc: Trait[]) => {
+    if (i === banner.length) {
+      const value = meanBanked(entries, plain.map((e, j) => ({ ...e, trait: acc[j] })));
+      if (value > bestValue) {
+        bestValue = value;
+        bestTraits = [...acc];
+      }
+      return;
+    }
+    for (const trait of TRAITS) walk(i + 1, [...acc, trait]);
+  };
+  walk(0, []);
+
+  if (!bestTraits.length) return null;
+  return { traits: bestTraits, value: bestValue, gain: bestValue / base - 1 };
+}
+
 export type EntryRecord = {
   entry: PlayerEntry;
   role: Role;

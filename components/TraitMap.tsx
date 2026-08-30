@@ -4,7 +4,7 @@ import { useMemo, useState } from "react";
 import type { Emblem, PlayerEntry, Trait } from "../lib/fantasy";
 import { TRAIT_DESCRIPTIONS } from "../lib/fantasy";
 import { Role, STAT_LABELS } from "../lib/scoring";
-import { comboValues, entryRecords, traitValues } from "../lib/traitStudy";
+import { bestTraitArrangement, comboValues, entryRecords, traitValues } from "../lib/traitStudy";
 import { STAGE_LABELS, type Stage } from "../lib/stages";
 import Info from "./Info";
 
@@ -38,6 +38,8 @@ export default function TraitMap({
 
   const traits = useMemo(() => traitValues(pool, banner), [pool, banner]);
   const combos = useMemo(() => comboValues(pool, banner), [pool, banner]);
+  // Every arrangement checked, not searched - 7,776 at five emblems.
+  const bestTraits = useMemo(() => bestTraitArrangement(pool, banner), [pool, banner]);
   const maxTrait = useMemo(
     () => Math.max(0.01, ...traits.flatMap((t) => t.bySlot.map(Math.abs))),
     [traits]
@@ -155,6 +157,54 @@ export default function TraitMap({
           and building that plan costs tokens.
         </p>
       </section>
+
+      {bestTraits && (
+        <section className="card stack">
+          <div className="row-between">
+            <h2>The best arrangement there is</h2>
+            <span className="tag tag-solid">
+              all {Math.pow(6, banner.length).toLocaleString("en-US")} checked
+            </span>
+          </div>
+          <div className="scroll-x">
+            <table>
+              <thead>
+                <tr>
+                  <th>Slot</th>
+                  {banner.map((_, i) => <th key={i} style={{ textAlign: "center" }}>{i + 1}</th>)}
+                  <th style={{ textAlign: "right" }}>Worth</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td className="muted">Trait</td>
+                  {bestTraits.traits.map((t, i) => (
+                    <td key={i} style={{ textAlign: "center", textTransform: "capitalize" }}>
+                      {t === "none" ? <span className="faint">—</span> : <strong>{t}</strong>}
+                    </td>
+                  ))}
+                  <td className="num" style={{ textAlign: "right", fontWeight: 650, color: "var(--accent)" }}>
+                    {pct(bestTraits.gain)}
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <p className="faint" style={{ maxWidth: 740 }}>
+            It changes with the number of emblems <em>and</em> with the role, so there is
+            no single right answer to carry between banners.
+            <br /><br />
+            All-Friendly is a flat ×1.50 on every emblem. Vampiric on both ends with
+            Benevolent between them lands ×1.80, ×0.81, ×1.80 — better whenever the weakest
+            stat can sit in the penalised middle, which is why it wins for a group stage
+            Core and loses for a Mid, whose value is spread more evenly.
+            <br /><br />
+            On five emblems, Friendly and Benevolent interleaved beats both: the middle
+            Friendly has a Benevolent either side, so it lands on ×2.16 — higher than a
+            three-emblem banner can reach at all.
+          </p>
+        </section>
+      )}
 
       <section className="card stack">
         <h2>The combinations</h2>
