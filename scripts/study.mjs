@@ -19,7 +19,7 @@ const require = createRequire(join(ROOT, "package.json"));
 const lib = (n) => require(join(ROOT, ".validate", `${n}.js`));
 
 const { rankPlayers, matchScores, optimizeEmblems, buildLineups, percentile,
-        TIERS, TIER_BONUSES, TRAITS, traitFactors } = lib("fantasy");
+        TIERS, TIER_BONUSES, TRAITS } = lib("fantasy");
 const { BANNER_SLOTS, statsForColor, STAT_LABELS } = lib("scoring");
 const { toPlayerEntries, actualSeriesByStage, trainingPlayerEntries } = lib("data");
 const { STAGE_SLOTS } = lib("stages");

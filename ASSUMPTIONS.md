@@ -8,7 +8,7 @@ wrong, the numbers that depend on it are wrong.
 
 | Rule | Source |
 | --- | --- |
-| Point value of all 15 extractable stats | In-game rules, cross-checked against a community-compiled table and against my own data (31 of 36 values within a few percent) |
+| Point value of all 16 extractable stats | In-game rules, cross-checked against a community-compiled table and against my own data (31 of 36 values within a few percent) |
 | Tier bonuses +10 / +30 / +60 / +100 / +150% | In-game rules |
 | Trait effects (Fractal +60%, Benevolent +20% adjacent, Vampiric +50%/−10%, Unique +30%, Friendly +50%) | In-game rules |
 | Slot colours per role | In-game rules |
@@ -43,9 +43,19 @@ wrong, the numbers that depend on it are wrong.
 | --- | --- | --- |
 | **Every reroll outcome is equally likely** — a quality reroll on a tier II gives I, III, IV or V at 25% each; a trait reroll gives any of the other five at 20% each | `tierOptions`, `traitOptions` in `lib/reroll.ts` | The value of every quality and trait reroll. Searched for published odds and found none — no guide carries them. |
 | Hero colour/theme groups | `HERO_GROUPS`, empty | Prefix titles — reported as unknown rather than guessed |
+| **Madstones are `item_uses.madstone_bundle`** | `scripts/extract.mjs` | The Madstones emblem. OpenDota has no field by that name. This one correlates r=0.87 with `neutral_kills` over 1,793 player-games, at roughly one per three camps cleared, and is present in ~90% of parsed matches — the shape of pickups, not of a player activating an item twelve times a game. It is still an inference. Low stakes either way: at TI 2026 it is worth 246 points a game to a core against 1,512 for last hits, so it never enters an optimal banner. |
 
 That is the whole list. It used to be six entries; the token costs turned out
 not to exist, and the rest were replaced by rules you confirmed.
+
+## Genuinely unavailable
+
+**Lotuses Grabbed** and **Watchers Taken** are real emblem stats and are not in
+the calculator, because no public source has them. Every one of OpenDota's 146
+player fields was searched, along with the whole match object and every
+objective type: the only `lotus` keys are the item Lotus Orb and its recipe,
+and `watcher` does not appear anywhere at all. STRATZ's GraphQL schema has no
+field for either. Getting them would mean parsing replays.
 
 ## Retracted
 

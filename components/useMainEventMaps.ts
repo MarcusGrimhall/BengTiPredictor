@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import type { TeamEntry } from "../lib/data";
 
-const BRACKET_KEY = "d2toolkit-bracket-v2";
+const BRACKET_KEY = "bengti-bracket-v1";
 
 export type MapsSource = "bracket" | "rating";
 

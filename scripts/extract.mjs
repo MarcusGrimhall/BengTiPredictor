@@ -8,12 +8,14 @@
 export const RAW_STATS = [
   "kills", "deaths", "creeps", "gpm", "towers", "roshan", "tormentor",
   "courier", "firstBlood", "teamfight", "stuns", "wards", "stacks",
-  "runes", "smokes"
+  "runes", "smokes", "madstones"
 ];
 
-// Stats TI fantasy uses but OpenDota does not expose reliably. We do not
-// pretend to have them - the calculator marks them unavailable.
-export const UNAVAILABLE_STATS = ["lotuses", "watchers", "madstones"];
+// Stats TI fantasy uses but OpenDota does not expose at all. Searched every
+// one of the 146 player fields, the whole match object and every objective
+// type: the only "lotus" keys are the item Lotus Orb, and "watcher" does not
+// appear anywhere. We do not pretend to have them.
+export const UNAVAILABLE_STATS = ["lotuses", "watchers"];
 
 function tormentorKillsBySlot(match) {
   const counts = new Map();
@@ -128,7 +130,13 @@ export function extractMatch(match) {
         wards: p.obs_placed ?? 0,
         stacks: p.camps_stacked ?? 0,
         runes: p.rune_pickups ?? 0,
-        smokes: p.purchase?.smoke_of_deceit ?? 0
+        smokes: p.purchase?.smoke_of_deceit ?? 0,
+        // Derived, not labelled: OpenDota has no madstone field, but it counts
+        // madstone_bundle events, which correlate r=0.87 with neutral_kills
+        // over 1,793 player-games at about one per three camps - the shape of
+        // madstone pickups, not of a player activating an item twelve times.
+        // Present in ~90% of parsed matches. See ASSUMPTIONS.md.
+        madstones: p.item_uses?.madstone_bundle ?? 0
       }
     };
   });

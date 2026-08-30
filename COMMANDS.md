@@ -71,7 +71,10 @@ feeds back into the model — that is the whole point.
 ### The three steps
 
 ```bash
-# 1. Fetch the tournaments to train ON (repeat per event)
+# 0. See which tournaments you are missing
+npm run discover
+
+# 1. Fetch the tournaments to train ON (repeat per event, or use --fetch above)
 npm run fetch -- 19269 --training
 
 # 2. Fetch the event to predict
@@ -181,6 +184,39 @@ in each.
 ---
 
 ## Getting data
+
+### Keeping up to date
+
+Run this whenever you want to know what you are missing. It walks OpenDota's
+pro-match feed backwards, groups by tournament, and compares that against what
+is already in `data/generated/`.
+
+```bash
+npm run discover                     # last 2 months, tier 1 + 2
+npm run discover -- --months 6       # look further back
+npm run discover -- --tier premium   # tier 1 only
+npm run discover -- --fetch          # fetch every relevant new event
+npm run discover -- --fetch --all    # take everything, not only tracked teams
+```
+
+The column that matters is **tracked** — how many of that event's matches had a
+team you already follow in them. Pro Dota runs hundreds of regional events a
+year and almost none contain a TI roster, so raw match count is a bad signal
+and tracked-team count is a good one. Events with zero are listed separately
+and skipped by `--fetch` unless you pass `--all`.
+
+Rows marked `[after cutoff]` overlap or follow the event the site is currently
+showing. Fetch them anyway: `npm run train` excludes them automatically, and
+they become training data the moment you point the site at a newer tournament.
+
+After fetching, rebuild:
+
+```bash
+npm run train -- 19719
+npm run build
+```
+
+### By hand
 
 ```bash
 npm run leagues -- international     # search for a league ID

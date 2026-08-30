@@ -10,7 +10,7 @@ import { DEFAULT_ELO, mapWinProbability } from "../lib/elo";
 import type { TeamEntry } from "../lib/data";
 
 const SIZES = [4, 8, 16] as const;
-const STORAGE_KEY = "d2toolkit-bracket-v2";
+const STORAGE_KEY = "bengti-bracket-v1";
 
 type Saved = { size: number; format: Format; seeds: (string | null)[]; selections: Selections };
 

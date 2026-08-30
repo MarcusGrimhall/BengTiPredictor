@@ -24,7 +24,7 @@ const ROLE_HINTS: Record<Role, string> = {
   support: "same-team pair"
 };
 const ROLE_ENTRY: Record<Role, string> = { core: "pair", mid: "player", support: "pair" };
-const STORAGE_KEY = "d2toolkit-banners-v2";
+const STORAGE_KEY = "bengti-banners-v1";
 
 /** Distinct stat per slot - the same stat may never appear twice on a banner. */
 const defaultBanner = (role: Role): Emblem[] => {
@@ -278,6 +278,12 @@ export default function FantasyCalculator({
               so it is a target rather than something you hold.{" "}
               <strong>Arrange what I hold</strong> keeps your tiers and only moves them
               between slots, which answers where to put what you already have.
+              <br />
+              Why the two disagree on <em>Fractal</em>: it pays +60% only when all five
+              tiers differ, which caps you at one tier V. Five tier V + Friendly sums to
+              a ×15.0 banner; I–V + Fractal sums to ×11.5. So Fractal is never right when
+              tiers are free — but if the five you hold are already all different, it beats
+              Friendly on those same tiers (×11.5 against ×11.0).
             </p>
           </div>
           <div style={{ display: "flex", gap: 8 }}>

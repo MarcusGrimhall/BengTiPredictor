@@ -7,7 +7,7 @@
 export type StatKey =
   | "kills" | "deaths" | "creeps" | "gpm" | "towers" | "roshan" | "tormentor"
   | "courier" | "firstBlood" | "teamfight" | "stuns" | "wards" | "stacks"
-  | "runes" | "smokes";
+  | "runes" | "smokes" | "madstones";
 
 export type EmblemColor = "red" | "blue" | "green";
 export type Role = "core" | "mid" | "support";
@@ -27,11 +27,13 @@ export const POINT_VALUES: Record<StatKey, { per: number; base?: number }> = {
   wards: { per: 117 },
   stacks: { per: 234 },
   runes: { per: 141 },
-  smokes: { per: 293 }
+  smokes: { per: 293 },
+  madstones: { per: 13 }
 };
 
 export const STAT_COLORS: Record<StatKey, EmblemColor> = {
   gpm: "red", deaths: "red", creeps: "red", kills: "red", towers: "red",
+  madstones: "red",
   wards: "blue", stacks: "blue", runes: "blue", smokes: "blue",
   teamfight: "green", stuns: "green", tormentor: "green", roshan: "green",
   firstBlood: "green", courier: "green"
@@ -43,14 +45,15 @@ export const STAT_LABELS: Record<StatKey, string> = {
   courier: "Courier kills", firstBlood: "First Blood",
   teamfight: "Teamfight participation", stuns: "Stun duration",
   wards: "Observer wards", stacks: "Camps stacked", runes: "Runes",
-  smokes: "Smokes used"
+  smokes: "Smokes used", madstones: "Madstones collected"
 };
 
 export const STAT_KEYS = Object.keys(POINT_VALUES) as StatKey[];
 
-// Stats TI fantasy scores but neither OpenDota nor STRATZ exposes
-// reliably. We mark them unavailable rather than guessing.
-export const UNAVAILABLE_STATS = ["Lotuses", "Watchers", "Madstones"];
+// Stats TI fantasy scores but neither OpenDota nor STRATZ exposes at all.
+// We mark them unavailable rather than guessing. Madstones used to be on this
+// list; it is now derived from madstone_bundle events - see ASSUMPTIONS.md.
+export const UNAVAILABLE_STATS = ["Lotuses", "Watchers"];
 
 // The colour of each banner slot, following the TI 2026 layout: five
 // emblems per banner, colour decides which stats may be placed there.

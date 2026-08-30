@@ -171,7 +171,7 @@ export default async function MethodPage() {
             you want to see before spending.
           </p>
           <p className="faint">
-            Token costs and the tier/trait roll distributions are assumptions. Valve does
+            The tier/trait roll distributions are assumptions. Valve does
             not publish them and no guide lists them; they are constants in
             <code> lib/reroll.ts</code>.
           </p>
@@ -180,9 +180,17 @@ export default async function MethodPage() {
         <section className="card stack">
           <h2>What cannot be calculated</h2>
           <p className="muted">
-            OpenDota does not expose <strong>{UNAVAILABLE_STATS.join(", ")}</strong> reliably,
-            and neither does STRATZ. Those emblems are not in the calculator — better to show
-            fewer stats than guessed ones.
+            OpenDota does not expose <strong>{UNAVAILABLE_STATS.join(" or ")}</strong> at all,
+            and neither does STRATZ — all 146 player fields, the whole match object and every
+            objective type were searched. Those two emblems are not in the calculator; better
+            to show fewer stats than guessed ones.
+          </p>
+          <p className="faint">
+            <strong>Madstones</strong> are in, but derived rather than labelled. OpenDota has no
+            madstone field; it does count <code>madstone_bundle</code> events, which track
+            neutral camps at r=0.87 over 1,793 player-games. That is an inference, not a
+            documented field. It changes nothing in practice — Madstones pay a core 246 points
+            a game against 1,512 for last hits, so no optimal banner picks them.
           </p>
           <p className="faint">
             Role assignment is a heuristic. A position 4 who farms heavily can land as a core
