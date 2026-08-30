@@ -121,22 +121,32 @@ Slot colours, with the group stage running on the first three:
 | Mid | 2 red, 1 blue, 2 green | one of each |
 | Support | 3 blue, 2 green | 2 blue, 1 green |
 
-### A match is its two best games
+### A series is the average of its two best games
 
-Fantasy does not pay per map. **A series scores as the sum of its two
-highest-scoring games**, so a Bo3 that goes the distance still banks only two,
-and the third game is worth nothing unless it beats one of the first two.
+Fantasy does not pay per map. **A series scores as the average of its two
+highest games.** In a Bo3 you take the best two and average them; the third game
+is worth nothing unless it displaces one of the first two. A one-game series
+scores that game.
 
-This changes what the projection multiplies by. Scoring per map and multiplying
-by expected maps overstates every long series, so the model counts **series**
-instead:
+Worked through, for a real playoff series:
+
+```
+game 1   8,314   counted
+game 2   7,505   counted
+game 3   3,097   dropped
+                 series score = (8,314 + 7,505) / 2 = 7,910
+```
+
+Because it averages, going the distance is worth nothing on its own. Scoring per
+map and multiplying by expected maps would pay a team for playing a third game,
+so the model counts **series** instead:
 
 ```
 stage total = (score at your risk level, per match) × (expected series)
 ```
 
-`matchScores()` in `lib/fantasy.ts` groups a player's games by series id, takes
-the top two of each, and sums them. That is the distribution the risk slider
+`matchScores()` in `lib/fantasy.ts` groups a player's games by series id and
+averages the top two of each. That is the distribution the risk slider
 reads percentiles from — floor, median and ceiling are all per match.
 
 ### Core and Support are pairs
@@ -414,18 +424,40 @@ nothing in the playoffs, which is not the same as scoring a little.
 ### Finding the boundary
 
 The split is read out of the schedule, not hardcoded. Group stage and playoffs
-are separated by a multi-day break while the venue changes over, and nothing
-inside either stage comes close to it:
+are separated by a multi-day break while the venue changes over:
 
 ```
-TI 2026   longest gap 88.2h    next longest 13.2h    109 maps | 38 maps
-TI 2025   longest gap 83.8h    next longest 13.5h    108 maps | 36 maps
+event      boundary   next longest   group | playoffs
+TI 2026       88.2h          13.2h     109 | 38
+TI 2025       83.8h          13.5h     108 | 36
+TI 2024       60.3h          15.5h      99 | 22
+TI 2023      111.1h         108.5h     101 | 50
+TI 2022       38.9h         135.6h     183 | 48
 ```
 
-`scripts/stages.mjs` takes the longest gap as the boundary provided it clears 36
-hours and leaves at least 10% of the event on each side. Both years land the same
-structure: 16 teams playing 44 Bo3 series, then eight into a double-elimination
-bracket.
+`scripts/stages.mjs` takes the **longest qualifying** gap: one that clears 36
+hours and leaves at least 10% of the event on either side. Both conditions
+matter. TI 2022 ran its main event over two weekends, which put its longest
+break of all (135.6h) between the main event and the finals — a 95/5 split that
+is not a stage boundary. Taking the longest gap outright finds nothing there;
+taking the longest *qualifying* gap finds the real one at 38.9h.
+
+### The format is not stable
+
+Nothing about the group stage repeats reliably across Internationals:
+
+```
+TI 2022   20 teams   9.3 series per team   Bo2
+TI 2023   20 teams   5.0                   Bo3
+TI 2024   16 teams   5.9                   Bo3
+TI 2025   16 teams   5.5                   Bo3
+TI 2026   16 teams   5.5                   Bo3
+```
+
+TI 2022 ran nearly twice the group stage of TI 2023, and ran it Bo2. So the
+shape is read off whichever event is being projected rather than assumed —
+series per team and maps per series both come from the data, and the hardcoded
+constant is only a fallback for an event that has not been played.
 
 ## From per game to per tournament
 
@@ -628,6 +660,30 @@ Full reference with every flag: **[COMMANDS.md](COMMANDS.md)**.
 
 Set `OPENDOTA_API_KEY` in the environment for a paid key — the script speeds up
 automatically.
+
+## How far back the data goes
+
+Every stat the calculator needs survives back to at least TI 2018 — checked by
+probing a match from the middle of each event:
+
+```
+event      maps   parsed   teamfight   stuns   wards   stacks   runes
+TI 2024     121      yes         yes     yes     yes      yes     yes
+TI 2023     151      yes         yes     yes     yes      yes     yes
+TI 2022     231      yes         yes     yes     yes      yes     yes
+TI 2021     487      yes         yes     yes     yes      yes     yes
+TI 2019     461      yes         yes     yes     yes      yes     yes
+TI 2018     401      yes         yes     yes     yes      yes     yes
+```
+
+The pipeline runs on them unchanged; the only cost is fetch time. TI 2022, 2023,
+2024, 2025 and 2026 are included. Scores are computed under the **current**
+scoring scale throughout, so an older event reads as "what this would have banked
+under today's rules" rather than what it paid at the time.
+
+One thing that does not degrade with age is what you would expect. The ratings
+are unusable for TI 2025 (51.9%) and TI 2022 (48.4%) but fine for TI 2024 (64.5%)
+and TI 2023 (63.4%) — so it is roster churn since the last fetch, not age.
 
 ## Names and roles come from the pro registry
 

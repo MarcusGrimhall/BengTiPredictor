@@ -12,8 +12,14 @@
 //   TI 2026  biggest gap 88.2h, next biggest 13.2h
 //   TI 2025  biggest gap 83.8h, next biggest 13.5h
 //
-// So the largest gap is the split, provided it clears the overnight breaks by a
-// wide margin and leaves a plausible amount of play on both sides.
+// So the split is the largest gap that both clears the overnight breaks by a
+// wide margin AND leaves a plausible amount of play on either side.
+//
+// Both conditions matter, and the second is not a formality. TI 2022 ran its
+// main event across two weekends, which put its *longest* break (135.6h) between
+// the main event and the finals - a 95/5 split that is not a stage boundary at
+// all. The real boundary was the second-longest gap, 38.9h, at 79%. Taking the
+// longest qualifying gap rather than the longest gap finds it.
 
 export const STAGES = ["groupStage", "playoffs"];
 
@@ -45,22 +51,26 @@ export function splitStages(matches) {
     .map((m, i) => ({ index: i + 1, hours: (m.start_time - ordered[i].start_time) / 3600 }))
     .sort((a, b) => b.hours - a.hours);
 
-  const [widest, runnerUp] = gaps;
-  const share = widest.index / ordered.length;
-  if (
-    widest.hours < STAGE_GAP_HOURS ||
-    share < MIN_SHARE ||
-    share > 1 - MIN_SHARE
-  ) {
-    return { ...none, gapHours: widest.hours, runnerUpHours: runnerUp?.hours ?? 0 };
+  const qualifies = (g) => {
+    const share = g.index / ordered.length;
+    return g.hours >= STAGE_GAP_HOURS && share >= MIN_SHARE && share <= 1 - MIN_SHARE;
+  };
+
+  const boundary = gaps.find(qualifies);
+  if (!boundary) {
+    return { ...none, gapHours: gaps[0]?.hours ?? 0, runnerUpHours: gaps[1]?.hours ?? 0 };
   }
 
-  for (const m of ordered.slice(widest.index)) stageOf.set(m.match_id, 1);
+  // The longest gap that is NOT the boundary, for the log - it is what the
+  // decision was made against.
+  const nextBest = gaps.find((g) => g !== boundary)?.hours ?? 0;
+
+  for (const m of ordered.slice(boundary.index)) stageOf.set(m.match_id, 1);
   return {
     stageOf,
     split: true,
-    gapHours: widest.hours,
-    runnerUpHours: runnerUp?.hours ?? 0,
-    boundary: ordered[widest.index].start_time
+    gapHours: boundary.hours,
+    runnerUpHours: nextBest,
+    boundary: ordered[boundary.index].start_time
   };
 }

@@ -35,17 +35,22 @@ export const STAGE_TOKENS: Record<Stage, number> = { groupStage: 40, playoffs: 3
 export const PLAYOFF_TEAMS = 8;
 
 /**
- * Group stage shape, measured from TI 2025 and TI 2026 - identical in both.
- * 16 teams, 44 Bo3 series, each team playing four to six of them depending on
- * how the standings fall. Used to project a group stage that has not happened
- * yet; a finished one uses the maps that were actually played.
+ * Fallback group stage shape: 16 teams playing about five and a half Bo3 series
+ * each, which is what TI 2025 and TI 2026 both ran.
+ *
+ * It is only a fallback. The format is not stable across events - measured
+ * series per team across five Internationals:
+ *
+ *   TI 2022   20 teams   9.3      TI 2025   16 teams   5.5
+ *   TI 2023   20 teams   5.0      TI 2026   16 teams   5.5
+ *   TI 2024   16 teams   5.9
+ *
+ * TI 2022 ran nearly twice the group stage of TI 2023. So anything projecting a
+ * group stage should read the shape off the event it is projecting, and use
+ * this only when there is nothing to read.
  */
 export const GROUP_STAGE_SHAPE = {
   teams: 16,
-  series: 44,
   bestOf: 3,
-  /** Mean series per team: 2 x 44 / 16. */
-  seriesPerTeam: 5.5,
-  /** Observed maps per team, for sanity-checking a projection. */
-  observedMapsPerTeam: { min: 10, mean: 13.5, max: 17 }
+  seriesPerTeam: 5.5
 } as const;

@@ -10,7 +10,7 @@ import {
 } from "../lib/scoring";
 import { useMainEventMaps, type MainEventMaps } from "./useMainEventMaps";
 import type { TeamEntry } from "../lib/data";
-import { GROUP_STAGE_SHAPE, STAGES, STAGE_LABELS, STAGE_SLOTS, STAGE_TOKENS, type Stage } from "../lib/stages";
+import { STAGES, STAGE_LABELS, STAGE_SLOTS, STAGE_TOKENS, type Stage } from "../lib/stages";
 import FantasySimulator, { riskLabel } from "./FantasySimulator";
 import TrainerTitles from "./TrainerTitles";
 import { effectiveSuffixValue, prefixValue, type PrefixKey, type SuffixKey } from "../lib/titles";
@@ -396,10 +396,9 @@ export default function FantasyCalculator({
                 highest-rated teams and simulates that bracket from Elo.</>
             )}
             {mapsSource === "rating" && stage === "groupStage" && (
-              <>The group stage is 44 Bo3 series over 16 teams, so the field averages{" "}
-                {GROUP_STAGE_SHAPE.seriesPerTeam} each. How many a given team plays — four to
-                six — falls out of the standings, and no rating predicts that, so every team
-                gets the average.</>
+              <>Every team gets this event&rsquo;s own group stage average. How many series
+                a given team plays falls out of the standings, and no rating predicts that,
+                so flat is the honest answer.</>
             )}
           </p>
           <div className="scroll-x">
@@ -457,8 +456,9 @@ export default function FantasyCalculator({
       )}
 
       <p className="notice">
-        Values are <strong>per match</strong>: a series scores as the sum of its two
-        highest games. Core and Support are ranked as same-team pairs and valued as the
+        Values are <strong>per series</strong>: the average of a series&rsquo; two highest
+        games, so a third game only counts if it displaces one of the first two. Core and
+        Support are ranked as same-team pairs and valued as the
         <strong> average</strong> of the two players, so all three roles are on one scale.
         OpenDota does not expose {UNAVAILABLE_STATS.join(", ")} reliably, so those emblems
         are missing.

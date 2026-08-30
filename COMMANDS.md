@@ -131,6 +131,7 @@ in each (resampled from its own observed matches, so the tail keeps its shape).
 
 ```bash
 npm run study
+npm run study -- --runs 100000
 ```
 
 A backtest, not a fit. Everything on the left of each comparison is decided from
@@ -152,8 +153,15 @@ Six sections:
 ## Checking the model
 
 ```bash
-npm run validate
+npm run validate                              # defaults
+npm run validate -- --runs 100000             # tighter bracket estimates
+npm run validate -- --runs 2000 --brute 5000  # fast pass while iterating
 ```
+
+| Flag | Default | Does |
+| --- | --- | --- |
+| `--runs <N>` | 20000 | Bracket simulation runs |
+| `--brute <N>` | 60000 | Brute-force runs for the reroll check |
 
 Grades the model against every finished tournament in `data/generated/`,
 out of sample wherever possible and always against a baseline. Exits non-zero
@@ -172,6 +180,28 @@ It runs nine groups of checks:
 9. **Cross-check** — emblem values against an independently published table
 
 ---
+
+---
+
+## How much is being simulated
+
+| Where | Runs | Configurable |
+| --- | --- | --- |
+| Bracket projection (build time) | 20,000 | `--runs` on `simulate`, `validate`, `study` |
+| Bracket page | 20,000 | — |
+| Bracket re-simulated in the browser | 5,000 | — |
+| Reroll offer comparison | 800 per option | dropdown in the simulator |
+| Reroll library default | 3,000 | `runs` argument |
+| `npm run simulate` | 20,000 per entry | `--runs` |
+| Brute-force check in `validate` | 60,000 | `--brute` |
+
+A default `npm run simulate` on the playoffs draws roughly **800,000** tournament
+outcomes: 20,000 runs for each of ~40 entries. `npm run validate` runs about
+**240,000** — 60,000 brute-force plus six bracket simulations.
+
+Raising a count tightens the estimate at a linear cost in time. The defaults are
+past the point where the numbers move in the third significant figure, so the
+main reason to raise them is to confirm that for yourself.
 
 ## Typical workflows
 

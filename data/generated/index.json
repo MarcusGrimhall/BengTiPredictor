@@ -2,7 +2,7 @@
   {
     "leagueId": 19719,
     "leagueName": "The International 2026",
-    "fetchedAt": "2026-08-30T12:36:51.288Z",
+    "fetchedAt": "2026-08-30T13:05:02.644Z",
     "matchesUsed": 147,
     "teams": 16,
     "players": 80,
@@ -92,10 +92,37 @@
   {
     "leagueId": 18324,
     "leagueName": "The International 2025",
-    "fetchedAt": "2026-08-30T12:36:48.314Z",
+    "fetchedAt": "2026-08-30T13:04:59.423Z",
     "matchesUsed": 144,
     "teams": 16,
     "players": 80,
+    "training": false
+  },
+  {
+    "leagueId": 16935,
+    "leagueName": "The International 2024",
+    "fetchedAt": "2026-08-30T13:04:56.839Z",
+    "matchesUsed": 121,
+    "teams": 16,
+    "players": 80,
+    "training": false
+  },
+  {
+    "leagueId": 15728,
+    "leagueName": "The International 2023",
+    "fetchedAt": "2026-08-30T13:04:53.858Z",
+    "matchesUsed": 151,
+    "teams": 20,
+    "players": 100,
+    "training": false
+  },
+  {
+    "leagueId": 14268,
+    "leagueName": "The International 2022",
+    "fetchedAt": "2026-08-30T13:04:51.167Z",
+    "matchesUsed": 231,
+    "teams": 20,
+    "players": 100,
     "training": false
   }
 ]

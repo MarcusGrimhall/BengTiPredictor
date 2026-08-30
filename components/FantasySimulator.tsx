@@ -72,6 +72,9 @@ export default function FantasySimulator({
   const [tokens, setTokens] = useState<number>(STAGE_TOKENS[stage]);
   const [chosen, setChosen] = useState<string[]>([]);
   const [offerRole, setOfferRole] = useState<Role>("core");
+  // How many times each offer is rolled. More is tighter and slower; the
+  // numbers stop moving meaningfully somewhere around 2,000.
+  const [runs, setRuns] = useState(800);
   const [results, setResults] = useState<RosterOutcome[] | null>(null);
   const [busy, setBusy] = useState(false);
 
@@ -83,7 +86,7 @@ export default function FantasySimulator({
     [banners, slots]
   );
 
-  useEffect(() => { setResults(null); }, [banners, risk, tokens]);
+  useEffect(() => { setResults(null); }, [banners, risk, tokens, runs]);
   useEffect(() => {
     setTokens(STAGE_TOKENS[stage]);
     setChosen([]);
@@ -134,7 +137,7 @@ export default function FantasySimulator({
     offers.push({ role: "core", action: SKIP_ACTION });
     setBusy(true);
     setTimeout(() => {
-      setResults(compareRosterOffers(offers, staged, valueOf, tokens, 800));
+      setResults(compareRosterOffers(offers, staged, valueOf, tokens, runs));
       setBusy(false);
     }, 0);
   };
@@ -216,6 +219,19 @@ export default function FantasySimulator({
           <b>{chosenCount}</b>
           <span className="faint">skip is always compared too</span>
         </div>
+        <div className="stat-tile">
+          <small>Rolls per option</small>
+          <select value={runs} onChange={(e) => setRuns(Number(e.target.value))}
+            aria-label="Simulation runs per option" className="token-input">
+            <option value={200}>200 · instant</option>
+            <option value={800}>800 · default</option>
+            <option value={2000}>2,000 · tighter</option>
+            <option value={8000}>8,000 · slow</option>
+          </select>
+          <span className="faint">
+            {(runs * Math.max(1, chosenCount)).toLocaleString("en-US")} simulated rolls
+          </span>
+        </div>
       </div>
 
       <div className="stack" style={{ gap: 8 }}>
@@ -230,7 +246,8 @@ export default function FantasySimulator({
         </div>
         <p className="faint">
           Pick the banner the offer is on, then tick it. The game normally shows three
-          at a time. Each is rolled 800 times against the {tokens} tokens you have left.
+          at a time. Each is rolled {runs.toLocaleString("en-US")} times against the{" "}
+          {tokens} tokens you have left.
         </p>
         <div className="pill-row" role="tablist" aria-label="Offer banner">
           {ROLES.map((r) => (

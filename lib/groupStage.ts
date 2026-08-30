@@ -27,6 +27,47 @@ import { DEFAULT_ELO, mapWinProbability } from "./elo";
 import { GROUP_STAGE_SHAPE } from "./stages";
 import type { TeamEntry } from "./data";
 
+/**
+ * Series per team in this event's group stage, read off the event itself.
+ *
+ * The format is not stable across Internationals - TI 2022 ran 9.3 series per
+ * team against TI 2023's 5.0 - so a hardcoded constant is wrong more often than
+ * it is right. Falls back to the constant only when the event carries no stage
+ * data at all, which is the case for one that has not been played.
+ */
+export function groupSeriesPerTeam(teams: TeamEntry[]): number {
+  const played = teams
+    .map((t) => t.stages?.groupStage?.series ?? 0)
+    .filter((n) => n > 0);
+  if (!played.length) return GROUP_STAGE_SHAPE.seriesPerTeam;
+  return played.reduce((a, b) => a + b, 0) / played.length;
+}
+
+/** Maps per team in this event's group stage, read off the event itself. */
+export function groupMapsPerTeam(teams: TeamEntry[]): number | null {
+  const played = teams.map((t) => t.stages?.groupStage?.maps ?? 0).filter((n) => n > 0);
+  if (!played.length) return null;
+  return played.reduce((a, b) => a + b, 0) / played.length;
+}
+
+/**
+ * Maps per series in this event's group stage.
+ *
+ * Not every International runs Bo3 groups. TI 2022 played 183 maps over 93
+ * series - 1.97 each, so Bo2 - while TI 2026 played 2.48, which is Bo3 going to
+ * a third game about half the time. Reading it off the event covers both
+ * without needing to know which format was used.
+ */
+export function groupMapsPerSeries(teams: TeamEntry[]): number | null {
+  let maps = 0;
+  let series = 0;
+  for (const t of teams) {
+    maps += t.stages?.groupStage?.maps ?? 0;
+    series += t.stages?.groupStage?.series ?? 0;
+  }
+  return series > 0 ? maps / series : null;
+}
+
 /** Expected maps in a best-of-3: always 2, plus a third when it is not a sweep. */
 export function expectedBo3Maps(mapProb: number): number {
   return 2 + 2 * mapProb * (1 - mapProb);
@@ -45,7 +86,7 @@ export function expectedBo3Maps(mapProb: number): number {
  */
 export function projectGroupStageSeries(
   teams: TeamEntry[],
-  seriesPerTeam = GROUP_STAGE_SHAPE.seriesPerTeam
+  seriesPerTeam = groupSeriesPerTeam(teams)
 ): Record<string, number> {
   return Object.fromEntries(teams.filter((t) => t.name).map((t) => [t.name, seriesPerTeam]));
 }
@@ -56,15 +97,18 @@ export function projectGroupStageSeries(
  */
 export function projectGroupStage(
   teams: TeamEntry[],
-  seriesPerTeam = GROUP_STAGE_SHAPE.seriesPerTeam
+  seriesPerTeam = groupSeriesPerTeam(teams)
 ): Record<string, number> {
   const rated = teams.filter((t) => t.name);
   const maps: Record<string, number> = {};
+  // If the event tells us its own series length, believe it over the Bo3
+  // assumption - the format is not the same every year.
+  const observed = groupMapsPerSeries(teams);
 
   for (const team of rated) {
     const others = rated.filter((t) => t.name !== team.name);
     if (!others.length) continue;
-    const perSeries =
+    const modelled =
       others.reduce(
         (sum, other) =>
           sum + expectedBo3Maps(
@@ -72,6 +116,9 @@ export function projectGroupStage(
           ),
         0
       ) / others.length;
+    // Keep the Elo shape - closer sides go longer - but scale it to the
+    // length this event's series actually ran.
+    const perSeries = observed === null ? modelled : modelled * (observed / 2.5);
     maps[team.name] = Number((perSeries * seriesPerTeam).toFixed(2));
   }
   return maps;

@@ -1,7 +1,7 @@
 {
   "leagueId": 18324,
   "leagueName": "The International 2025",
-  "fetchedAt": "2026-08-30T12:36:48.314Z",
+  "fetchedAt": "2026-08-30T13:04:59.423Z",
   "matchesTotal": 144,
   "matchesUsed": 144,
   "matchesSkipped": 0,
@@ -230,6 +230,40 @@
       }
     },
     {
+      "id": 36,
+      "name": "Natus Vincere",
+      "games": 13,
+      "wins": 5,
+      "stageMaps": [
+        13,
+        0
+      ],
+      "stageWins": [
+        5,
+        0
+      ],
+      "stageSeries": [
+        {},
+        {}
+      ],
+      "winRate": 0.385,
+      "elo": 1381.3,
+      "careerWins": 1492,
+      "careerLosses": 1215,
+      "stages": {
+        "groupStage": {
+          "maps": 13,
+          "wins": 5,
+          "series": 5
+        },
+        "playoffs": {
+          "maps": 0,
+          "wins": 0,
+          "series": 0
+        }
+      }
+    },
+    {
       "id": 8291895,
       "name": "Tundra Esports",
       "games": 21,
@@ -260,40 +294,6 @@
           "maps": 4,
           "wins": 0,
           "series": 2
-        }
-      }
-    },
-    {
-      "id": 36,
-      "name": "Natus Vincere",
-      "games": 13,
-      "wins": 5,
-      "stageMaps": [
-        13,
-        0
-      ],
-      "stageWins": [
-        5,
-        0
-      ],
-      "stageSeries": [
-        {},
-        {}
-      ],
-      "winRate": 0.385,
-      "elo": 1373.4,
-      "careerWins": 1491,
-      "careerLosses": 1215,
-      "stages": {
-        "groupStage": {
-          "maps": 13,
-          "wins": 5,
-          "series": 5
-        },
-        "playoffs": {
-          "maps": 0,
-          "wins": 0,
-          "series": 0
         }
       }
     },
@@ -37074,8 +37074,8 @@
   ],
   "ratingCheck": {
     "maps": 131,
-    "accuracy": 0.527,
-    "logLoss": 0.8025,
+    "accuracy": 0.519,
+    "logLoss": 0.8031,
     "usable": false
   }
 }

@@ -78,8 +78,9 @@ export default function StatSpreadChart({
           <div>
             <h2>{ROLE_LABELS[role]} · every {role === "mid" ? "player" : "duo"}, every stat</h2>
             <p className="faint" style={{ marginTop: 2, maxWidth: 720 }}>
-              One dot per {role === "mid" ? "player" : "duo"}: mean points per match from that
-              stat alone, one emblem at tier III. All stats share one scale, so a long row is
+              One dot per {role === "mid" ? "player" : "duo"}: mean points per series from
+              that stat alone, one emblem at tier III — a series being the average of its
+              two best games. All stats share one scale, so a long row is
               genuinely worth more. What matters is the <strong>shape</strong> — a leader far
               clear of a tight cluster is a stat somebody dominates; a row where every dot
               overlaps is a slot to fill with whatever is cheapest to reroll.

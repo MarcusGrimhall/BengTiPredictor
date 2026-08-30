@@ -25,6 +25,22 @@ const { toPlayerEntries, actualSeriesByStage, trainingPlayerEntries } = lib("dat
 const { STAGE_SLOTS } = lib("stages");
 const { SUFFIXES, SUFFIX_BITS, suffixTriggerRate } = lib("titles");
 
+const argv = process.argv.slice(2);
+if (argv.includes("--help") || argv.includes("-h")) {
+  console.log(`
+Backtest: what actually won fantasy at the last finished event.
+
+  npm run study -- [options]
+
+  --runs <N>   Bracket simulation runs where one is needed.   (default 20000)
+`);
+  process.exit(0);
+}
+const runsIndex = argv.indexOf("--runs");
+const RUNS = runsIndex === -1 || Number.isNaN(Number(argv[runsIndex + 1]))
+  ? 20000
+  : Math.max(100, Number(argv[runsIndex + 1]));
+
 const readJson = async (f) => JSON.parse(await readFile(join(ROOT, "data", "generated", f), "utf8"));
 const league = await readJson("league-19719.json");
 const train = await readJson("training-19719.json");
@@ -61,6 +77,7 @@ function bannerOf(role, slots, order = 0) {
 console.log(`Backtest: fitted on ${train.sources.length} pre-TI tournaments ` +
   `(${train.sources.reduce((s, x) => s + x.maps, 0)} maps), graded on The International 2026.`);
 console.log("Nothing on the left has seen a single map of the event.");
+console.log(`Simulation budget: ${RUNS.toLocaleString("en-US")} runs where a simulation is needed.`);
 
 // ---------------------------------------------------------------------------
 head("1. How much does the banner matter, against picking the right entry?");
