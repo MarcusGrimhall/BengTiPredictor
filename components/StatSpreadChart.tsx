@@ -31,9 +31,15 @@ export default function StatSpreadChart({
     stages: Stage[];
     strongTeams: string[];
     strongBasis: "form" | "rating" | "placement";
+    /** Present when this source is a time window rather than one tournament. */
+    meta?: { months: number; events: number; maps: number; from: number; to: number };
   }>;
 }) {
-  const [leagueId, setLeagueId] = useState(leagues[0]?.id ?? "");
+  // Six months by default: three is often only a couple of tournaments, and a
+  // year starts to blur across a patch boundary.
+  const [leagueId, setLeagueId] = useState(
+    leagues.find((l) => l.meta?.months === 6)?.id ?? leagues[0]?.id ?? ""
+  );
   const [stage, setStage] = useState<Stage>("playoffs");
   const [role, setRole] = useState<Role>("core");
   // The chart and the table were showing different measures, which made the
@@ -41,7 +47,10 @@ export default function StatSpreadChart({
   const [measure, setMeasure] = useState<"average" | "best">("best");
   const [hover, setHover] = useState<string | null>(null);
 
+  const windows = useMemo(() => leagues.filter((l) => l.meta), [leagues]);
+  const events = useMemo(() => leagues.filter((l) => !l.meta), [leagues]);
   const league = leagues.find((l) => l.id === leagueId) ?? leagues[0];
+  const isWindow = Boolean(league?.meta);
   const available = league?.stages ?? [];
   const activeStage = available.includes(stage) ? stage : available[0] ?? "groupStage";
 
@@ -69,20 +78,32 @@ export default function StatSpreadChart({
   return (
     <div className="stack">
       <section className="card-tight stage-bar">
-        <div className="pill-row" role="tablist" aria-label="Tournament">
-          {leagues.map((l) => (
+        <div className="pill-row" role="tablist" aria-label="Source">
+          {windows.map((l) => (
+            <button key={l.id} className="pill" role="tab" aria-pressed={leagueId === l.id}
+              onClick={() => setLeagueId(l.id)}>{l.name}</button>
+          ))}
+          <Info title="Recent professional play">
+            Every professional match from the window, pooled across tournaments rather than
+            taken from one event. A stat is worth however much of it players currently
+            produce, and that moves with the patch — games running short cut last hits and
+            GPM and lift first blood, games running long do the reverse. Picking a banner
+            off a year-old sample is picking for a game nobody is playing.
+          </Info>
+          {windows.length > 0 && events.length > 0 && <span className="rule-v" />}
+          {events.map((l) => (
             <button key={l.id} className="pill" role="tab" aria-pressed={leagueId === l.id}
               onClick={() => setLeagueId(l.id)}>{l.name}</button>
           ))}
         </div>
         <div className="pill-row">
-          {(["groupStage", "playoffs"] as Stage[]).map((s) => (
+          {!isWindow && (["groupStage", "playoffs"] as Stage[]).map((s) => (
             <button key={s} className="pill" aria-pressed={activeStage === s}
               disabled={!available.includes(s)} onClick={() => setStage(s)}>
               {STAGE_LABELS[s]}
             </button>
           ))}
-          <span style={{ width: 12 }} />
+          {!isWindow && <span style={{ width: 12 }} />}
           {ROLES.map((r) => (
             <button key={r} className="pill" aria-pressed={role === r}
               onClick={() => setRole(r)}>{ROLE_LABELS[r]}</button>
@@ -105,6 +126,22 @@ export default function StatSpreadChart({
             the table follow this choice.
           </Info>
         </div>
+        <p className="faint" style={{ margin: 0 }}>
+          {isWindow && league?.meta ? (
+            <>
+              <strong>{league.meta.events} tournaments</strong>,{" "}
+              {league.meta.maps.toLocaleString("en-US")} maps of professional play,{" "}
+              {new Date(league.meta.from * 1000).toISOString().slice(0, 7)} to{" "}
+              {new Date(league.meta.to * 1000).toISOString().slice(0, 7)}
+            </>
+          ) : (
+            <><strong>{league?.name}</strong> · {STAGE_LABELS[activeStage].toLowerCase()}</>
+          )}
+          {" "}· {rows[0]?.total ?? 0} {role === "mid" ? "players" : "duos"}
+          {rows[0] && rows[0].total > rows[0].points.length
+            ? `, strongest ${rows[0].points.length} plotted`
+            : ""}.
+        </p>
       </section>
 
       <section className="card stack">

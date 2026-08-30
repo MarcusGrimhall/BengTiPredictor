@@ -5,7 +5,7 @@ import { BANNER_SLOTS, Role, StatKey, statsForColor } from "../../lib/scoring";
 import { STAGES, STAGE_SLOTS, type Stage } from "../../lib/stages";
 import { statSpread, type StatSpread } from "../../lib/statSpread";
 import { preEventStrength } from "../../lib/strength";
-import { statPeriod, type StatPeriod } from "../../lib/metaTrend";
+import { META_WINDOWS, poolWindow, type WindowSource } from "../../lib/metaWindow";
 import { loadTraining } from "../../lib/data";
 
 export const metadata = { title: "Information · BengTiPredictor" };
@@ -61,34 +61,74 @@ export default async function InformationPage() {
     stages: Stage[];
     strongTeams: string[];
     strongBasis: "form" | "rating" | "placement";
+    meta?: { months: number; events: number; maps: number; from: number; to: number };
   }> = [];
 
-  // Every event on one timeline, so stat values can be watched moving with the
-  // patch. Training events count here - they are pro matches like any other,
-  // and excluding them would leave a year-wide gap between Internationals.
-  const allEvents = (await Promise.all(
+  // Meta windows: every event inside the last N months pooled into one sample,
+  // so the Stats view can answer "what is the game like now" rather than only
+  // "what happened at that tournament". Training events count - they are pro
+  // matches like any other, and leaving them out would put a year-wide gap
+  // between Internationals.
+  const timeline = (await Promise.all(
     (await listLeagues()).map((l) => loadLeague(l.leagueId))
   )).filter((l): l is NonNullable<typeof l> => Boolean(l) && Boolean(l!.firstMatch));
 
-  const periodsByRole = { core: [], mid: [], support: [] } as Record<Role, StatPeriod[]>;
-  for (const event of allEvents) {
-    const entries = buildLineups(toPlayerEntries(event));
+  const sources: WindowSource[] = timeline.map((event) => ({
+    leagueId: event.leagueId,
+    leagueName: event.leagueName,
+    date: event.firstMatch!,
+    maps: event.matchesUsed,
+    entries: buildLineups(toPlayerEntries(event))
+  }));
+  const newest = sources.length ? Math.max(...sources.map((s) => s.date)) : 0;
+
+  for (const window of META_WINDOWS) {
+    const id = `meta-${window.months}`;
+    const { entries, events } = poolWindow(sources, window.months, newest);
     if (!entries.length) continue;
-    for (const role of ROLES) {
+
+    // A pooled window has no group stage or playoffs - it is professional play.
+    spread[id] = { groupStage: {}, playoffs: {} } as Record<Stage, Record<Role, StatSpread[]>>;
+    // Strongest four across the window, by pre-event Elo over its own matches.
+    const windowResults: Array<{ radiant: number; dire: number; radiantWin: boolean }> = [];
+    const windowNames: Record<number, string> = {};
+    for (const event of events) {
+      const full = timeline.find((t) => t.leagueId === event.leagueId);
+      if (!full) continue;
+      for (const t of full.teams) windowNames[t.id] = t.name;
+      for (const r of full.results ?? []) windowResults.push(r);
+    }
+    const form = preEventStrength(windowResults, windowNames);
+    const strongWindow = new Set(
+      Object.entries(form).sort((a, b) => b[1].rating - a[1].rating).slice(0, 4).map(([n]) => n)
+    );
+
+    const byRole = Object.fromEntries(ROLES.map((role) => {
       const colours = [...new Set(BANNER_SLOTS[role])];
       const stats = colours.flatMap((c) => statsForColor(c)) as StatKey[];
-      const byStat = statPeriod(entries, role, stats);
-      if (!Object.keys(byStat).length) continue;
-      periodsByRole[role].push({
-        leagueId: event.leagueId,
-        leagueName: event.leagueName,
-        date: event.firstMatch!,
-        maps: event.matchesUsed,
-        byStat,
-        entries: entries.filter((e) => e.role === role).length
-      });
-    }
+      return [role, statSpread(entries, role, stats, strongWindow)];
+    })) as Record<Role, StatSpread[]>;
+
+    spread[id].groupStage = byRole;
+    spread[id].playoffs = byRole;
+    meta.push({
+      id,
+      name: `Last ${window.label}`,
+      stages: ["groupStage"],
+      strongTeams: [...strongWindow],
+      strongBasis: "form",
+      meta: {
+        months: window.months,
+        events: events.length,
+        maps: events.reduce((n, e) => n + e.maps, 0),
+        from: events.length ? events[0].date : 0,
+        to: newest
+      }
+    });
   }
+
+  // Windows first: "what is the game like now" is the more useful default.
+  meta.sort((a, b) => (a.meta ? 0 : 1) - (b.meta ? 0 : 1));
 
   // The trait study runs on the newest event only - it is about mechanics, not
   // about comparing tournaments.
@@ -174,7 +214,6 @@ export default async function InformationPage() {
       </div>
       <InformationTabs
         spread={spread}
-        periodsByRole={periodsByRole}
         leagues={meta}
         entriesByStage={entriesByStage}
         bannersByRole={bannersByRole}

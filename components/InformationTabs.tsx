@@ -3,25 +3,23 @@
 import { useState } from "react";
 import StatSpreadChart, { type SpreadData } from "./StatSpreadChart";
 import TraitMap from "./TraitMap";
-import MetaTrend from "./MetaTrend";
-import type { StatPeriod } from "../lib/metaTrend";
 import type { Emblem, PlayerEntry } from "../lib/fantasy";
 import type { Role } from "../lib/scoring";
 import type { Stage } from "../lib/stages";
 
-type Tab = "stats" | "meta" | "mechanics";
+type Tab = "stats" | "mechanics";
 
 export default function InformationTabs({
-  spread, periodsByRole, leagues, entriesByStage, bannersByRole, leagueName
+  spread, leagues, entriesByStage, bannersByRole, leagueName
 }: {
   spread: SpreadData;
-  periodsByRole: Record<Role, StatPeriod[]>;
   leagues: Array<{
     id: string;
     name: string;
     stages: Stage[];
     strongTeams: string[];
     strongBasis: "form" | "rating" | "placement";
+    meta?: { months: number; events: number; maps: number; from: number; to: number };
   }>;
   entriesByStage: Record<Stage, PlayerEntry[]>;
   bannersByRole: Record<Stage, Record<Role, Emblem[]>>;
@@ -36,10 +34,6 @@ export default function InformationTabs({
           onClick={() => setTab("stats")}>
           Stats <span className="faint">· who produced what</span>
         </button>
-        <button className="pill" role="tab" aria-pressed={tab === "meta"}
-          onClick={() => setTab("meta")}>
-          Meta <span className="faint">· what the patch rewards</span>
-        </button>
         <button className="pill" role="tab" aria-pressed={tab === "mechanics"}
           onClick={() => setTab("mechanics")}>
           Emblem mechanics <span className="faint">· tiers and traits</span>
@@ -47,7 +41,6 @@ export default function InformationTabs({
       </div>
 
       {tab === "stats" && <StatSpreadChart data={spread} leagues={leagues} />}
-      {tab === "meta" && <MetaTrend periodsByRole={periodsByRole} />}
       {tab === "mechanics" && (
         <TraitMap entriesByStage={entriesByStage} bannersByRole={bannersByRole} leagueName={leagueName} />
       )}

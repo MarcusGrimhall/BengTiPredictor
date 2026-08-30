@@ -27,9 +27,14 @@ export type StatPoint = {
   strong: boolean;
 };
 
+/** Keeps a payload sane when a window pools many tournaments. */
+export const MAX_POINTS = 40;
+
 export type StatSpread = {
   stat: StatKey;
+  /** The strongest entries, capped. `total` says how many there were. */
   points: StatPoint[];
+  total: number;
   /**
    * Two different "highest" figures, and conflating them is easy:
    *
@@ -88,6 +93,9 @@ export function statSpread(
       };
     }).sort((a, b) => b.value - a.value);
 
+    // A window can pool a dozen tournaments; the tail of that is not worth
+    // shipping, and the chart is about the shape of the top of the field.
+    const kept = points.slice(0, MAX_POINTS);
     const values = points.map((p) => p.value);
     const strong = points.filter((p) => p.strong);
     const mean = (xs: number[]) => (xs.length ? xs.reduce((a, b) => a + b, 0) / xs.length : 0);
@@ -96,7 +104,8 @@ export function statSpread(
 
     return {
       stat,
-      points,
+      points: kept,
+      total: points.length,
       highest: values[0] ?? 0,
       highestName: points[0]?.name ?? "",
       bestSeries: byBest[0]?.best ?? 0,

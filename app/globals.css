@@ -390,3 +390,4 @@ footer.site-footer {
 @media (max-width: 640px) {
   .info-box { max-width: 220px; }
 }
+.rule-v { width: 1px; align-self: stretch; background: var(--border-strong); margin: 0 4px; }

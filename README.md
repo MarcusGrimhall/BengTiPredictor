@@ -861,28 +861,20 @@ First Blood              −4%
 
 Everyone shows up to fights. Not everyone takes Roshan.
 
-**Meta** — what each stat has been worth over time, across every tournament
-fetched. A stat is not worth a fixed amount: last hits pay 3 each, but how many
-a core gets in a series is a property of the patch, not the player. Games running
-short cuts last hits and GPM and lifts first blood; games running long does the
-reverse.
+**Recent professional play** sits first in the source row, before the individual
+tournaments. It pools every pro match inside a window — three months, six, a
+year, two — across tournaments rather than taking one event.
 
-Across 14 tournaments and 2,063 maps from October 2022, comparing the last six
-months against everything older, for cores:
+That is usually the more useful question. A stat is not worth a fixed amount: last
+hits pay 3 each, but how many a core gets in a series is a property of the patch,
+not the player. Games running short cut last hits and GPM and lift first blood;
+games running long do the reverse. A banner picked off a year-old sample is picked
+for a game nobody is playing.
 
-```
-Tormentor kills   +183%
-Last hits          +16%
-Roshan kills       +16%
-First Blood        +12%
-Kills               +9%
-Teamfight            −2%
-Deaths               −1%
-```
-
-A banner picked from an old sample is picked for a game nobody is playing any
-more. The window is adjustable from three months to two years — short tracks the
-current patch and is noisier, long is steadier and slower to notice a change.
+Six months is the default — three is often only a couple of tournaments, a year
+starts to blur across a patch boundary. Entries are merged by identity across
+events, keeping whichever team they play for most recently, and series ids are
+namespaced per tournament so two unrelated series cannot collapse into one.
 
 **Emblem mechanics** — what each tier and trait is worth on a real banner, in
 every slot, plus a trait-by-duo heatmap and the stage's records.
