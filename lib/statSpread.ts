@@ -19,6 +19,10 @@ export type StatPoint = {
   team: string;
   /** Mean per-series points from this stat alone, at base rate. */
   value: number;
+  /** Their single best series. */
+  best: number;
+  /** How many series the mean is taken over. */
+  series: number;
   /** True for the four teams that went deepest - the "good teams" marker. */
   strong: boolean;
 };
@@ -26,9 +30,19 @@ export type StatPoint = {
 export type StatSpread = {
   stat: StatKey;
   points: StatPoint[];
-  /** Best single entry. */
+  /**
+   * Two different "highest" figures, and conflating them is easy:
+   *
+   *   bestAverage  the best entry's mean across their series
+   *   bestSeries   the single biggest series anybody produced
+   *
+   * The second is always the larger and is what somebody actually saw on a
+   * scoreboard; the first is what you would expect from picking that entry.
+   */
   highest: number;
   highestName: string;
+  bestSeries: number;
+  bestSeriesName: string;
   /** Mean across the field. */
   average: number;
   /** Best entry among the four deepest teams. */
@@ -41,9 +55,11 @@ export type StatSpread = {
 /**
  * Per-stat spread for one role.
  *
- * `strongTeams` is the set treated as the good teams - the four that went
- * deepest. A result rather than a rating, because it is a fact about the event
- * and OpenDota's ratings are unreliable for older tournaments.
+ * `strongTeams` is the set treated as the good teams. It is chosen by rating
+ * rather than by result, so the comparison answers "do stronger teams produce
+ * more of this" rather than the circular "did the teams that did well do
+ * well". Where the ratings are not trustworthy for an event, the caller falls
+ * back to final placement and says so.
  */
 export function statSpread(
   entries: PlayerEntry[],
@@ -60,22 +76,31 @@ export function statSpread(
     const emblem: Emblem[] = [{ stat, tier: "I", trait: "none" }];
     const tierI = 1.1;
     const points: StatPoint[] = pool.map((entry) => {
-      const scores = matchScores(entry, emblem);
-      const value = scores.length
-        ? scores.reduce((a, b) => a + b, 0) / scores.length / tierI
-        : 0;
-      return { name: entry.name, team: entry.teamName, value, strong: strongTeams.has(entry.teamName) };
+      const scores = matchScores(entry, emblem).map((v) => v / tierI);
+      const value = scores.length ? scores.reduce((a, b) => a + b, 0) / scores.length : 0;
+      return {
+        name: entry.name,
+        team: entry.teamName,
+        value,
+        best: scores.length ? Math.max(...scores) : 0,
+        series: scores.length,
+        strong: strongTeams.has(entry.teamName)
+      };
     }).sort((a, b) => b.value - a.value);
 
     const values = points.map((p) => p.value);
     const strong = points.filter((p) => p.strong);
     const mean = (xs: number[]) => (xs.length ? xs.reduce((a, b) => a + b, 0) / xs.length : 0);
 
+    const byBest = [...points].sort((a, b) => b.best - a.best);
+
     return {
       stat,
       points,
       highest: values[0] ?? 0,
       highestName: points[0]?.name ?? "",
+      bestSeries: byBest[0]?.best ?? 0,
+      bestSeriesName: byBest[0]?.name ?? "",
       average: mean(values),
       strongBest: strong[0]?.value ?? 0,
       strongBestName: strong[0]?.name ?? "",

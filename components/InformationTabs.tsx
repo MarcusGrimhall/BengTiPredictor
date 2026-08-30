@@ -13,7 +13,13 @@ export default function InformationTabs({
   spread, leagues, entriesByStage, bannersByRole, leagueName
 }: {
   spread: SpreadData;
-  leagues: Array<{ id: string; name: string; stages: Stage[] }>;
+  leagues: Array<{
+    id: string;
+    name: string;
+    stages: Stage[];
+    strongTeams: string[];
+    strongBasis: "rating" | "placement";
+  }>;
   entriesByStage: Record<Stage, PlayerEntry[]>;
   bannersByRole: Record<Stage, Record<Role, Emblem[]>>;
   leagueName: string;

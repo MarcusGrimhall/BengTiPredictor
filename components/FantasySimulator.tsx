@@ -6,10 +6,8 @@ import {
   Tier, Trait, availableStats, rankPlayers, riskToPercentile
 } from "../lib/fantasy";
 import { BANNER_SLOTS, Role, STAT_LABELS, StatKey, statsForColor } from "../lib/scoring";
-import {
-  RosterOffer, RosterOutcome, SKIP_ACTION,
-  actionCatalogue, compareRosterOffers, randomBanner
-} from "../lib/reroll";
+import { actionCatalogue, randomBanner } from "../lib/reroll";
+import { OfferPlan, RosterOffer, planOffers } from "../lib/offers";
 import { STAGE_LABELS, STAGE_SLOTS, STAGE_TOKENS, type Stage } from "../lib/stages";
 import { seededRandom } from "../lib/rng";
 import Info from "./Info";
@@ -80,7 +78,12 @@ export default function FantasySimulator({
   // How many times each offer is rolled. More is tighter and slower; the
   // numbers stop moving meaningfully somewhere around 2,000.
   const [runs, setRuns] = useState(800);
-  const [results, setResults] = useState<RosterOutcome[] | null>(null);
+  const [results, setResults] = useState<OfferPlan | null>(null);
+  // How many more times the game will deal you three options. The stage grants
+  // 40 tokens for the group stage and 30 for the playoffs, and a reroll is
+  // taken to cost one, so the default is the token count. Editable because the
+  // per-action costs are not published and may not all be one.
+  const [rounds, setRounds] = useState(STAGE_TOKENS[stage]);
   const [busy, setBusy] = useState(false);
 
   const slots = STAGE_SLOTS[stage];
@@ -91,9 +94,10 @@ export default function FantasySimulator({
     [banners, slots]
   );
 
-  useEffect(() => { setResults(null); }, [banners, risk, tokens, runs]);
+  useEffect(() => { setResults(null); }, [banners, risk, tokens, runs, rounds]);
   useEffect(() => {
     setTokens(STAGE_TOKENS[stage]);
+    setRounds(STAGE_TOKENS[stage]);
     setChosen([]);
     setResults(null);
   }, [stage]);
@@ -138,11 +142,9 @@ export default function FantasySimulator({
       }
     }
     if (!offers.length) return;
-    // Skipping is always on the menu, so it is always in the comparison.
-    offers.push({ role: "core", action: SKIP_ACTION });
     setBusy(true);
     setTimeout(() => {
-      setResults(compareRosterOffers(offers, staged, valueOf, tokens, runs));
+      setResults(planOffers(staged, offers, catalogue, valueOf, tokens, rounds, Math.max(60, Math.round(runs / 4))));
       setBusy(false);
     }, 0);
   };
@@ -226,26 +228,42 @@ export default function FantasySimulator({
         </div>
         <div className="stat-tile">
           <small>
-            Wildcard accuracy{" "}
-            <Info title="Wildcard accuracy" align="right">
-              Almost every reroll has few enough possible results that the page works out
-              <strong> all of them</strong> and the answer is exact. The two wildcards —
-              &ldquo;increase one quality&rdquo; and &ldquo;increase two, reduce one&rdquo; —
-              pick which emblems they hit at random, so those get estimated by trying them
-              many times instead. This is how many. More is slightly more accurate and
-              slightly slower; it changes nothing unless you tick a wildcard.
+            Deals left{" "}
+            <Info title="Deals left" align="right">
+              How many more times the game will deal you three options. This is what
+              decides whether an offer is worth taking: with thirty deals left you can
+              decline a mediocre one, with two left you cannot.
+              <br /><br />
+              Defaults to the stage&rsquo;s token count — {STAGE_TOKENS.groupStage} for the
+              group stage, {STAGE_TOKENS.playoffs} for the playoffs — which assumes a
+              reroll costs one token. Editable because the per-action costs are not
+              published, so that assumption is not verified.
+            </Info>
+          </small>
+          <input
+            type="number" min={1} max={60} value={rounds} aria-label="Deals left"
+            onChange={(e) => setRounds(Math.max(1, Math.min(60, Number(e.target.value) || 1)))}
+            className="token-input"
+          />
+          <span className="faint">three random options per deal</span>
+        </div>
+        <div className="stat-tile">
+          <small>
+            Accuracy{" "}
+            <Info title="Accuracy" align="right">
+              What comes up in future deals is random, so the value of declining an offer
+              has to be estimated by playing the rest out many times and averaging. This is
+              how many times. More is steadier and slower.
             </Info>
           </small>
           <select value={runs} onChange={(e) => setRuns(Number(e.target.value))}
-            aria-label="Accuracy for the two wildcard options" className="token-input">
+            aria-label="How many futures to simulate" className="token-input">
             <option value={200}>rough</option>
             <option value={800}>normal</option>
             <option value={2000}>fine</option>
             <option value={8000}>very fine</option>
           </select>
-          <span className="faint">
-            {results?.some((r) => !r.exact) ? "a wildcard is in play" : "everything else is exact"}
-          </span>
+          <span className="faint">futures simulated per option</span>
         </div>
       </div>
 
@@ -260,10 +278,10 @@ export default function FantasySimulator({
           </div>
         </div>
         <p className="faint">
-          Pick the banner the offer is on, then tick it. The game normally shows three
-          at a time. Every reroll except the two wildcards has few enough outcomes to be
-          worked out <strong>exactly</strong> rather than simulated — the page is doing
-          arithmetic against the {tokens} tokens you have left, not running a simulation.
+          Tick the <strong>three options the game just dealt you</strong>, on whichever
+          banners they landed. The question is not which is best in the abstract — it is
+          whether any of them beats declining and seeing the next deal — and with{" "}
+          {rounds} deals left that bar is high.
         </p>
         <div className="pill-row" role="tablist" aria-label="Offer banner">
           {ROLES.map((r) => (
@@ -292,10 +310,12 @@ export default function FantasySimulator({
 
       {results && (
         <Results
-          results={results}
-          rosterTotal={rosterTotal}
+          plan={results}
+          onSpend={(cost) => {
+            setTokens((t) => Math.max(0, t - cost));
+            setRounds((r) => Math.max(1, r - 1));
+          }}
           tokens={tokens}
-          onSpend={(cost) => setTokens((t) => Math.max(0, t - cost))}
         />
       )}
 
@@ -356,153 +376,140 @@ export default function FantasySimulator({
 }
 
 function Results({
-  results, rosterTotal, tokens, onSpend
+  plan, tokens, onSpend
 }: {
-  results: RosterOutcome[];
-  rosterTotal: number;
+  plan: OfferPlan;
   tokens: number;
   onSpend: (cost: number) => void;
 }) {
-  const best = results[0];
-  const skipped = results.find((r) => r.action.target === "skip");
-  const bestIsSkip = best.action.target === "skip";
-  const rescued = results.filter((o) => o.action.target !== "skip" && o.delta < 0 && o.planDelta > 0);
+  const best = plan.decisions[0];
+  const worthTaking = best && best.edge > 0;
 
   return (
     <div className="stack">
-      <h3>Result — best over the whole budget first</h3>
+      <h3>Take one, or wait for the next deal</h3>
+
+      <div className="stat-tiles">
+        <div className="stat-tile">
+          <small>Roster now</small>
+          <b>{fmt(plan.current)}</b>
+          <span className="faint">before anything</span>
+        </div>
+        <div className="stat-tile">
+          <small>
+            If you decline{" "}
+            <Info title="If you decline">
+              What the roster is worth if you take none of these and play the remaining{" "}
+              {plan.rounds} deals out. It is far above what you hold now, because more
+              offers are coming and some of them will be good. That is the number every
+              offer has to beat.
+            </Info>
+          </small>
+          <b>{fmt(plan.skipValue)}</b>
+          <span className="faint">over {plan.rounds} more deals</span>
+        </div>
+        <div className="stat-tile">
+          <small>Verdict</small>
+          <b style={{ color: worthTaking ? "var(--accent)" : "var(--muted)" }}>
+            {worthTaking ? "Take one" : "Decline"}
+          </b>
+          <span className="faint">
+            {worthTaking ? `${signed(best.edge)} over waiting` : "none of them beat waiting"}
+          </span>
+        </div>
+      </div>
+
       <div className="scroll-x">
         <table>
           <thead>
             <tr>
-              <th>Banner</th><th>Option</th>
+              <th>Banner</th><th>Offer</th>
               <th style={{ textAlign: "right" }}>
-                Cost <Info title="Cost">Tokens this option costs each time you take it.</Info>
+                Cost <Info title="Cost">Tokens this costs. The three banners share one pool.</Info>
               </th>
               <th style={{ textAlign: "right" }}>
-                Rolls <Info title="Rolls you can afford">
-                  How many times you could take this option with the tokens you have left.
-                  The whole roster shares one pool.
+                If you take it <Info title="If you take it" align="right">
+                  What the roster ends up worth if you take this now and then play the
+                  remaining deals out. It already includes everything you expect to gain
+                  from future offers, which is why it is close to the decline figure.
                 </Info>
               </th>
               <th style={{ textAlign: "right" }}>
-                One roll <Info title="One roll">
-                  Average change to the roster from taking this option <strong>once</strong>.
-                  Negative means a single roll is expected to leave you worse off than you
-                  are now.
-                </Info>
-              </th>
-              <th style={{ textAlign: "right" }}>
-                Improves <Info title="Improves">
-                  How often a single roll came out better than what you already hold. A big
-                  average with a low improve rate is a gamble that pays rarely and large.
-                </Info>
-              </th>
-              <th style={{ textAlign: "right" }}>
-                Break-even <Info title="Break-even" align="right">
-                  The first roll at which committing to this option overtakes doing nothing.
-                  &ldquo;3 rolls&rdquo; means the first two are expected to be a loss, and you
-                  only come out ahead if you keep going.
-                </Info>
-              </th>
-              <th style={{ textAlign: "right" }}>
-                End of budget <Info title="End of budget" align="right">
-                  What this option is worth if you spend every affordable token on it and
-                  stop the moment you are happy. Never below zero, because holding is always
-                  allowed. <strong>This is the column to rank on</strong> — an option can
-                  lose on one roll and still win here.
+                Against waiting <Info title="Against waiting" align="right">
+                  Taking it minus declining. Positive means this offer is better than the
+                  next deal is expected to be. Small numbers are normal — one offer out of
+                  many rarely decides a card.
                 </Info>
               </th>
               <th></th>
             </tr>
           </thead>
           <tbody>
-            {results.map((o, index) => (
-              <tr key={`${o.role}:${o.action.id}`} className={o.action.target === "skip" ? "row-skip" : ""}>
-                <td className="muted">{o.action.target === "skip" ? "—" : ROLE_LABELS[o.role]}</td>
+            {plan.decisions.map((d, index) => (
+              <tr key={`${d.role}:${d.action.id}`}>
+                <td className="muted">{ROLE_LABELS[d.role]}</td>
                 <td>
-                  {index === 0 && <span className="tag" style={{ marginRight: 6 }}>best</span>}
-                  {o.action.label}
+                  {index === 0 && d.edge > 0 && (
+                    <span className="tag" style={{ marginRight: 6 }}>best</span>
+                  )}
+                  {d.action.label}
                 </td>
-                <td className="num muted" style={{ textAlign: "right" }}
-                  title={o.action.target === "skip" ? "" : o.exact
-                    ? "Every outcome enumerated — this number is exact."
-                    : `Sampled: this action picks slots at random, so its outcomes were estimated over ${o.runs.toLocaleString("en-US")} rolls.`}>
-                  {o.action.cost}{o.action.target !== "skip" && !o.exact && <span className="faint">*</span>}
-                </td>
-                <td className="num muted" style={{ textAlign: "right" }}>
-                  {o.action.target === "skip" ? "—" : o.attempts || <span className="faint">n/a</span>}
-                </td>
-                <td className="num" style={{ textAlign: "right", color: o.delta >= 0 ? "var(--green)" : "var(--red)" }}>
-                  {o.action.target === "skip" ? "—" : signed(o.delta)}
-                </td>
-                <td className="num muted" style={{ textAlign: "right" }}>
-                  {o.action.target === "skip" ? "—" : `${(o.improveChance * 100).toFixed(0)}%`}
-                </td>
-                <td className="num faint" style={{ textAlign: "right" }}>
-                  {o.action.target === "skip"
-                    ? "—"
-                    : o.breakEvenAttempts === null
-                      ? "never"
-                      : `${o.breakEvenAttempts} roll${o.breakEvenAttempts === 1 ? "" : "s"}`}
-                </td>
-                <td className="num" style={{ textAlign: "right", fontWeight: 650, color: o.planDelta > 0 ? "var(--accent)" : "var(--muted)" }}>
-                  {signed(o.planDelta)}
+                <td className="num muted" style={{ textAlign: "right" }}>{d.action.cost}</td>
+                <td className="num" style={{ textAlign: "right" }}>{fmt(d.takeValue)}</td>
+                <td className="num" style={{
+                  textAlign: "right", fontWeight: 650,
+                  color: d.edge > 0 ? "var(--accent)" : "var(--red)"
+                }}>
+                  {signed(d.edge)}
                 </td>
                 <td style={{ textAlign: "right" }}>
-                  <button
-                    onClick={() => onSpend(o.action.cost)}
-                    disabled={o.action.cost > tokens}
-                    title={o.action.target === "skip"
-                      ? "Skip costs nothing. Press it to clear the comparison and wait for the next offer."
-                      : `Deduct ${o.action.cost} tokens — press once you have actually taken the reroll in game`}
-                  >
+                  <button onClick={() => onSpend(d.action.cost)} disabled={d.action.cost > tokens}
+                    title={`Deduct ${d.action.cost} tokens and one deal — press once you have taken it in game`}>
                     Take
                   </button>
                 </td>
               </tr>
             ))}
+            <tr className="row-skip">
+              <td className="muted">—</td>
+              <td>Skip — wait for the next deal</td>
+              <td className="num muted" style={{ textAlign: "right" }}>0</td>
+              <td className="num" style={{ textAlign: "right" }}>{fmt(plan.skipValue)}</td>
+              <td className="num muted" style={{ textAlign: "right" }}>—</td>
+              <td style={{ textAlign: "right" }}>
+                <button onClick={() => onSpend(0)} title="Costs nothing, but uses up a deal">
+                  Take
+                </button>
+              </td>
+            </tr>
           </tbody>
         </table>
       </div>
 
-      <p className="faint">
-        {results.every((r) => r.exact)
-          ? "Every number here is exact — all outcomes enumerated, nothing sampled. "
-          : "Rows marked * were sampled; the rest are exact. "}
-        Hover any column heading for what it means. <strong>Take</strong> deducts the
-        cost from your tokens — press it once you have actually taken the reroll in game.
-      </p>
-
       <div className="verdict">
-        {bestIsSkip ? (
+        {worthTaking ? (
           <>
-            <strong>Skip.</strong> Nothing on offer beats the {fmt(rosterTotal)} the roster
-            is already worth, even with all {tokens} tokens behind it. Keep them —
-            a better offer costs nothing to wait for.
+            <strong>Take &ldquo;{best.action.label}&rdquo;</strong> on{" "}
+            <strong>{ROLE_LABELS[best.role]}</strong> — worth {signed(best.edge)} against
+            declining and waiting for the next deal.
           </>
         ) : (
           <>
-            <strong>Take &ldquo;{best.action.label}&rdquo;</strong> on{" "}
-            <strong>{ROLE_LABELS[best.role]}</strong>. Committing the budget to it is worth{" "}
-            {signed(best.planDelta)}, taking the roster to {fmt(best.rosterPlanValue)}.
-            {best.breakEvenAttempts !== null && best.breakEvenAttempts > 1 && (
-              <> It only pays from roll {best.breakEvenAttempts} onward, so start it only
-                if you mean to keep going.</>
-            )}
-            {skipped && ` Skipping is worth ${fmt(rosterTotal)}.`}
+            <strong>Decline all three.</strong> With {plan.rounds} deals still to come,
+            waiting is worth {fmt(plan.skipValue)} and none of these beats it. Skipping
+            costs no tokens.
           </>
         )}
       </div>
 
-      {rescued.length > 0 && (
-        <p className="faint" style={{ maxWidth: 720 }}>
-          {rescued.length === 1 ? "One option is" : `${rescued.length} options are`} a loss on
-          the next roll but a gain by the end of the budget. You never get a rerolled emblem
-          back, but you do choose after every roll whether to stop, so a bad average with a
-          fat upside is worth chasing when you can afford to chase it repeatedly.
-        </p>
-      )}
+      <p className="faint" style={{ maxWidth: 740 }}>
+        Every figure here already assumes you keep playing afterwards, which is why they
+        cluster: one offer out of {plan.rounds} rarely decides a card. The value of
+        declining is simulated over {plan.runs} random futures per option, because what
+        comes up next genuinely is random — there is nothing to enumerate. The play-out
+        policy is greedy, so the decline figure is a floor: a perfect player would
+        sometimes pass on a small gain to keep tokens, and do slightly better than shown.
+      </p>
     </div>
   );
 }

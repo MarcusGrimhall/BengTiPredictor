@@ -144,17 +144,33 @@ export function applyAction(
   const slots = targetSlots(next, role, action, random);
 
   if (action.target === "qualityUp" || action.target === "qualityUpTwoDownOne") {
+    // A tier V cannot go higher and a tier I cannot go lower, so with few
+    // emblems the wildcards are close to deterministic. On a three-emblem
+    // banner holding one V and two IIs, the only things that can be raised are
+    // the two IIs, and the V is the only one left worth reducing.
+    //
+    // Raises take the lowest tiers and the reduction takes the highest, so the
+    // wildcard levels a banner rather than sharpening it. Ties are broken at
+    // random.
     const upCount = action.target === "qualityUp" ? 1 : 2;
-    const canRaise = next.map((e, i) => i).filter((i) => next[i].tier !== "V");
-    for (let n = 0; n < upCount && canRaise.length; n += 1) {
-      const pos = canRaise.splice(Math.floor(random() * canRaise.length), 1)[0];
-      next[pos].tier = TIERS_ORDER[Math.min(4, TIERS_ORDER.indexOf(next[pos].tier) + 1)];
+    const rank = (i: number) => TIERS_ORDER.indexOf(next[i].tier);
+
+    const canRaise = next
+      .map((_, i) => i)
+      .filter((i) => next[i].tier !== "V")
+      .sort((a, b) => rank(a) - rank(b) || (random() < 0.5 ? -1 : 1));
+    for (const pos of canRaise.slice(0, upCount)) {
+      next[pos].tier = TIERS_ORDER[Math.min(4, rank(pos) + 1)];
     }
+
     if (action.target === "qualityUpTwoDownOne") {
-      const canLower = next.map((e, i) => i).filter((i) => next[i].tier !== "I");
+      const canLower = next
+        .map((_, i) => i)
+        .filter((i) => next[i].tier !== "I")
+        .sort((a, b) => rank(b) - rank(a) || (random() < 0.5 ? -1 : 1));
       if (canLower.length) {
-        const pos = canLower[Math.floor(random() * canLower.length)];
-        next[pos].tier = TIERS_ORDER[Math.max(0, TIERS_ORDER.indexOf(next[pos].tier) - 1)];
+        const pos = canLower[0];
+        next[pos].tier = TIERS_ORDER[Math.max(0, rank(pos) - 1)];
       }
     }
     return next;

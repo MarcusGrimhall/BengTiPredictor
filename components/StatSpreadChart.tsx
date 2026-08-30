@@ -25,7 +25,13 @@ export default function StatSpreadChart({
   data, leagues
 }: {
   data: SpreadData;
-  leagues: Array<{ id: string; name: string; stages: Stage[] }>;
+  leagues: Array<{
+    id: string;
+    name: string;
+    stages: Stage[];
+    strongTeams: string[];
+    strongBasis: "rating" | "placement";
+  }>;
 }) {
   const [leagueId, setLeagueId] = useState(leagues[0]?.id ?? "");
   const [stage, setStage] = useState<Stage>("playoffs");
@@ -46,7 +52,7 @@ export default function StatSpreadChart({
     () => Math.max(1, ...rows.flatMap((r) => r.points.map((p) => p.value))),
     [rows]
   );
-  const sorted = useMemo(() => [...rows].sort((a, b) => b.highest - a.highest), [rows]);
+  const sorted = useMemo(() => [...rows].sort((a, b) => b.bestSeries - a.bestSeries), [rows]);
 
   const x = (v: number) => (v / max) * 100;
 
@@ -92,11 +98,12 @@ export default function StatSpreadChart({
         <div className="legend">
           <span><i className="dot-mark dot-all" /> a {role === "mid" ? "player" : "duo"}</span>
           <span>
-            <i className="dot-mark dot-strong" /> top 4 finish
-            <Info title="Top 4 finish">
-              The four teams that went deepest, measured by playoff maps played. A result
-              rather than a rating — it is a fact about the event, and the ratings are
-              unreliable for older ones.
+            <i className="dot-mark dot-strong" /> strongest four
+            <Info title="The strongest four">
+              {league?.strongBasis === "rating"
+                ? "The four highest-rated teams at this event, by Elo. Chosen by strength rather than by how the event turned out — using final placement would make the comparison circular."
+                : "The ratings failed their accuracy check for this event, so the four deepest-running teams are used instead. Less satisfying, because it partly measures the result rather than the teams."}
+              {" "}Here: {(league?.strongTeams ?? []).join(", ")}.
             </Info>
           </span>
           <span>
@@ -107,10 +114,10 @@ export default function StatSpreadChart({
             </Info>
           </span>
           <span>
-            <i className="tick-mark tick-savg" /> top-4 average
-            <Info title="Top-4 average">
-              The mean across only the four deepest-running teams. Where it sits well right
-              of the field average, that stat is one good teams genuinely produce more of.
+            <i className="tick-mark tick-savg" /> strong-four average
+            <Info title="Strong-four average">
+              The mean across only those four teams. Where it sits well right of the field
+              average, that stat is one strong teams genuinely produce more of.
             </Info>
           </span>
         </div>
@@ -135,12 +142,12 @@ export default function StatSpreadChart({
                     key={`${p.name}-${i}`}
                     className={`spread-dot ${p.strong ? "strong" : ""}`}
                     style={{ left: `${x(p.value)}%` }}
-                    title={`${p.name} · ${p.team} · ${fmt(p.value)}`}
+                    title={`${p.name} · ${p.team}\n${fmt(p.value)} per series over ${p.series}, best ${fmt(p.best)}`}
                   />
                 ))}
               </div>
               <div className="spread-nums">
-                <span className="num" title={`highest: ${row.highestName}`}>{fmt(row.highest)}</span>
+                <span className="num" title={`best average — ${row.highestName}`}>{fmt(row.highest)}</span>
                 <span className="num faint" title="field average">{fmt(row.average)}</span>
               </div>
             </div>
@@ -153,12 +160,12 @@ export default function StatSpreadChart({
           const lead = row.average > 0 ? row.highest / row.average : 0;
           return (
             <div className="verdict">
-              <strong>{STAT_LABELS[row.stat]}</strong> — highest{" "}
-              <strong>{fmt(row.highest)}</strong> points per series ({row.highestName}), field
-              average {fmt(row.average)}, so the leader is{" "}
-              <strong>{lead.toFixed(2)}×</strong> the field.
-              Best among the top four: {fmt(row.strongBest)} ({row.strongBestName}), their
-              average {fmt(row.strongAverage)}
+              <strong>{STAT_LABELS[row.stat]}</strong> — biggest single series{" "}
+              <strong>{fmt(row.bestSeries)}</strong> ({row.bestSeriesName}); best average{" "}
+              {fmt(row.highest)} ({row.highestName}) against a field average of{" "}
+              {fmt(row.average)}, so the leader is <strong>{lead.toFixed(2)}×</strong> the field.
+              Best among the strongest four: {fmt(row.strongBest)} ({row.strongBestName}),
+              their average {fmt(row.strongAverage)}
               {row.strongAverage > row.average
                 ? ` — ${((row.strongAverage / Math.max(1, row.average) - 1) * 100).toFixed(0)}% above the field.`
                 : ` — no better than the field.`}
@@ -175,9 +182,17 @@ export default function StatSpreadChart({
               <tr>
                 <th>Stat</th>
                 <th style={{ textAlign: "right" }}>
-                  Highest <Info title="Highest">
-                    The best single {role === "mid" ? "player" : "duo"}, by their mean points
-                    per series from this stat. Not their best one series — their average.
+                  Best series <Info title="Best series">
+                    The single biggest series anybody produced from this stat — the one that
+                    would have shown up on a scoreboard. Always larger than the best average,
+                    because it is one series rather than a mean over several.
+                  </Info>
+                </th>
+                <th style={{ textAlign: "right" }}>
+                  Best average <Info title="Best average">
+                    The best {role === "mid" ? "player" : "duo"} by their <strong>mean</strong>{" "}
+                    across all their series. This is what you would expect from picking them,
+                    rather than their single best night.
                   </Info>
                 </th>
                 <th>Who</th>
@@ -188,10 +203,11 @@ export default function StatSpreadChart({
                   </Info>
                 </th>
                 <th style={{ textAlign: "right" }}>
-                  Top-4 avg <Info title="Top-4 average" align="right">
-                    The mean across only the four teams that went deepest. The percentage is
-                    how far above or below the whole field they sit — a big positive is a
-                    stat good teams actually produce more of.
+                  Strong-four avg <Info title="Strong-four average" align="right">
+                    The mean across the four strongest teams
+                    {league?.strongBasis === "rating" ? " by rating" : " by final placement"}.
+                    The percentage is how far above or below the whole field they sit — a big
+                    positive is a stat strong teams actually produce more of.
                   </Info>
                 </th>
                 <th style={{ textAlign: "right" }}>
@@ -209,7 +225,9 @@ export default function StatSpreadChart({
                   <td>
                     <span className={`dot dot-${STAT_COLORS[row.stat]}`} /> {STAT_LABELS[row.stat]}
                   </td>
-                  <td className="num" style={{ textAlign: "right", fontWeight: 650 }}>{fmt(row.highest)}</td>
+                  <td className="num" style={{ textAlign: "right", fontWeight: 650 }}
+                    title={row.bestSeriesName}>{fmt(row.bestSeries)}</td>
+                  <td className="num" style={{ textAlign: "right" }}>{fmt(row.highest)}</td>
                   <td className="muted">{row.highestName}</td>
                   <td className="num faint" style={{ textAlign: "right" }}>{fmt(row.average)}</td>
                   <td className="num" style={{ textAlign: "right" }}>

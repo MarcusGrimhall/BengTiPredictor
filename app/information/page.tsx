@@ -36,7 +36,13 @@ export default async function InformationPage() {
   }
 
   const spread: Record<string, Record<Stage, Record<Role, StatSpread[]>>> = {};
-  const meta: Array<{ id: string; name: string; stages: Stage[] }> = [];
+  const meta: Array<{
+    id: string;
+    name: string;
+    stages: Stage[];
+    strongTeams: string[];
+    strongBasis: "rating" | "placement";
+  }> = [];
 
   // The trait study runs on the newest event only - it is about mechanics, not
   // about comparing tournaments.
@@ -46,18 +52,24 @@ export default async function InformationPage() {
 
   for (const league of leagues) {
     const id = String(league.leagueId);
-    // "Good teams" means the four who went deepest, measured by playoff maps
-    // played. That is a fact about the event rather than a model output, so it
-    // survives the ratings being wrong for older tournaments - and unlike
-    // "made the playoffs" it still separates the field once the playoffs are
-    // the thing being looked at.
-    const strong = new Set(
-      [...league.teams]
-        .filter((t) => (t.stages?.playoffs?.maps ?? 0) > 0)
-        .sort((a, b) => (b.stages?.playoffs?.maps ?? 0) - (a.stages?.playoffs?.maps ?? 0))
-        .slice(0, 4)
-        .map((t) => t.name)
-    );
+    // "Good teams" means the four strongest by rating - a judgement about the
+    // teams, not about how the event turned out. Using final placement instead
+    // would make the comparison circular: of course the teams that won did
+    // well.
+    //
+    // The ratings are graded per event at fetch time, and where they failed
+    // that grading they cannot be used for this either, so those events fall
+    // back to final placement and the page says which was used.
+    const ratingsOk = league.ratingCheck?.usable ?? false;
+    const byStrength = [...league.teams]
+      .filter((t) => t.elo != null)
+      .sort((a, b) => (b.elo ?? 0) - (a.elo ?? 0));
+    const byPlacement = [...league.teams]
+      .filter((t) => (t.stages?.playoffs?.maps ?? 0) > 0)
+      .sort((a, b) => (b.stages?.playoffs?.maps ?? 0) - (a.stages?.playoffs?.maps ?? 0));
+    const chosen = (ratingsOk && byStrength.length >= 4 ? byStrength : byPlacement).slice(0, 4);
+    const strong = new Set(chosen.map((t) => t.name));
+    const strongBasis = ratingsOk && byStrength.length >= 4 ? "rating" : "placement";
 
     const stagesPresent: Stage[] = [];
     spread[id] = {} as Record<Stage, Record<Role, StatSpread[]>>;
@@ -85,7 +97,12 @@ export default async function InformationPage() {
         })) as Record<Role, Emblem[]>;
       }
     }
-    if (stagesPresent.length) meta.push({ id, name: league.leagueName, stages: stagesPresent });
+    if (stagesPresent.length) {
+      meta.push({
+        id, name: league.leagueName, stages: stagesPresent,
+        strongTeams: [...strong], strongBasis
+      });
+    }
   }
 
   return (

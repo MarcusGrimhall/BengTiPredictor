@@ -359,20 +359,33 @@ footer.site-footer {
   border-color: var(--accent); color: var(--accent); background: var(--accent-soft);
 }
 .info-box {
-  position: absolute; top: calc(100% + 7px); z-index: 40;
-  width: max-content; max-width: 290px;
-  display: flex; flex-direction: column; gap: 5px;
-  padding: 10px 12px; border-radius: var(--radius-sm);
-  background: var(--bg-card); border: 1px solid var(--border-strong);
-  box-shadow: 0 8px 26px rgba(0, 0, 0, 0.45);
-  font-size: 0.8rem; font-weight: 400; line-height: 1.5;
+  position: absolute; top: calc(100% + 9px); z-index: 40;
+  width: max-content; max-width: 300px;
+  display: flex; flex-direction: column; gap: 6px;
+  padding: 11px 13px; border-radius: var(--radius-sm);
+  /* Lifted clear of whatever it sits over: a lighter panel than any card on
+     the page, a gold edge tying it to the marker, and a shadow deep enough to
+     read as floating rather than inline. */
+  background: #23262c;
+  border: 1px solid var(--accent);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.7), 0 0 0 1px rgba(0, 0, 0, 0.5);
+  font-size: 0.81rem; font-weight: 400; line-height: 1.55;
   text-align: left; text-transform: none; letter-spacing: normal;
   color: var(--text); white-space: normal;
 }
+/* A small arrow pointing back at the marker. */
+.info-box::before {
+  content: ""; position: absolute; top: -5px; width: 8px; height: 8px;
+  background: #23262c; border-left: 1px solid var(--accent); border-top: 1px solid var(--accent);
+  transform: rotate(45deg);
+}
+.info-left::before { left: 12px; }
+.info-right::before { right: 12px; }
 .info-left { left: 0; }
 .info-right { right: 0; }
-.info-title { color: var(--accent); font-size: 0.8rem; }
-.info-body { color: var(--text-muted); }
+.info-title { color: var(--accent); font-size: 0.82rem; letter-spacing: 0.01em; }
+.info-body { color: #d7dae0; }
+.info-body strong { color: #fff; }
 .info-box code { font-size: 0.76rem; }
 @media (max-width: 640px) {
   .info-box { max-width: 220px; }

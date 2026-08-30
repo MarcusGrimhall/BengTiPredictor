@@ -194,14 +194,48 @@ of that is the confound. `lib/strength.ts` applies the fitted version.
 The stats that move most with a rating edge are GPM, runes, kills and towers,
 and deaths move the other way. All of them weakly.
 
-## The reroll budget is shared
+## The reroll menu is a deal, not a shop
 
-40 tokens for the group stage and 30 for the playoffs, and they cover **all three
-banners**. So the question is never "is this reroll good" but "is this reroll, on
-this banner, the best thing to spend the roster's tokens on". The simulator holds
-all three banners, takes offers tagged by role, and always compares **skip**
-alongside them — a comparison without skip makes every option look like the best
-option, because the only alternative is another option.
+40 tokens for the group stage and 30 for the playoffs, covering **all three
+banners**. But you do not choose what to buy: each round the game deals **three
+random options** out of the whole catalogue, you take one or skip, and next round
+it deals three more. The only established constraint is that the same option does
+not come up twice in a row.
+
+That makes "commit the budget to this option" the wrong question, and it was the
+question an earlier version of this answered. You cannot commit to anything — an
+option you decline may never appear again, and one you want may never appear at
+all. The question the screen actually asks is
+
+> is this offer better than declining and seeing what comes next?
+
+which means the value of *skipping* has to be worked out too, and that is the
+value of playing on against a random deal. `lib/offers.ts` simulates it forward:
+deal random rounds across all three banners, play them out, average.
+
+The answer is usually humbling. On a fresh core banner with 30 tokens and 15
+deals left, standing pat is worth 65,632 — but declining this deal is worth
+**139,149**, because more offers are coming and some will be good. Against that,
+the best of three offers is worth +3,963. One offer out of many rarely decides a
+card, and a tool that showed each offer against your current banner made every
+one of them look decisive.
+
+The play-out policy is greedy, so the decline figure is a **floor**: a perfect
+player would sometimes pass on a small gain to keep tokens and do slightly
+better.
+
+### The quality wildcards are nearly deterministic
+
+A tier V cannot go higher and a tier I cannot go lower, so with few emblems the
+two wildcards have very little freedom. Holding one V and two IIs, "increase two,
+reduce one" can only do one thing:
+
+```
+V  II  II   →   IV  III  III      every time
+```
+
+Raises take the lowest tiers and the reduction takes the highest, so the wildcard
+levels a banner rather than sharpening it.
 
 ## Trainer titles
 
@@ -775,10 +809,15 @@ a long row is genuinely worth more, and the shape of a row is the point: a leade
 somebody dominates; a row where every dot overlaps is a slot to fill with
 whatever is cheapest to reroll. Selectable by tournament, stage and role.
 
-The dots for the four teams that went deepest are marked separately, which
-exposes something useful — the stats that separate good teams are the objective
-ones, not the participation ones. TI 2026 playoff cores, top four against the
-field:
+The four **strongest** teams are marked separately — by rating, not by how the
+event turned out, since using final placement would make the comparison circular.
+Where the ratings failed their per-event accuracy check, placement is used
+instead and the page says so. At TI 2026 that picks TEAM VISION, Team Spirit,
+Team Yandex and Team Liquid.
+
+It exposes something useful: the stats that separate strong teams are the
+objective ones, not the participation ones. TI 2026 playoff cores, strongest four
+against the field:
 
 ```
 Roshan kills            +32%
