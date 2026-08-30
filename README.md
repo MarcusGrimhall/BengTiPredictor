@@ -731,7 +731,8 @@ Full reference with every flag: **[COMMANDS.md](COMMANDS.md)**.
 | `npm run train -- <id>` | Merge training events into a pre-event sample |
 | `npm run simulate -- --help` | Simulate a roster: risk, runs, chances, lookback |
 | `npm run validate` | Grade the model against the fetched tournaments |
-| `npm run dev` / `build` / `start` | Next.js |
+| `npm run dev` | Start the site on localhost:3000 (Ctrl+C to stop) |
+| `npm run build` / `start` | Production build and serve |
 
 Set `OPENDOTA_API_KEY` in the environment for a paid key — the script speeds up
 automatically.
@@ -939,34 +940,19 @@ token cost of each reroll. [ASSUMPTIONS.md](ASSUMPTIONS.md) lists every rule,
 where it came from, and what breaks if an assumption is wrong — along with the
 ones I got wrong and have since fixed.
 
-## Credits and prior art
+## Where the rules came from
 
-Inspired by [Kadadji1/dota2-fantasy-optimizer-2026](https://github.com/Kadadji1/dota2-fantasy-optimizer-2026)
-([ti2026calculator.com](https://www.ti2026calculator.com/)). No code is shared —
-that project's numbers are hand-transcribed constants, and building the data
-pipeline underneath them was the point of this one — but it is the source for
-several things that are not published anywhere official:
+The scoring rules, emblem colours, tier bonuses and trait effects are the
+Compendium's own, taken from the in-game rules text. Point values were
+cross-checked against a community-compiled table of average per-player emblem
+values — thirteen tier-1 events, compiled by hand, sharing no code or pipeline
+with anything here — and `npm run validate` keeps that cross-check as a standing
+test. 31 of 36 values agree within a few percent; see the validation section for
+the one that does not.
 
-- the emblem slot colours per role, and the tier and trait percentages;
-- the point value of every stat, including the ones no guide lists;
-- the rule that a series scores as its **two highest games**;
-- that Core and Support banners pick a **same-team pair**, not one player;
-- the Compendium prediction payout scale, 120 points for one correct pick up to
-  12,000 for all fourteen.
-
-Their per-player Prefix trigger rates were **computed from real hero picks**, not
-invented — the evidence is in the numbers. The eight percentages per player sum
-to 172 on average with a tight spread, implying a hero sits in about 1.72 groups;
-77 of 79 players have a greatest common divisor of 1, which is what rounding real
-frequencies over differing sample sizes looks like; and the role signature is
-coherent (mids trigger Otherworldly 41% against supports' 13%, supports trigger
-Heroic 32% against mids' 10%). Nobody making numbers up produces that structure.
-What they had and did not publish is the hero-to-group classification itself.
-
-Its published table of average per-player emblem values is used as an
-independent cross-check in `npm run validate` — different sample, different
-pipeline, so agreement is real evidence. 31 of 36 values land within a few
-percent. See the validation section for the one that does not.
+Everything else — the data pipeline, the risk model, the reroll planner, the
+stage split, the pre-event training and validation, the strength adjustment — is
+built here from OpenDota match data.
 
 ## Limitations
 

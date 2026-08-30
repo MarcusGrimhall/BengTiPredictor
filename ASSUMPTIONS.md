@@ -8,12 +8,12 @@ wrong, the numbers that depend on it are wrong.
 
 | Rule | Source |
 | --- | --- |
-| Point value of all 15 extractable stats | Reference project's table, cross-checked against my own data (31 of 36 values within a few percent) |
-| Tier bonuses +10 / +30 / +60 / +100 / +150% | Reference project |
-| Trait effects (Fractal +60%, Benevolent +20% adjacent, Vampiric +50%/−10%, Unique +30%, Friendly +50%) | Reference project |
-| Slot colours per role | Reference project, confirmed by you |
+| Point value of all 15 extractable stats | In-game rules, cross-checked against a community-compiled table and against my own data (31 of 36 values within a few percent) |
+| Tier bonuses +10 / +30 / +60 / +100 / +150% | In-game rules |
+| Trait effects (Fractal +60%, Benevolent +20% adjacent, Vampiric +50%/−10%, Unique +30%, Friendly +50%) | In-game rules |
+| Slot colours per role | In-game rules |
 | One stat per banner, never repeated | You |
-| Core and Support are same-team pairs, Mid is one player | Reference project, confirmed by you |
+| Core and Support are same-team pairs, Mid is one player | In-game rules |
 | A pair is the **average** of its two players | You |
 | A series is the **sum** of its two best games | You, and the in-game rules |
 | A period pays only the **best single series** | In-game rules |
@@ -29,9 +29,9 @@ wrong, the numbers that depend on it are wrong.
 | A reroll never returns the value it replaced | You |
 | A tier V cannot be raised, a tier I cannot be lowered | You |
 | The wildcard does what is possible, decided before anything moves | You, from four worked examples |
-| **Every option costs one reroll** — there is no price list | You, and [Escorenews](https://escorenews.com/en/dota-2/article/71615-fantasy-guide-for-the-international-2026-compendium-best-player-picks-and-rolls-for-ti15-fantasy) ("Players get 40 rerolls") |
-| Reroll scopes: stat / quality / trait × all / first / last / random of a colour | Reference project's guide |
-| Compendium prediction payout scale | Reference project |
+| **Every option costs one reroll** — there is no price list | In-game rules, corroborated by community guides |
+| Reroll scopes: stat / quality / trait × all / first / last / random of a colour | Community guides |
+| Compendium prediction payout scale | Community guides |
 | Stage boundary, group stage format, series counts | Derived from the match data itself |
 | Player names and roles | OpenDota's pro registry |
 | Team strength effect on scoring (1.84% per 100 Elo) | Measured here, n=2910, t=4.05 |

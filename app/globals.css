@@ -391,3 +391,11 @@ footer.site-footer {
   .info-box { max-width: 220px; }
 }
 .rule-v { width: 1px; align-self: stretch; background: var(--border-strong); margin: 0 4px; }
+.months-picker {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-size: 0.84rem; color: var(--text-muted);
+}
+.months-picker input {
+  width: 56px; padding: 4px 6px; text-align: center;
+  font-family: var(--mono); font-size: 0.9rem;
+}

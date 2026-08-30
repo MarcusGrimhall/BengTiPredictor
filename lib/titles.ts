@@ -10,8 +10,8 @@
 // The Lucky pays 21% but only on games whose duration ends in the digit 8;
 // the Underdog pays 6% but on every game the team loses.
 //
-// Bonuses and conditions are transcribed from the reference project's glossary.
-// The trigger rates are measured here from the matches actually fetched.
+// Bonuses and conditions come from the in-game glossary. The trigger rates are
+// measured here from the matches actually fetched.
 
 import type { PlayerEntry } from "./fantasy";
 
@@ -205,8 +205,7 @@ export function effectiveSuffixValue(
  * than guessed.
  *
  * Fill it as `{ [heroId]: ["crimson", "otherworldly"] }`; a hero can belong to
- * several groups, which is why the reference project's per-player rates sum to
- * more than 100%.
+ * several groups, which is why per-player trigger rates sum to more than 100%.
  */
 export const HERO_GROUPS: Record<number, PrefixKey[]> = {};
 

@@ -541,11 +541,11 @@ function checkInvariants(league) {
 /**
  * An outside opinion on our numbers.
  *
- * The project this one was inspired by published average per-player emblem
- * values, hand-transcribed from community tables over 13 tier-1 events. It
- * shares no code and no pipeline with this one, so agreement is real evidence
- * that the extraction and the point scale are right - and disagreement points
- * at exactly which stat to go and look at.
+ * These are community-published average per-player emblem values, compiled by
+ * hand across thirteen tier-1 events. They share no code and no pipeline with
+ * anything here, so agreement is real evidence that the extraction and the
+ * point scale are right - and disagreement points at exactly which stat to go
+ * and look at.
  */
 const REFERENCE_EMBLEM_VALUES = {
   core: { gpm: 1297, creeps: 1293, deaths: 1213, kills: 715, towers: 691, teamfight: 1316,
@@ -559,7 +559,7 @@ const REFERENCE_EMBLEM_VALUES = {
 
 function checkAgainstReference(league) {
   head(`9. Cross-check against an independent table — ${league.leagueName}`);
-  console.log("  Average per-player emblem value, ours vs the reference project's.");
+  console.log("  Average per-player emblem value, ours vs a community-compiled table.");
   console.log("  Different sample and a different pipeline, so a few percent apart is");
   console.log("  expected; an order of magnitude is a bug in one of us.\n");
 

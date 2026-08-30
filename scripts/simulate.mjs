@@ -36,13 +36,14 @@ Simulate a fantasy roster against a tournament.
 
 Data
   --league <id>        Target tournament. Default: the newest non-training one.
-  --stage <name>       groupStage | playoffs                  (default playoffs)
+  --stage <name>       groupStage | playoffs | both              (default both)
   --source <name>      Where the form comes from:
                          training  fit on events before the target (default)
                          event     fit on the target's own games (in-sample)
   --since <YYYY-MM-DD> Ignore training matches older than this date.
-  --lookback <N>       Ignore training matches older than N days before the
-                       target's first match. Overrides --since.
+  --months <N>         Only train on the last N months of professional matches
+                       before the target event. Overrides --since.
+  --lookback <N>       Same, in days. Overrides --months.
   --min-games <N>      Drop entries with fewer than N games.        (default 4)
 
 Model
@@ -80,10 +81,11 @@ const num = (name, fallback) => {
 
 const opts = {
   league: flag("league"),
-  stage: flag("stage", "playoffs"),
+  stage: flag("stage", "both"),
   source: flag("source", "training"),
   since: flag("since"),
   lookback: num("lookback", null),
+  months: num("months", null),
   minGames: num("min-games", 4),
   risk: Math.max(0, Math.min(100, num("risk", 50))),
   runs: Math.max(100, num("runs", 20000)),
@@ -96,10 +98,11 @@ const opts = {
   json: has("json")
 };
 
-if (!["groupStage", "playoffs"].includes(opts.stage)) {
-  console.error(`--stage must be groupStage or playoffs, got "${opts.stage}"`);
+if (!["groupStage", "playoffs", "both"].includes(opts.stage)) {
+  console.error(`--stage must be groupStage, playoffs or both, got "${opts.stage}"`);
   process.exit(1);
 }
+const STAGES_TO_RUN = opts.stage === "both" ? ["groupStage", "playoffs"] : [opts.stage];
 
 const ROLES = opts.role === "all" ? ["core", "mid", "support"] : [opts.role];
 const fmt = (n) => Math.round(n).toLocaleString("en-US");
@@ -129,6 +132,9 @@ function cutoff() {
   if (opts.lookback !== null && league.firstMatch) {
     return league.firstMatch - opts.lookback * 86400;
   }
+  if (opts.months !== null && league.firstMatch) {
+    return league.firstMatch - opts.months * 30 * 86400;
+  }
   if (opts.since) {
     const t = Date.parse(`${opts.since}T00:00:00Z`);
     if (!Number.isNaN(t)) return t / 1000;
@@ -136,9 +142,13 @@ function cutoff() {
   return null;
 }
 
+let activeStage = STAGES_TO_RUN[0];
+let entries = [];
+let sources = [];
+
 async function loadEntries() {
   if (opts.source === "event") {
-    return { entries: buildLineups(toPlayerEntries(league, opts.stage)), sources: ["the target event itself (in-sample)"] };
+    return { entries: buildLineups(toPlayerEntries(league, activeStage)), sources: ["the target event itself (in-sample)"] };
   }
   let training;
   try {
@@ -176,8 +186,7 @@ async function loadEntries() {
   };
 }
 
-const { entries: allEntries, sources } = await loadEntries();
-const entries = allEntries.filter((e) => (e.gameLines?.length ?? 0) >= opts.minGames);
+
 
 // How many series each team plays in this stage.
 //
@@ -185,13 +194,17 @@ const entries = allEntries.filter((e) => (e.gameLines?.length ?? 0) >= opts.minG
 // matters more than the mean: most of the variance in a tournament total is how
 // far the team goes, not how they play on the night. So the projection carries
 // the whole distribution and the simulation draws from it.
-const actual = actualSeriesByStage(league, opts.stage);
-let seriesByTeam;
+let seriesByTeam = {};
 let seriesSpread = null;
-if (Object.keys(actual).length) {
-  seriesByTeam = actual;
-} else {
-  const projection = projectMainEvent(league.teams, 20000);
+
+function loadSeries() {
+  const actual = actualSeriesByStage(league, activeStage);
+  if (Object.keys(actual).length) {
+    seriesByTeam = actual;
+    seriesSpread = null;
+    return;
+  }
+  const projection = projectMainEvent(league.teams, opts.runs);
   seriesByTeam = projection.seriesByTeam;
   seriesSpread = projection.seriesDistribution ?? null;
 }
@@ -199,7 +212,7 @@ if (Object.keys(actual).length) {
 // --------------------------------------------------------------------------
 
 function bannerFor(role) {
-  const slots = STAGE_SLOTS[opts.stage];
+  const slots = STAGE_SLOTS[activeStage];
   const slotOptions = BANNER_SLOTS[role].slice(0, slots).map((c) => statsForColor(c));
   const start = slotOptions.map((o, i) => ({ stat: o[i % o.length], tier: "III", trait: "none" }));
   return opts.banner === "default"
@@ -223,18 +236,26 @@ function drawSeries(team, random) {
 }
 
 /**
- * One simulated tournament for an entry.
+ * One simulated period for an entry.
  *
  * Two sources of randomness, and both matter. How many series the team plays
  * comes from the bracket; how they score in each comes from the entry's own
- * observed match scores, resampled rather than fitted so the shape of the tail
- * survives. That tail is the whole question when only your best attempt counts.
+ * observed series scores, resampled rather than fitted so the shape of the tail
+ * survives.
+ *
+ * The period pays the BEST of those series, not their sum. So playing more
+ * series is more attempts at one number - which helps, but as the maximum of
+ * more draws rather than as a total.
  */
 function simulateEntry(dist, team, random) {
-  let total = 0;
   const series = drawSeries(team, random);
-  for (let i = 0; i < series; i += 1) total += dist[Math.floor(random() * dist.length)];
-  return total;
+  if (series <= 0) return 0;
+  let best = -Infinity;
+  for (let i = 0; i < series; i += 1) {
+    const draw = dist[Math.floor(random() * dist.length)];
+    if (draw > best) best = draw;
+  }
+  return best;
 }
 
 function evaluate(role, risk) {
@@ -292,68 +313,88 @@ function evaluate(role, risk) {
 
 // --------------------------------------------------------------------------
 
-if (opts.json) {
-  const out = { options: opts, league: league.leagueName, stage: opts.stage, roles: {} };
+/** Everything that depends on the stage, for one stage. */
+async function runStage(stage) {
+  activeStage = stage;
+  loadSeries();
+  const loaded = await loadEntries();
+  entries = loaded.entries.filter((e) => (e.gameLines?.length ?? 0) >= opts.minGames);
+  sources = loaded.sources;
+}
+
+const results = [];
+for (const stage of STAGES_TO_RUN) {
+  await runStage(stage);
+  if (!entries.length) continue;
+
+  if (opts.json) {
+    const block = { stage, roles: {} };
+    for (const role of ROLES) {
+      const { banner, rows } = evaluate(role, opts.risk);
+      block.roles[role] = {
+        banner: banner.map((e) => ({ stat: e.stat, tier: e.tier, trait: e.trait })),
+        entries: rows.slice(0, opts.top).map((r) => ({
+          name: r.entry.name, team: r.entry.teamName, matches: r.matches, series: r.series,
+          mean: r.mean, p10: r.p10, p90: r.p90, bestOfN: r.bestOfN, lift: r.lift
+        }))
+      };
+    }
+    results.push(block);
+    continue;
+  }
+
+  console.log(`\n${"=".repeat(72)}`);
+  console.log(`${league.leagueName} · ${STAGE_LABELS[stage]}`);
+  console.log("=".repeat(72));
+  console.log(`Form from : ${opts.source === "event" ? "the event itself (in-sample)" : `${sources.length} earlier tournament(s)`}`);
+  if (opts.source !== "event") for (const s of sources) console.log(`            ${s}`);
+  if (cutoff() !== null) console.log(`Cut-off   : nothing before ${new Date(cutoff() * 1000).toISOString().slice(0, 10)}`);
+  console.log(`Entries   : ${entries.length} with at least ${opts.minGames} games`);
+  console.log(`Model     : risk ${opts.risk} (${Math.round(riskToPercentile(opts.risk))}th pct) · ${fmt(opts.runs)} runs · ${opts.chances} chance${opts.chances === 1 ? "" : "s"}`);
+
+  if (opts.compareRisk) {
+    console.log(`\nRisk sweep - the model's pick at each level, with ${opts.chances} chance${opts.chances === 1 ? "" : "s"}\n`);
+    for (const role of ROLES) {
+      console.log(`  ${role}`);
+      console.log(`    risk   pick                                       average    best of ${opts.chances}`);
+      for (const risk of [0, 25, 50, 75, 100]) {
+        const { modelPick } = evaluate(role, risk);
+        if (!modelPick) continue;
+        console.log(`    ${String(risk).padStart(4)}   ${modelPick.entry.name.slice(0, 40).padEnd(42)}` +
+          `${fmt(modelPick.mean).padStart(9)}${fmt(modelPick.bestOfN).padStart(12)}`);
+      }
+      console.log();
+    }
+    continue;
+  }
+
   for (const role of ROLES) {
     const { banner, rows } = evaluate(role, opts.risk);
-    out.roles[role] = {
-      banner: banner.map((e) => ({ stat: e.stat, tier: e.tier, trait: e.trait })),
-      entries: rows.slice(0, opts.top).map((r) => ({
-        name: r.entry.name, team: r.entry.teamName, matches: r.matches, series: r.series,
-        mean: r.mean, p10: r.p10, p90: r.p90, bestOfN: r.bestOfN, lift: r.lift
-      }))
-    };
-  }
-  console.log(JSON.stringify(out, null, 2));
-  process.exit(0);
-}
+    if (!rows.length) { console.log(`\n${role}: no entries`); continue; }
 
-console.log(`\nTarget    : ${league.leagueName} · ${STAGE_LABELS[opts.stage]}`);
-console.log(`Form from : ${opts.source === "event" ? "the event itself (in-sample)" : `${sources.length} earlier tournament(s)`}`);
-if (opts.source !== "event") for (const s of sources) console.log(`            ${s}`);
-if (cutoff() !== null) console.log(`Cut-off   : nothing before ${new Date(cutoff() * 1000).toISOString().slice(0, 10)}`);
-console.log(`Entries   : ${entries.length} with at least ${opts.minGames} games`);
-console.log(`Model     : risk ${opts.risk} (${Math.round(riskToPercentile(opts.risk))}th pct) · ${fmt(opts.runs)} runs · ${opts.chances} chance${opts.chances === 1 ? "" : "s"}`);
-
-if (opts.compareRisk) {
-  console.log(`\nRisk sweep - who wins at each risk level, with ${opts.chances} chance${opts.chances === 1 ? "" : "s"}\n`);
-  for (const role of ROLES) {
-    console.log(`  ${role}`);
-    console.log(`    risk   pick                                       average    best of ${opts.chances}`);
-    for (const risk of [0, 25, 50, 75, 100]) {
-      // The model's own pick at this risk level, then graded by simulation.
-      const { modelPick } = evaluate(role, risk);
-      if (!modelPick) continue;
-      console.log(`    ${String(risk).padStart(4)}   ${modelPick.entry.name.slice(0, 40).padEnd(42)}` +
-        `${fmt(modelPick.mean).padStart(9)}${fmt(modelPick.bestOfN).padStart(12)}`);
+    console.log(`\n${role.toUpperCase()}  banner: ${banner.map((e) => `${STAT_LABELS[e.stat]}/${e.tier}`).join("  ")}`);
+    console.log(`  ${"entry".padEnd(38)}${"team".padEnd(18)}${"avg".padStart(9)}${"p10".padStart(9)}${"p90".padStart(9)}${`best of ${opts.chances}`.padStart(12)}${"lift".padStart(9)}`);
+    for (const r of rows.slice(0, opts.top)) {
+      console.log(`  ${r.entry.name.slice(0, 36).padEnd(38)}${r.entry.teamName.slice(0, 16).padEnd(18)}` +
+        `${fmt(r.mean).padStart(9)}${fmt(r.p10).padStart(9)}${fmt(r.p90).padStart(9)}` +
+        `${fmt(r.bestOfN).padStart(12)}${("+" + fmt(r.lift)).padStart(9)}`);
     }
-    console.log();
-  }
-  process.exit(0);
-}
 
-for (const role of ROLES) {
-  const { banner, rows } = evaluate(role, opts.risk);
-  if (!rows.length) { console.log(`\n${role}: no entries`); continue; }
-
-  console.log(`\n${role.toUpperCase()}  banner: ${banner.map((e) => `${STAT_LABELS[e.stat]}/${e.tier}`).join("  ")}`);
-  console.log(`  ${"entry".padEnd(38)}${"team".padEnd(18)}${"avg".padStart(9)}${"p10".padStart(9)}${"p90".padStart(9)}${`best of ${opts.chances}`.padStart(12)}${"lift".padStart(9)}`);
-  for (const r of rows.slice(0, opts.top)) {
-    console.log(`  ${r.entry.name.slice(0, 36).padEnd(38)}${r.entry.teamName.slice(0, 16).padEnd(18)}` +
-      `${fmt(r.mean).padStart(9)}${fmt(r.p10).padStart(9)}${fmt(r.p90).padStart(9)}` +
-      `${fmt(r.bestOfN).padStart(12)}${("+" + fmt(r.lift)).padStart(9)}`);
-  }
-
-  if (opts.chances > 1) {
-    const byMean = [...rows].sort((a, b) => b.mean - a.mean)[0];
-    const byBest = rows[0];
-    if (byMean.entry.id !== byBest.entry.id) {
-      console.log(`\n  With 1 chance the pick is ${byMean.entry.name} (${fmt(byMean.mean)} average).`);
-      console.log(`  With ${opts.chances} it is ${byBest.entry.name} - lower average (${fmt(byBest.mean)}) but a fatter tail,`);
-      console.log(`  worth ${fmt(byBest.bestOfN)} against ${fmt(byMean.bestOfN)}.`);
-    } else {
-      console.log(`\n  ${byBest.entry.name} wins on both average and best-of-${opts.chances}.`);
+    if (opts.chances > 1) {
+      const byMean = [...rows].sort((a, b) => b.mean - a.mean)[0];
+      const byBest = rows[0];
+      if (byMean.entry.id !== byBest.entry.id) {
+        console.log(`\n  With 1 chance the pick is ${byMean.entry.name} (${fmt(byMean.mean)} average).`);
+        console.log(`  With ${opts.chances} it is ${byBest.entry.name} - lower average (${fmt(byBest.mean)}) but a fatter tail,`);
+        console.log(`  worth ${fmt(byBest.bestOfN)} against ${fmt(byMean.bestOfN)}.`);
+      } else {
+        console.log(`\n  ${byBest.entry.name} wins on both average and best-of-${opts.chances}.`);
+      }
     }
   }
+}
+
+if (opts.json) {
+  console.log(JSON.stringify({ options: opts, league: league.leagueName, stages: results }, null, 2));
 }
 console.log();

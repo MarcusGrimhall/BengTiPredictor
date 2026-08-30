@@ -35,11 +35,10 @@ export default function StatSpreadChart({
     meta?: { months: number; events: number; maps: number; from: number; to: number };
   }>;
 }) {
-  // Six months by default: three is often only a couple of tournaments, and a
-  // year starts to blur across a patch boundary.
-  const [leagueId, setLeagueId] = useState(
-    leagues.find((l) => l.meta?.months === 6)?.id ?? leagues[0]?.id ?? ""
-  );
+  // Months of professional play to pool. Six by default: fewer is often only a
+  // couple of tournaments, more starts to blur across a patch boundary.
+  const [months, setMonths] = useState(6);
+  const [source, setSource] = useState<"recent" | string>("recent");
   const [stage, setStage] = useState<Stage>("playoffs");
   const [role, setRole] = useState<Role>("core");
   // The chart and the table were showing different measures, which made the
@@ -47,10 +46,25 @@ export default function StatSpreadChart({
   const [measure, setMeasure] = useState<"average" | "best">("best");
   const [hover, setHover] = useState<string | null>(null);
 
-  const windows = useMemo(() => leagues.filter((l) => l.meta), [leagues]);
+  const windows = useMemo(
+    () => leagues.filter((l) => l.meta).sort((a, b) => a.meta!.months - b.meta!.months),
+    [leagues]
+  );
   const events = useMemo(() => leagues.filter((l) => !l.meta), [leagues]);
-  const league = leagues.find((l) => l.id === leagueId) ?? leagues[0];
-  const isWindow = Boolean(league?.meta);
+
+  /**
+   * The window that actually covers the months asked for: the shortest one
+   * reaching at least that far back, or the longest available if the request
+   * goes past the data.
+   */
+  const chosenWindow = useMemo(() => {
+    if (!windows.length) return null;
+    return windows.find((w) => w.meta!.months >= months) ?? windows[windows.length - 1];
+  }, [windows, months]);
+
+  const isWindow = source === "recent";
+  const league = isWindow ? chosenWindow : leagues.find((l) => l.id === source);
+  const leagueId = league?.id ?? "";
   const available = league?.stages ?? [];
   const activeStage = available.includes(stage) ? stage : available[0] ?? "groupStage";
 
@@ -79,21 +93,37 @@ export default function StatSpreadChart({
     <div className="stack">
       <section className="card-tight stage-bar">
         <div className="pill-row" role="tablist" aria-label="Source">
-          {windows.map((l) => (
-            <button key={l.id} className="pill" role="tab" aria-pressed={leagueId === l.id}
-              onClick={() => setLeagueId(l.id)}>{l.name}</button>
-          ))}
+          <button className="pill" role="tab" aria-pressed={isWindow}
+            onClick={() => setSource("recent")}>
+            Recent pro play
+          </button>
+          {isWindow && (
+            <span className="months-picker">
+              last
+              <input
+                type="number" min={1} max={60} value={months}
+                aria-label="Months of professional play to include"
+                onChange={(e) => setMonths(Math.max(1, Math.min(60, Number(e.target.value) || 1)))}
+              />
+              months
+            </span>
+          )}
           <Info title="Recent professional play">
-            Every professional match from the window, pooled across tournaments rather than
-            taken from one event. A stat is worth however much of it players currently
-            produce, and that moves with the patch — games running short cut last hits and
-            GPM and lift first blood, games running long do the reverse. Picking a banner
-            off a year-old sample is picking for a game nobody is playing.
+            Every professional match from the last <strong>{months} months</strong>, pooled
+            across tournaments rather than taken from one event.
+            <br /><br />
+            A stat is worth however much of it players currently produce, and that moves
+            with the patch — games running short cut last hits and GPM and lift first blood,
+            games running long do the reverse. Picking a banner off a year-old sample is
+            picking for a game nobody is playing.
+            <br /><br />
+            Windows snap to tournament boundaries, since asking for seven months and eight
+            gives the same sample when no event sits between them.
           </Info>
-          {windows.length > 0 && events.length > 0 && <span className="rule-v" />}
+          {events.length > 0 && <span className="rule-v" />}
           {events.map((l) => (
-            <button key={l.id} className="pill" role="tab" aria-pressed={leagueId === l.id}
-              onClick={() => setLeagueId(l.id)}>{l.name}</button>
+            <button key={l.id} className="pill" role="tab" aria-pressed={!isWindow && leagueId === l.id}
+              onClick={() => setSource(l.id)}>{l.name}</button>
           ))}
         </div>
         <div className="pill-row">
@@ -130,9 +160,14 @@ export default function StatSpreadChart({
           {isWindow && league?.meta ? (
             <>
               <strong>{league.meta.events} tournaments</strong>,{" "}
-              {league.meta.maps.toLocaleString("en-US")} maps of professional play,{" "}
+              {league.meta.maps.toLocaleString("en-US")} maps,{" "}
               {new Date(league.meta.from * 1000).toISOString().slice(0, 7)} to{" "}
               {new Date(league.meta.to * 1000).toISOString().slice(0, 7)}
+              {league.meta.months !== months && (
+                <span className="faint">
+                  {" "}— nearest window to {months} months
+                </span>
+              )}
             </>
           ) : (
             <><strong>{league?.name}</strong> · {STAGE_LABELS[activeStage].toLowerCase()}</>

@@ -20,12 +20,23 @@ export type WindowSource = {
   entries: PlayerEntry[];
 };
 
-export const META_WINDOWS = [
-  { months: 3, label: "3 months" },
-  { months: 6, label: "6 months" },
-  { months: 12, label: "1 year" },
-  { months: 24, label: "2 years" }
-] as const;
+/**
+ * The distinct windows there are, given the events on hand.
+ *
+ * A window is only ever "the most recent k tournaments" - asking for seven
+ * months and asking for eight gives the same sample if no event sits between
+ * them. So one spread is precomputed per possible k, and any month the user
+ * types resolves to the smallest k that reaches back that far. That makes the
+ * control continuous without precomputing a spread for every integer.
+ */
+export function windowCuts(sources: Array<{ date: number }>): number[] {
+  return [...new Set(sources.map((s) => s.date))].sort((a, b) => b - a);
+}
+
+/** Months of history a cut represents, relative to the newest event. */
+export function monthsOf(cut: number, newest: number): number {
+  return Math.max(1, Math.round((newest - cut) / (30 * 86400)) + 1);
+}
 
 /**
  * Merges every event inside the window into one set of entries.
@@ -33,11 +44,10 @@ export const META_WINDOWS = [
  * An entry keeps the team it had most recently, since that is who it would be
  * picked as today, but its games come from wherever it played them.
  */
-export function poolWindow(sources: WindowSource[], months: number, now: number): {
+export function poolWindow(sources: WindowSource[], cutoff: number): {
   entries: PlayerEntry[];
   events: WindowSource[];
 } {
-  const cutoff = now - months * 30 * 86400;
   const events = sources.filter((s) => s.date >= cutoff).sort((a, b) => a.date - b.date);
 
   const merged = new Map<string, PlayerEntry>();

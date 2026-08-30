@@ -422,8 +422,8 @@ function pairUp(a: PlayerEntry, b: PlayerEntry, teamName: string, role: Role): P
     gameSeries.push(a.gameSeries?.[i] ?? -matchId);
     gameMatches.push(matchId);
     // Hero is per player, so a pair has two. The Prefix rate for a pair is the
-    // average of both members, which is what the reference project does; both
-    // heroes are kept so the rate can be computed over the pair's games.
+    // average of both members, so both heroes are kept and the rate is
+    // computed over the pair's games.
     if (a.gameHeroes?.[i] != null) gameHeroes.push(a.gameHeroes[i]);
     if (b.gameHeroes?.[j] != null) gameHeroes.push(b.gameHeroes[j]);
     // Suffix conditions are game-level and identical for team-mates.

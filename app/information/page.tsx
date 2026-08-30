@@ -5,7 +5,7 @@ import { BANNER_SLOTS, Role, StatKey, statsForColor } from "../../lib/scoring";
 import { STAGES, STAGE_SLOTS, type Stage } from "../../lib/stages";
 import { statSpread, type StatSpread } from "../../lib/statSpread";
 import { preEventStrength } from "../../lib/strength";
-import { META_WINDOWS, poolWindow, type WindowSource } from "../../lib/metaWindow";
+import { monthsOf, poolWindow, windowCuts, type WindowSource } from "../../lib/metaWindow";
 import { loadTraining } from "../../lib/data";
 
 export const metadata = { title: "Information · BengTiPredictor" };
@@ -82,10 +82,13 @@ export default async function InformationPage() {
   }));
   const newest = sources.length ? Math.max(...sources.map((s) => s.date)) : 0;
 
-  for (const window of META_WINDOWS) {
-    const id = `meta-${window.months}`;
-    const { entries, events } = poolWindow(sources, window.months, newest);
-    if (!entries.length) continue;
+  // One window per possible cut, so any month the user types resolves to a real
+  // sample rather than being snapped to a preset.
+  for (const cut of windowCuts(sources)) {
+    const months = monthsOf(cut, newest);
+    const id = `meta-${cut}`;
+    const { entries, events } = poolWindow(sources, cut);
+    if (!entries.length || events.length < 2) continue;
 
     // A pooled window has no group stage or playoffs - it is professional play.
     spread[id] = { groupStage: {}, playoffs: {} } as Record<Stage, Record<Role, StatSpread[]>>;
@@ -113,15 +116,15 @@ export default async function InformationPage() {
     spread[id].playoffs = byRole;
     meta.push({
       id,
-      name: `Last ${window.label}`,
+      name: `Last ${months} months`,
       stages: ["groupStage"],
       strongTeams: [...strongWindow],
       strongBasis: "form",
       meta: {
-        months: window.months,
+        months,
         events: events.length,
         maps: events.reduce((n, e) => n + e.maps, 0),
-        from: events.length ? events[0].date : 0,
+        from: events[0].date,
         to: newest
       }
     });
@@ -205,7 +208,6 @@ export default async function InformationPage() {
   return (
     <main className="shell">
       <div className="page-head">
-        <span className="eyebrow">{meta.map((m) => m.name).join(" · ")}</span>
         <h1>Information</h1>
         <p className="muted" style={{ maxWidth: 700 }}>
           What every duo produced on every stat, and what the emblem mechanics are
