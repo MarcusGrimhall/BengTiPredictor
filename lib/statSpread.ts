@@ -17,7 +17,7 @@ export type StatPoint = {
   /** Entry name, already resolved to pro names. */
   name: string;
   team: string;
-  /** Mean per-match points from this stat alone. */
+  /** Mean per-series points from this stat alone, at base rate. */
   value: number;
   /** True for the four teams that went deepest - the "good teams" marker. */
   strong: boolean;
@@ -55,10 +55,15 @@ export function statSpread(
   if (!pool.length) return [];
 
   return stats.map((stat) => {
-    const emblem: Emblem[] = [{ stat, tier: "III", trait: "none" }];
+    // Tier I is the lowest the type allows; its +10% is divided back out below
+    // so what is reported is the raw stat value with no emblem bonus at all.
+    const emblem: Emblem[] = [{ stat, tier: "I", trait: "none" }];
+    const tierI = 1.1;
     const points: StatPoint[] = pool.map((entry) => {
       const scores = matchScores(entry, emblem);
-      const value = scores.length ? scores.reduce((a, b) => a + b, 0) / scores.length : 0;
+      const value = scores.length
+        ? scores.reduce((a, b) => a + b, 0) / scores.length / tierI
+        : 0;
       return { name: entry.name, team: entry.teamName, value, strong: strongTeams.has(entry.teamName) };
     }).sort((a, b) => b.value - a.value);
 

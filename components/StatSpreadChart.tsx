@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import type { StatSpread } from "../lib/statSpread";
 import { Role, STAT_COLORS, STAT_LABELS } from "../lib/scoring";
 import { STAGE_LABELS, type Stage } from "../lib/stages";
+import Info from "./Info";
 
 const ROLES: Role[] = ["core", "mid", "support"];
 const ROLE_LABELS: Record<Role, string> = { core: "Core", mid: "Mid", support: "Support" };
@@ -90,9 +91,28 @@ export default function StatSpreadChart({
 
         <div className="legend">
           <span><i className="dot-mark dot-all" /> a {role === "mid" ? "player" : "duo"}</span>
-          <span><i className="dot-mark dot-strong" /> top 4 finish</span>
-          <span><i className="tick-mark tick-avg" /> field average</span>
-          <span><i className="tick-mark tick-savg" /> top-4 average</span>
+          <span>
+            <i className="dot-mark dot-strong" /> top 4 finish
+            <Info title="Top 4 finish">
+              The four teams that went deepest, measured by playoff maps played. A result
+              rather than a rating — it is a fact about the event, and the ratings are
+              unreliable for older ones.
+            </Info>
+          </span>
+          <span>
+            <i className="tick-mark tick-avg" /> field average
+            <Info title="Field average">
+              The mean across <strong>every</strong> {role === "mid" ? "player" : "duo"} at
+              this stage, all teams included.
+            </Info>
+          </span>
+          <span>
+            <i className="tick-mark tick-savg" /> top-4 average
+            <Info title="Top-4 average">
+              The mean across only the four deepest-running teams. Where it sits well right
+              of the field average, that stat is one good teams genuinely produce more of.
+            </Info>
+          </span>
         </div>
 
         <div className="spread">
@@ -134,8 +154,9 @@ export default function StatSpreadChart({
           return (
             <div className="verdict">
               <strong>{STAT_LABELS[row.stat]}</strong> — highest{" "}
-              <strong>{fmt(row.highest)}</strong> ({row.highestName}), field average{" "}
-              {fmt(row.average)}, so the leader is <strong>{lead.toFixed(2)}×</strong> the field.
+              <strong>{fmt(row.highest)}</strong> points per series ({row.highestName}), field
+              average {fmt(row.average)}, so the leader is{" "}
+              <strong>{lead.toFixed(2)}×</strong> the field.
               Best among the top four: {fmt(row.strongBest)} ({row.strongBestName}), their
               average {fmt(row.strongAverage)}
               {row.strongAverage > row.average
@@ -153,11 +174,33 @@ export default function StatSpreadChart({
             <thead>
               <tr>
                 <th>Stat</th>
-                <th style={{ textAlign: "right" }}>Highest</th>
+                <th style={{ textAlign: "right" }}>
+                  Highest <Info title="Highest">
+                    The best single {role === "mid" ? "player" : "duo"}, by their mean points
+                    per series from this stat. Not their best one series — their average.
+                  </Info>
+                </th>
                 <th>Who</th>
-                <th style={{ textAlign: "right" }}>Field avg</th>
-                <th style={{ textAlign: "right" }}>Top-4 avg</th>
-                <th style={{ textAlign: "right" }}>Leader vs field</th>
+                <th style={{ textAlign: "right" }}>
+                  Field avg <Info title="Field average">
+                    The mean across every {role === "mid" ? "player" : "duo"} at this stage,
+                    all teams included.
+                  </Info>
+                </th>
+                <th style={{ textAlign: "right" }}>
+                  Top-4 avg <Info title="Top-4 average" align="right">
+                    The mean across only the four teams that went deepest. The percentage is
+                    how far above or below the whole field they sit — a big positive is a
+                    stat good teams actually produce more of.
+                  </Info>
+                </th>
+                <th style={{ textAlign: "right" }}>
+                  Leader vs field <Info title="Leader vs field" align="right">
+                    Highest divided by the field average. Near 1.0 means everyone produces
+                    about the same and the slot is not worth chasing; 1.8 means one entry is
+                    nearly doubling the field.
+                  </Info>
+                </th>
               </tr>
             </thead>
             <tbody>

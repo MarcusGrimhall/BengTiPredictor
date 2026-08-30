@@ -121,32 +121,42 @@ Slot colours, with the group stage running on the first three:
 | Mid | 2 red, 1 blue, 2 green | one of each |
 | Support | 3 blue, 2 green | 2 blue, 1 green |
 
-### A series is the average of its two best games
+### A series is the sum of its two best games
 
-Fantasy does not pay per map. **A series scores as the average of its two
-highest games.** In a Bo3 you take the best two and average them; the third game
-is worth nothing unless it displaces one of the first two. A one-game series
-scores that game.
+Fantasy does not pay per map. **A series scores as the sum of its two highest
+games.** In a Bo3 you take the best two and add them; the third game is worth
+nothing unless it displaces one of the first two. A one-game series scores that
+game.
 
-Worked through, for a real playoff series:
+Two different combinations, easy to conflate:
+
+- the two players in a Core or Support slot are **averaged**;
+- the two counted games of a series are **summed**.
+
+Worked through on last hits, at the base rate of 3 points each:
 
 ```
-game 1   8,314   counted
-game 2   7,505   counted
-game 3   3,097   dropped
-                 series score = (8,314 + 7,505) / 2 = 7,910
+game 1   Satanic 1381, Noticed 1114   pair average 1247.5   counted
+game 2   Satanic  959, Noticed  483   pair average   721.0   counted
+game 3   Satanic  425, Noticed  229   pair average   327.0   dropped
+                                      1247.5 + 721.0 = 1968.5
+                                      × 3 = 5,906 points
 ```
 
-Because it averages, going the distance is worth nothing on its own. Scoring per
-map and multiplying by expected maps would pay a team for playing a third game,
-so the model counts **series** instead:
+`npm run explain` prints this for any stat, and also shows the same series under
+all four ways of combining, so the convention can be checked against something
+seen in game.
+
+A third game adds nothing unless it beats one of the first two, so paying a team
+for playing one would be wrong. Scoring per map and multiplying by expected maps
+does exactly that, so the model counts **series** instead:
 
 ```
 stage total = (score at your risk level, per match) × (expected series)
 ```
 
 `matchScores()` in `lib/fantasy.ts` groups a player's games by series id and
-averages the top two of each. That is the distribution the risk slider
+sums the top two of each. That is the distribution the risk slider
 reads percentiles from — floor, median and ceiling are all per match.
 
 ### Core and Support are pairs
@@ -758,8 +768,10 @@ standard, so absolute pre-event projections read low across the board. The
 Two views.
 
 **Stats** — one row per stat, one dot per duo, showing what everyone actually
-produced. All stats share a scale, so a long row is genuinely worth more, and
-the shape of a row is the point: a leader far clear of a tight cluster is a stat
+produced **per series at the base rate**: a last hit is 3 points, no tier bonus
+and no trait. Tiers and traits scale every row by the same amount, so folding
+them in would only make the numbers harder to check. All stats share a scale, so
+a long row is genuinely worth more, and the shape of a row is the point: a leader far clear of a tight cluster is a stat
 somebody dominates; a row where every dot overlaps is a slot to fill with
 whatever is cheapest to reroll. Selectable by tournament, stage and role.
 

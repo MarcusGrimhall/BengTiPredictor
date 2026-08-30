@@ -12,6 +12,7 @@ import {
 } from "../lib/reroll";
 import { STAGE_LABELS, STAGE_SLOTS, STAGE_TOKENS, type Stage } from "../lib/stages";
 import { seededRandom } from "../lib/rng";
+import Info from "./Info";
 
 const ROLES: Role[] = ["core", "mid", "support"];
 const ROLE_LABELS: Record<Role, string> = { core: "Core", mid: "Mid", support: "Support" };
@@ -60,11 +61,6 @@ export function riskAsOdds(risk: number): string {
   const n = riskAsRuns(risk);
   if (n < 1.3) return "a typical run";
   return `aiming for the best of about ${n < 2.5 ? 2 : Math.round(n)} runs`;
-}
-
-/** A small marker showing a heading carries an explanation. */
-function Q() {
-  return <span className="help-mark" aria-hidden="true">?</span>;
 }
 
 export default function FantasySimulator({
@@ -229,15 +225,27 @@ export default function FantasySimulator({
           <span className="faint">skip is always compared too</span>
         </div>
         <div className="stat-tile">
-          <small>Wildcard sampling</small>
+          <small>
+            Wildcard accuracy{" "}
+            <Info title="Wildcard accuracy" align="right">
+              Almost every reroll has few enough possible results that the page works out
+              <strong> all of them</strong> and the answer is exact. The two wildcards —
+              &ldquo;increase one quality&rdquo; and &ldquo;increase two, reduce one&rdquo; —
+              pick which emblems they hit at random, so those get estimated by trying them
+              many times instead. This is how many. More is slightly more accurate and
+              slightly slower; it changes nothing unless you tick a wildcard.
+            </Info>
+          </small>
           <select value={runs} onChange={(e) => setRuns(Number(e.target.value))}
-            aria-label="Sampling runs for the wildcards" className="token-input">
-            <option value={200}>200</option>
-            <option value={800}>800</option>
-            <option value={2000}>2,000</option>
-            <option value={8000}>8,000</option>
+            aria-label="Accuracy for the two wildcard options" className="token-input">
+            <option value={200}>rough</option>
+            <option value={800}>normal</option>
+            <option value={2000}>fine</option>
+            <option value={8000}>very fine</option>
           </select>
-          <span className="faint">only the two wildcards need it</span>
+          <span className="faint">
+            {results?.some((r) => !r.exact) ? "a wildcard is in play" : "everything else is exact"}
+          </span>
         </div>
       </div>
 
@@ -347,20 +355,6 @@ export default function FantasySimulator({
   );
 }
 
-/** Plain-language notes for the column headers. */
-const COLUMN_HELP: Record<string, string> = {
-  cost: "Tokens this option costs each time you take it.",
-  rolls: "How many times you could take this option with the tokens you have left.",
-  oneRoll:
-    "Average change to the roster from taking this option ONCE. Negative means a single roll is expected to leave you worse off.",
-  improves:
-    "How often a single roll came out better than what you already hold. A high average with a low improve rate is a gamble that pays big and rarely.",
-  breakEven:
-    "The first roll at which committing to this option overtakes doing nothing. \"3 rolls\" means the first two are expected to be a loss.",
-  endOfBudget:
-    "What this option is worth if you spend every affordable token on it and stop the moment you are happy. Never below zero, because holding is always allowed. This is the column to rank on."
-};
-
 function Results({
   results, rosterTotal, tokens, onSpend
 }: {
@@ -382,12 +376,43 @@ function Results({
           <thead>
             <tr>
               <th>Banner</th><th>Option</th>
-              <th style={{ textAlign: "right" }} title={COLUMN_HELP.cost}>Cost <Q /></th>
-              <th style={{ textAlign: "right" }} title={COLUMN_HELP.rolls}>Rolls <Q /></th>
-              <th style={{ textAlign: "right" }} title={COLUMN_HELP.oneRoll}>One roll <Q /></th>
-              <th style={{ textAlign: "right" }} title={COLUMN_HELP.improves}>Improves <Q /></th>
-              <th style={{ textAlign: "right" }} title={COLUMN_HELP.breakEven}>Break-even <Q /></th>
-              <th style={{ textAlign: "right" }} title={COLUMN_HELP.endOfBudget}>End of budget <Q /></th>
+              <th style={{ textAlign: "right" }}>
+                Cost <Info title="Cost">Tokens this option costs each time you take it.</Info>
+              </th>
+              <th style={{ textAlign: "right" }}>
+                Rolls <Info title="Rolls you can afford">
+                  How many times you could take this option with the tokens you have left.
+                  The whole roster shares one pool.
+                </Info>
+              </th>
+              <th style={{ textAlign: "right" }}>
+                One roll <Info title="One roll">
+                  Average change to the roster from taking this option <strong>once</strong>.
+                  Negative means a single roll is expected to leave you worse off than you
+                  are now.
+                </Info>
+              </th>
+              <th style={{ textAlign: "right" }}>
+                Improves <Info title="Improves">
+                  How often a single roll came out better than what you already hold. A big
+                  average with a low improve rate is a gamble that pays rarely and large.
+                </Info>
+              </th>
+              <th style={{ textAlign: "right" }}>
+                Break-even <Info title="Break-even" align="right">
+                  The first roll at which committing to this option overtakes doing nothing.
+                  &ldquo;3 rolls&rdquo; means the first two are expected to be a loss, and you
+                  only come out ahead if you keep going.
+                </Info>
+              </th>
+              <th style={{ textAlign: "right" }}>
+                End of budget <Info title="End of budget" align="right">
+                  What this option is worth if you spend every affordable token on it and
+                  stop the moment you are happy. Never below zero, because holding is always
+                  allowed. <strong>This is the column to rank on</strong> — an option can
+                  lose on one roll and still win here.
+                </Info>
+              </th>
               <th></th>
             </tr>
           </thead>
@@ -425,15 +450,15 @@ function Results({
                   {signed(o.planDelta)}
                 </td>
                 <td style={{ textAlign: "right" }}>
-                  {o.action.target !== "skip" && (
-                    <button
-                      onClick={() => onSpend(o.action.cost)}
-                      disabled={o.action.cost > tokens}
-                      title={`Deduct ${o.action.cost} tokens — use this once you have actually taken the reroll in game`}
-                    >
-                      Take
-                    </button>
-                  )}
+                  <button
+                    onClick={() => onSpend(o.action.cost)}
+                    disabled={o.action.cost > tokens}
+                    title={o.action.target === "skip"
+                      ? "Skip costs nothing. Press it to clear the comparison and wait for the next offer."
+                      : `Deduct ${o.action.cost} tokens — press once you have actually taken the reroll in game`}
+                  >
+                    Take
+                  </button>
                 </td>
               </tr>
             ))}

@@ -323,8 +323,8 @@ footer.site-footer {
   position: absolute; top: 50%; width: 2px; height: 18px;
   transform: translate(-50%, -50%); z-index: 1;
 }
-.tick-avg { background: var(--text-faint); }
-.tick-savg { background: var(--green); }
+.tick-avg { background: var(--blue); width: 3px; }
+.tick-savg { background: var(--green); width: 3px; }
 .spread-nums { display: flex; justify-content: space-between; font-size: 0.8rem; gap: 8px; }
 
 .legend { display: flex; flex-wrap: wrap; gap: 16px; font-size: 0.8rem; color: var(--text-faint); }
@@ -332,8 +332,8 @@ footer.site-footer {
 .dot-mark { width: 8px; height: 8px; border-radius: 50%; background: var(--text-faint); }
 .dot-mark.dot-strong { background: var(--accent); width: 10px; height: 10px; }
 .tick-mark { width: 2px; height: 12px; }
-.tick-mark.tick-avg { background: var(--text-faint); }
-.tick-mark.tick-savg { background: var(--green); }
+.tick-mark.tick-avg { background: var(--blue); width: 3px; }
+.tick-mark.tick-savg { background: var(--green); width: 3px; }
 
 @media (max-width: 720px) {
   .spread-row { grid-template-columns: 120px 1fr 80px; gap: 8px; }
@@ -344,4 +344,36 @@ footer.site-footer {
   border-radius: 50%; border: 1px solid var(--border-strong);
   font-size: 9px; text-align: center; color: var(--text-faint);
   vertical-align: 1px; cursor: help; font-weight: 400;
+}
+
+/* --- explanation popovers --- */
+.info { position: relative; display: inline-block; }
+.info-mark {
+  width: 15px; height: 15px; padding: 0; line-height: 1;
+  border-radius: 50%; border: 1px solid var(--border-strong);
+  background: transparent; color: var(--text-faint);
+  font-size: 10px; font-weight: 600; cursor: help;
+  vertical-align: 1px; display: inline-flex; align-items: center; justify-content: center;
+}
+.info-mark:hover, .info-mark.on {
+  border-color: var(--accent); color: var(--accent); background: var(--accent-soft);
+}
+.info-box {
+  position: absolute; top: calc(100% + 7px); z-index: 40;
+  width: max-content; max-width: 290px;
+  display: flex; flex-direction: column; gap: 5px;
+  padding: 10px 12px; border-radius: var(--radius-sm);
+  background: var(--bg-card); border: 1px solid var(--border-strong);
+  box-shadow: 0 8px 26px rgba(0, 0, 0, 0.45);
+  font-size: 0.8rem; font-weight: 400; line-height: 1.5;
+  text-align: left; text-transform: none; letter-spacing: normal;
+  color: var(--text); white-space: normal;
+}
+.info-left { left: 0; }
+.info-right { right: 0; }
+.info-title { color: var(--accent); font-size: 0.8rem; }
+.info-body { color: var(--text-muted); }
+.info-box code { font-size: 0.76rem; }
+@media (max-width: 640px) {
+  .info-box { max-width: 220px; }
 }

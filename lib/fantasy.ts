@@ -151,14 +151,18 @@ export function gameScores(player: PlayerEntry, emblems: Emblem[]): number[] {
 /**
  * Scores every series the player played, ascending.
  *
- * This is the unit fantasy actually pays out on. A series scores as the
- * **average of its two highest games** - so in a Bo3 you take the best two and
- * average them, and the third game only matters if it displaces one of the
- * first two. A series of one game scores that game.
+ * This is the unit fantasy actually pays out on. A series scores as the **sum of
+ * its two highest games** - in a Bo3 you take the best two and add them, and the
+ * third game only matters if it displaces one of the first two. A series of one
+ * game scores that game alone.
  *
- * That averaging is why the projection counts series rather than maps. Scoring
- * per map and multiplying by expected maps would reward a team for going the
- * distance, when going the distance is worth nothing on its own.
+ * Note the two different combinations, which are easy to conflate:
+ *   - the two players in a Core or Support slot are AVERAGED;
+ *   - the two counted games of a series are SUMMED.
+ *
+ * Summing the games is why the projection counts series rather than maps. A
+ * third game adds nothing unless it beats one of the first two, so paying a
+ * team for playing one would be wrong.
  *
  * Without series information every game is treated as its own series, which
  * degrades to per-map scoring.
@@ -182,8 +186,7 @@ export function matchScores(player: PlayerEntry, emblems: Emblem[]): number[] {
   const totals: number[] = [];
   for (const games of bySeries.values()) {
     games.sort((a, b) => b - a);
-    const best = games.slice(0, 2);
-    totals.push(best.reduce((sum, x) => sum + x, 0) / best.length);
+    totals.push(games.slice(0, 2).reduce((sum, x) => sum + x, 0));
   }
   return totals.sort((a, b) => a - b);
 }

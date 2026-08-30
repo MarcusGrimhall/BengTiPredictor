@@ -6,6 +6,7 @@ import { TRAIT_DESCRIPTIONS } from "../lib/fantasy";
 import { Role, STAT_LABELS } from "../lib/scoring";
 import { comboValues, entryRecords, traitValues } from "../lib/traitStudy";
 import { STAGE_LABELS, type Stage } from "../lib/stages";
+import Info from "./Info";
 
 const ROLES: Role[] = ["core", "mid", "support"];
 const ROLE_LABELS: Record<Role, string> = { core: "Core", mid: "Mid", support: "Support" };
@@ -117,7 +118,13 @@ export default function TraitMap({
                 {banner.map((_, i) => (
                   <th key={i} style={{ textAlign: "center" }}>slot {i + 1}</th>
                 ))}
-                <th style={{ textAlign: "right" }}>Best</th>
+                <th style={{ textAlign: "right" }}>
+                  Best <Info title="Best slot" align="right">
+                    The most this trait can do, and where. Traits that reach neighbours are
+                    worth most at an end of the banner, where they have fewer neighbours to
+                    penalise — or in the middle, where they have more to help.
+                  </Info>
+                </th>
               </tr>
             </thead>
             <tbody>
@@ -154,7 +161,17 @@ export default function TraitMap({
         <div className="scroll-x">
           <table>
             <thead>
-              <tr><th>Setup</th><th>What it costs you</th><th style={{ textAlign: "right" }}>Worth</th></tr>
+              <tr>
+                <th>Setup</th>
+                <th>What it costs you</th>
+                <th style={{ textAlign: "right" }}>
+                  Worth <Info title="Worth" align="right">
+                    The gain against the same banner with no traits at all. These are the
+                    only traits that pay as a plan rather than on their own, and building
+                    the plan costs reroll tokens.
+                  </Info>
+                </th>
+              </tr>
             </thead>
             <tbody>
               {combos.map((c) => (
@@ -211,13 +228,16 @@ export default function TraitMap({
       <section className="card stack">
         <h2>Records · {STAGE_LABELS[stage]}</h2>
         <p className="faint">
-          What entries actually banked, under each role&rsquo;s tier III banner. A match is
-          the sum of its two best games.
+          What entries actually banked, under each role&rsquo;s best stats at tier III. A
+          series is the sum of its two best games.
         </p>
         <div className="grid grid-3">
-          <Leaderboard title="Biggest single match" rows={topBest} value={(r) => r.bestMatch} />
-          <Leaderboard title="Highest per-match average" rows={topMean} value={(r) => r.mean} />
-          <Leaderboard title="Most banked over the stage" rows={topTotal} value={(r) => r.total} />
+          <Leaderboard title="Biggest single series" rows={topBest} value={(r) => r.bestMatch}
+            help="The best one series any entry had — the sum of its two best games." />
+          <Leaderboard title="Highest per-series average" rows={topMean} value={(r) => r.mean}
+            help="Mean across all of an entry's series. Rewards consistency rather than one spike." />
+          <Leaderboard title="Most banked over the stage" rows={topTotal} value={(r) => r.total}
+            help="Every series added up. Favours teams that went deep, since they played more." />
         </div>
       </section>
     </div>
@@ -225,15 +245,16 @@ export default function TraitMap({
 }
 
 function Leaderboard({
-  title, rows, value
+  title, rows, value, help
 }: {
   title: string;
   rows: ReturnType<typeof entryRecords>;
   value: (r: ReturnType<typeof entryRecords>[number]) => number;
+  help: string;
 }) {
   return (
     <div className="sub-card stack" style={{ gap: 6 }}>
-      <strong>{title}</strong>
+      <strong>{title} <Info title={title}>{help}</Info></strong>
       {rows.map((r, i) => (
         <div key={r.entry.id} className="row-between" style={{ fontSize: "0.86rem", gap: 8 }}>
           <span style={{ minWidth: 0 }}>

@@ -456,7 +456,7 @@ export default function FantasyCalculator({
       )}
 
       <p className="notice">
-        Values are <strong>per series</strong>: the average of a series&rsquo; two highest
+        Values are <strong>per series</strong>: the sum of a series&rsquo; two highest
         games, so a third game only counts if it displaces one of the first two. Core and
         Support are ranked as same-team pairs and valued as the
         <strong> average</strong> of the two players, so all three roles are on one scale.
