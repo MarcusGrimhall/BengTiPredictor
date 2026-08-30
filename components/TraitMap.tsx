@@ -67,7 +67,7 @@ export default function TraitMap({
   );
   const topBest = useMemo(() => [...records].sort((a, b) => b.bestMatch - a.bestMatch).slice(0, 8), [records]);
   const topMean = useMemo(() => [...records].sort((a, b) => b.mean - a.mean).slice(0, 8), [records]);
-  const topTotal = useMemo(() => [...records].sort((a, b) => b.total - a.total).slice(0, 8), [records]);
+  const topFloor = useMemo(() => [...records].sort((a, b) => b.worst - a.worst).slice(0, 8), [records]);
 
   const traitNames = traits.map((t) => t.trait);
 
@@ -229,15 +229,15 @@ export default function TraitMap({
         <h2>Records · {STAGE_LABELS[stage]}</h2>
         <p className="faint">
           What entries actually banked, under each role&rsquo;s best stats at tier III. A
-          series is the sum of its two best games.
+          series is the sum of its two best games, and a period pays the best series.
         </p>
         <div className="grid grid-3">
-          <Leaderboard title="Biggest single series" rows={topBest} value={(r) => r.bestMatch}
-            help="The best one series any entry had — the sum of its two best games." />
-          <Leaderboard title="Highest per-series average" rows={topMean} value={(r) => r.mean}
-            help="Mean across all of an entry's series. Rewards consistency rather than one spike." />
-          <Leaderboard title="Most banked over the stage" rows={topTotal} value={(r) => r.total}
-            help="Every series added up. Favours teams that went deep, since they played more." />
+          <Leaderboard title="What the period paid" rows={topBest} value={(r) => r.bestMatch}
+            help="An entry's best single series — which is exactly what a period banks. Not a sum over the stage: playing more series is more attempts at one number, not a bigger total." />
+          <Leaderboard title="Average series" rows={topMean} value={(r) => r.mean}
+            help="Mean across all of an entry's series. Says how good a typical night was, rather than the one that counted." />
+          <Leaderboard title="Highest floor" rows={topFloor} value={(r) => r.worst}
+            help="Their weakest series. A high floor means the good result was not a single spike." />
         </div>
       </section>
     </div>

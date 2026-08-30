@@ -26,13 +26,20 @@ export type TraitSlotValue = {
   best: number;
 };
 
-/** Mean total banked across a set of entries under one banner. */
+/**
+ * Mean banked across a set of entries under one banner.
+ *
+ * A period pays an entry's best single series, not the sum of them, so that is
+ * what gets averaged. Summing every series would weight a team that played six
+ * of them three times as heavily as one that played two, which is not how any
+ * of this pays out.
+ */
 export function meanBanked(entries: PlayerEntry[], banner: Emblem[]): number {
   if (!entries.length) return 0;
-  return entries.reduce(
-    (sum, e) => sum + matchScores(e, banner).reduce((a, b) => a + b, 0),
-    0
-  ) / entries.length;
+  return entries.reduce((sum, e) => {
+    const series = matchScores(e, banner);
+    return sum + (series.length ? series[series.length - 1] : 0);
+  }, 0) / entries.length;
 }
 
 /**
@@ -108,12 +115,12 @@ export function comboValues(entries: PlayerEntry[], banner: Emblem[]): Array<{
 export type EntryRecord = {
   entry: PlayerEntry;
   role: Role;
-  /** Best single match (two best games of one series). */
+  /** Best single series - what the period actually pays. */
   bestMatch: number;
-  /** Mean per match. */
+  /** Mean across their series, for reference. */
   mean: number;
-  /** Total banked over the stage. */
-  total: number;
+  /** Weakest series they had. */
+  worst: number;
   matches: number;
 };
 
@@ -127,7 +134,7 @@ export function entryRecords(entries: PlayerEntry[], bannerFor: (role: Role) => 
       role: entry.role,
       bestMatch: scores.length ? scores[scores.length - 1] : 0,
       mean: scores.length ? total / scores.length : 0,
-      total,
+      worst: scores.length ? scores[0] : 0,
       matches: scores.length
     };
   });

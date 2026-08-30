@@ -38,7 +38,7 @@ export default function StatSpreadChart({
   const [role, setRole] = useState<Role>("core");
   // The chart and the table were showing different measures, which made the
   // same stat read as two different numbers. Now one control decides both.
-  const [measure, setMeasure] = useState<"average" | "best">("average");
+  const [measure, setMeasure] = useState<"average" | "best">("best");
   const [hover, setHover] = useState<string | null>(null);
 
   const league = leagues.find((l) => l.id === leagueId) ?? leagues[0];
@@ -89,20 +89,20 @@ export default function StatSpreadChart({
           ))}
         </div>
         <div className="pill-row">
-          <button className="pill" aria-pressed={measure === "average"}
-            onClick={() => setMeasure("average")}>
-            Average per series
-          </button>
           <button className="pill" aria-pressed={measure === "best"}
             onClick={() => setMeasure("best")}>
-            Best single series
+            Best series · what a period pays
+          </button>
+          <button className="pill" aria-pressed={measure === "average"}
+            onClick={() => setMeasure("average")}>
+            Average series
           </button>
           <Info title="Which number">
-            <strong>Average per series</strong> is what you would expect from picking an
-            entry — their mean over every series they played.{" "}
-            <strong>Best single series</strong> is the one big night, the number that
-            actually appeared on a scoreboard. The second is always larger. Both the chart
-            and the table below follow this choice.
+            <strong>Best series</strong> is what a period actually banks — only an entry&rsquo;s
+            highest series counts, so this is the number that decided their score.{" "}
+            <strong>Average series</strong> is their mean over every series, which says how
+            good a typical night was rather than the one that mattered. Both the chart and
+            the table follow this choice.
           </Info>
         </div>
       </section>

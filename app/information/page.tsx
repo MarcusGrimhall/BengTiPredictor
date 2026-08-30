@@ -5,6 +5,7 @@ import { BANNER_SLOTS, Role, StatKey, statsForColor } from "../../lib/scoring";
 import { STAGES, STAGE_SLOTS, type Stage } from "../../lib/stages";
 import { statSpread, type StatSpread } from "../../lib/statSpread";
 import { preEventStrength } from "../../lib/strength";
+import { statPeriod, type StatPeriod } from "../../lib/metaTrend";
 import { loadTraining } from "../../lib/data";
 
 export const metadata = { title: "Information · BengTiPredictor" };
@@ -61,6 +62,33 @@ export default async function InformationPage() {
     strongTeams: string[];
     strongBasis: "form" | "rating" | "placement";
   }> = [];
+
+  // Every event on one timeline, so stat values can be watched moving with the
+  // patch. Training events count here - they are pro matches like any other,
+  // and excluding them would leave a year-wide gap between Internationals.
+  const allEvents = (await Promise.all(
+    (await listLeagues()).map((l) => loadLeague(l.leagueId))
+  )).filter((l): l is NonNullable<typeof l> => Boolean(l) && Boolean(l!.firstMatch));
+
+  const periodsByRole = { core: [], mid: [], support: [] } as Record<Role, StatPeriod[]>;
+  for (const event of allEvents) {
+    const entries = buildLineups(toPlayerEntries(event));
+    if (!entries.length) continue;
+    for (const role of ROLES) {
+      const colours = [...new Set(BANNER_SLOTS[role])];
+      const stats = colours.flatMap((c) => statsForColor(c)) as StatKey[];
+      const byStat = statPeriod(entries, role, stats);
+      if (!Object.keys(byStat).length) continue;
+      periodsByRole[role].push({
+        leagueId: event.leagueId,
+        leagueName: event.leagueName,
+        date: event.firstMatch!,
+        maps: event.matchesUsed,
+        byStat,
+        entries: entries.filter((e) => e.role === role).length
+      });
+    }
+  }
 
   // The trait study runs on the newest event only - it is about mechanics, not
   // about comparing tournaments.
@@ -146,6 +174,7 @@ export default async function InformationPage() {
       </div>
       <InformationTabs
         spread={spread}
+        periodsByRole={periodsByRole}
         leagues={meta}
         entriesByStage={entriesByStage}
         bannersByRole={bannersByRole}

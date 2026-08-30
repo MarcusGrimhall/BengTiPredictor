@@ -3,16 +3,19 @@
 import { useState } from "react";
 import StatSpreadChart, { type SpreadData } from "./StatSpreadChart";
 import TraitMap from "./TraitMap";
+import MetaTrend from "./MetaTrend";
+import type { StatPeriod } from "../lib/metaTrend";
 import type { Emblem, PlayerEntry } from "../lib/fantasy";
 import type { Role } from "../lib/scoring";
 import type { Stage } from "../lib/stages";
 
-type Tab = "stats" | "mechanics";
+type Tab = "stats" | "meta" | "mechanics";
 
 export default function InformationTabs({
-  spread, leagues, entriesByStage, bannersByRole, leagueName
+  spread, periodsByRole, leagues, entriesByStage, bannersByRole, leagueName
 }: {
   spread: SpreadData;
+  periodsByRole: Record<Role, StatPeriod[]>;
   leagues: Array<{
     id: string;
     name: string;
@@ -33,15 +36,21 @@ export default function InformationTabs({
           onClick={() => setTab("stats")}>
           Stats <span className="faint">· who produced what</span>
         </button>
+        <button className="pill" role="tab" aria-pressed={tab === "meta"}
+          onClick={() => setTab("meta")}>
+          Meta <span className="faint">· what the patch rewards</span>
+        </button>
         <button className="pill" role="tab" aria-pressed={tab === "mechanics"}
           onClick={() => setTab("mechanics")}>
           Emblem mechanics <span className="faint">· tiers and traits</span>
         </button>
       </div>
 
-      {tab === "stats"
-        ? <StatSpreadChart data={spread} leagues={leagues} />
-        : <TraitMap entriesByStage={entriesByStage} bannersByRole={bannersByRole} leagueName={leagueName} />}
+      {tab === "stats" && <StatSpreadChart data={spread} leagues={leagues} />}
+      {tab === "meta" && <MetaTrend periodsByRole={periodsByRole} />}
+      {tab === "mechanics" && (
+        <TraitMap entriesByStage={entriesByStage} bannersByRole={bannersByRole} leagueName={leagueName} />
+      )}
     </div>
   );
 }
