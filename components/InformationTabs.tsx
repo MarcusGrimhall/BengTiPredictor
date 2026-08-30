@@ -18,7 +18,7 @@ export default function InformationTabs({
     name: string;
     stages: Stage[];
     strongTeams: string[];
-    strongBasis: "rating" | "placement";
+    strongBasis: "form" | "rating" | "placement";
   }>;
   entriesByStage: Record<Stage, PlayerEntry[]>;
   bannersByRole: Record<Stage, Record<Role, Emblem[]>>;

@@ -4,6 +4,8 @@ import { buildLineups, optimizeEmblems, type Emblem, type PlayerEntry } from "..
 import { BANNER_SLOTS, Role, StatKey, statsForColor } from "../../lib/scoring";
 import { STAGES, STAGE_SLOTS, type Stage } from "../../lib/stages";
 import { statSpread, type StatSpread } from "../../lib/statSpread";
+import { preEventStrength } from "../../lib/strength";
+import { loadTraining } from "../../lib/data";
 
 export const metadata = { title: "Information · BengTiPredictor" };
 
@@ -35,13 +37,29 @@ export default async function InformationPage() {
     );
   }
 
+  // Pre-event form, where a training set exists for the event.
+  const preEventStrengthFor = new Map<number, Record<string, { winRate: number; maps: number }>>();
+  for (const league of leagues) {
+    const training = await loadTraining(league.leagueId);
+    if (!training) continue;
+    const results: Array<{ radiant: number; dire: number; radiantWin: boolean }> = [];
+    const names: Record<number, string> = {};
+    for (const source of training.sources) {
+      const earlier = await loadLeague(source.leagueId);
+      if (!earlier) continue;
+      for (const t of earlier.teams) names[t.id] = t.name;
+      for (const r of earlier.results ?? []) results.push(r);
+    }
+    if (results.length) preEventStrengthFor.set(league.leagueId, preEventStrength(results, names));
+  }
+
   const spread: Record<string, Record<Stage, Record<Role, StatSpread[]>>> = {};
   const meta: Array<{
     id: string;
     name: string;
     stages: Stage[];
     strongTeams: string[];
-    strongBasis: "rating" | "placement";
+    strongBasis: "form" | "rating" | "placement";
   }> = [];
 
   // The trait study runs on the newest event only - it is about mechanics, not
@@ -52,24 +70,35 @@ export default async function InformationPage() {
 
   for (const league of leagues) {
     const id = String(league.leagueId);
-    // "Good teams" means the four strongest by rating - a judgement about the
-    // teams, not about how the event turned out. Using final placement instead
-    // would make the comparison circular: of course the teams that won did
-    // well.
+    // "The top four teams" means the four that looked strongest GOING IN, not
+    // the four that turned out best. Judging them on the result would make the
+    // comparison circular: of course the teams that won produced more.
     //
-    // The ratings are graded per event at fetch time, and where they failed
-    // that grading they cannot be used for this either, so those events fall
-    // back to final placement and the page says which was used.
+    // Best source is form in the tournaments played before this event, since
+    // that is what anyone actually had to go on. Failing that, the stored
+    // rating - but only where it passed its accuracy check for this event.
+    // Failing both, final placement, and the page says so.
+    const priorForm = preEventStrengthFor.get(league.leagueId) ?? {};
+    const named = new Map(league.teams.map((t) => [t.name, t]));
+    const byForm = Object.entries(priorForm)
+      .filter(([name]) => named.has(name))
+      .sort((a, b) => b[1].winRate - a[1].winRate)
+      .map(([name]) => name);
+
     const ratingsOk = league.ratingCheck?.usable ?? false;
-    const byStrength = [...league.teams]
+    const byRating = [...league.teams]
       .filter((t) => t.elo != null)
-      .sort((a, b) => (b.elo ?? 0) - (a.elo ?? 0));
+      .sort((a, b) => (b.elo ?? 0) - (a.elo ?? 0))
+      .map((t) => t.name);
     const byPlacement = [...league.teams]
       .filter((t) => (t.stages?.playoffs?.maps ?? 0) > 0)
-      .sort((a, b) => (b.stages?.playoffs?.maps ?? 0) - (a.stages?.playoffs?.maps ?? 0));
-    const chosen = (ratingsOk && byStrength.length >= 4 ? byStrength : byPlacement).slice(0, 4);
-    const strong = new Set(chosen.map((t) => t.name));
-    const strongBasis = ratingsOk && byStrength.length >= 4 ? "rating" : "placement";
+      .sort((a, b) => (b.stages?.playoffs?.maps ?? 0) - (a.stages?.playoffs?.maps ?? 0))
+      .map((t) => t.name);
+
+    const strongBasis: "form" | "rating" | "placement" =
+      byForm.length >= 4 ? "form" : ratingsOk && byRating.length >= 4 ? "rating" : "placement";
+    const order = strongBasis === "form" ? byForm : strongBasis === "rating" ? byRating : byPlacement;
+    const strong = new Set(order.slice(0, 4));
 
     const stagesPresent: Stage[] = [];
     spread[id] = {} as Record<Stage, Record<Role, StatSpread[]>>;

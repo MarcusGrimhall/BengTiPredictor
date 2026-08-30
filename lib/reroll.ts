@@ -144,33 +144,34 @@ export function applyAction(
   const slots = targetSlots(next, role, action, random);
 
   if (action.target === "qualityUp" || action.target === "qualityUpTwoDownOne") {
-    // A tier V cannot go higher and a tier I cannot go lower, so with few
-    // emblems the wildcards are close to deterministic. On a three-emblem
-    // banner holding one V and two IIs, the only things that can be raised are
-    // the two IIs, and the V is the only one left worth reducing.
-    //
-    // Raises take the lowest tiers and the reduction takes the highest, so the
-    // wildcard levels a banner rather than sharpening it. Ties are broken at
-    // random.
+    // A quality change lands on a random tier out of the ones still available,
+    // not one step. Raising a II can give III, IV or V with equal chance;
+    // lowering a IV can give I, II or III. A tier V cannot be raised and a
+    // tier I cannot be lowered, which is what makes these near-deterministic
+    // on a short banner: with one V and two IIs, only the IIs can go up and
+    // only the V is worth bringing down.
     const upCount = action.target === "qualityUp" ? 1 : 2;
     const rank = (i: number) => TIERS_ORDER.indexOf(next[i].tier);
 
-    const canRaise = next
+    // Raises go to the lowest tiers on the banner, reductions to the highest.
+    const raisable = next
       .map((_, i) => i)
       .filter((i) => next[i].tier !== "V")
       .sort((a, b) => rank(a) - rank(b) || (random() < 0.5 ? -1 : 1));
-    for (const pos of canRaise.slice(0, upCount)) {
-      next[pos].tier = TIERS_ORDER[Math.min(4, rank(pos) + 1)];
+    for (const pos of raisable.slice(0, upCount)) {
+      const above = TIERS_ORDER.slice(rank(pos) + 1);
+      next[pos].tier = above[Math.floor(random() * above.length)];
     }
 
     if (action.target === "qualityUpTwoDownOne") {
-      const canLower = next
+      const lowerable = next
         .map((_, i) => i)
         .filter((i) => next[i].tier !== "I")
         .sort((a, b) => rank(b) - rank(a) || (random() < 0.5 ? -1 : 1));
-      if (canLower.length) {
-        const pos = canLower[0];
-        next[pos].tier = TIERS_ORDER[Math.max(0, rank(pos) - 1)];
+      if (lowerable.length) {
+        const pos = lowerable[0];
+        const below = TIERS_ORDER.slice(0, rank(pos));
+        next[pos].tier = below[Math.floor(random() * below.length)];
       }
     }
     return next;

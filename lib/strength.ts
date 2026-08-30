@@ -56,3 +56,46 @@ export function strengthByTeam(teams: TeamEntry[]): Record<string, number> {
     rated.map((t) => [t.name, strengthMultiplier((t.elo ?? DEFAULT_ELO) - field)])
   );
 }
+
+/**
+ * Team strength going into an event, from results before it.
+ *
+ * The alternative is a rating measured now, which for an older event is a
+ * rating shaped by a year of things that had not happened yet. The alternative
+ * to that is final placement, which makes any "do strong teams do more of X"
+ * comparison circular - of course the teams that won did well.
+ *
+ * So strength is taken from the pre-event tournaments the model was fitted on:
+ * a team's map win rate across them, shrunk towards even for teams with few
+ * games so a 2-0 start does not outrank a season of play.
+ */
+export function preEventStrength(
+  results: Array<{ radiant: number; dire: number; radiantWin: boolean }>,
+  teamNames: Record<number, string>,
+  prior = 12
+): Record<string, { winRate: number; maps: number }> {
+  const tally = new Map<number, { won: number; played: number }>();
+  const bump = (id: number, won: boolean) => {
+    const t = tally.get(id) ?? { won: 0, played: 0 };
+    t.played += 1;
+    if (won) t.won += 1;
+    tally.set(id, t);
+  };
+  for (const r of results) {
+    bump(r.radiant, r.radiantWin);
+    bump(r.dire, !r.radiantWin);
+  }
+
+  const out: Record<string, { winRate: number; maps: number }> = {};
+  for (const [id, t] of tally) {
+    const name = teamNames[id];
+    if (!name) continue;
+    // Shrunk towards 0.5: a team with `prior` fewer maps than that is pulled
+    // back accordingly, so a small sample cannot top the table on its own.
+    out[name] = {
+      winRate: (t.won + prior * 0.5) / (t.played + prior),
+      maps: t.played
+    };
+  }
+  return out;
+}

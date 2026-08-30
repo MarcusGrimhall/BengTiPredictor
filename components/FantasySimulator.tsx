@@ -77,7 +77,6 @@ export default function FantasySimulator({
   const [offerRole, setOfferRole] = useState<Role>("core");
   // How many times each offer is rolled. More is tighter and slower; the
   // numbers stop moving meaningfully somewhere around 2,000.
-  const [runs, setRuns] = useState(800);
   const [results, setResults] = useState<OfferPlan | null>(null);
   // How many more times the game will deal you three options. The stage grants
   // 40 tokens for the group stage and 30 for the playoffs, and a reroll is
@@ -85,6 +84,10 @@ export default function FantasySimulator({
   // per-action costs are not published and may not all be one.
   const [rounds, setRounds] = useState(STAGE_TOKENS[stage]);
   const [busy, setBusy] = useState(false);
+
+  // How many random futures to average when valuing "decline and wait". A
+  // computation setting, not a game rule, so it is not on the page.
+  const FUTURES = 200;
 
   const slots = STAGE_SLOTS[stage];
   const budget = STAGE_TOKENS[stage];
@@ -94,7 +97,7 @@ export default function FantasySimulator({
     [banners, slots]
   );
 
-  useEffect(() => { setResults(null); }, [banners, risk, tokens, runs, rounds]);
+  useEffect(() => { setResults(null); }, [banners, risk, tokens, rounds]);
   useEffect(() => {
     setTokens(STAGE_TOKENS[stage]);
     setRounds(STAGE_TOKENS[stage]);
@@ -144,7 +147,7 @@ export default function FantasySimulator({
     if (!offers.length) return;
     setBusy(true);
     setTimeout(() => {
-      setResults(planOffers(staged, offers, catalogue, valueOf, tokens, rounds, Math.max(60, Math.round(runs / 4))));
+      setResults(planOffers(staged, offers, catalogue, valueOf, tokens, rounds, FUTURES));
       setBusy(false);
     }, 0);
   };
@@ -246,24 +249,6 @@ export default function FantasySimulator({
             className="token-input"
           />
           <span className="faint">three random options per deal</span>
-        </div>
-        <div className="stat-tile">
-          <small>
-            Accuracy{" "}
-            <Info title="Accuracy" align="right">
-              What comes up in future deals is random, so the value of declining an offer
-              has to be estimated by playing the rest out many times and averaging. This is
-              how many times. More is steadier and slower.
-            </Info>
-          </small>
-          <select value={runs} onChange={(e) => setRuns(Number(e.target.value))}
-            aria-label="How many futures to simulate" className="token-input">
-            <option value={200}>rough</option>
-            <option value={800}>normal</option>
-            <option value={2000}>fine</option>
-            <option value={8000}>very fine</option>
-          </select>
-          <span className="faint">futures simulated per option</span>
         </div>
       </div>
 

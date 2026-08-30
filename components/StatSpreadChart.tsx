@@ -30,12 +30,15 @@ export default function StatSpreadChart({
     name: string;
     stages: Stage[];
     strongTeams: string[];
-    strongBasis: "rating" | "placement";
+    strongBasis: "form" | "rating" | "placement";
   }>;
 }) {
   const [leagueId, setLeagueId] = useState(leagues[0]?.id ?? "");
   const [stage, setStage] = useState<Stage>("playoffs");
   const [role, setRole] = useState<Role>("core");
+  // The chart and the table were showing different measures, which made the
+  // same stat read as two different numbers. Now one control decides both.
+  const [measure, setMeasure] = useState<"average" | "best">("average");
   const [hover, setHover] = useState<string | null>(null);
 
   const league = leagues.find((l) => l.id === leagueId) ?? leagues[0];
@@ -47,12 +50,19 @@ export default function StatSpreadChart({
     [data, leagueId, activeStage, role]
   );
 
+  const pick = (p: { value: number; best: number }) => (measure === "best" ? p.best : p.value);
+  const rowTop = (r: StatSpread) => (measure === "best" ? r.bestSeries : r.highest);
+  const rowTopName = (r: StatSpread) => (measure === "best" ? r.bestSeriesName : r.highestName);
+
   // One scale across every stat, so a long row really does mean more points.
   const max = useMemo(
-    () => Math.max(1, ...rows.flatMap((r) => r.points.map((p) => p.value))),
-    [rows]
+    () => Math.max(1, ...rows.flatMap((r) => r.points.map(pick))),
+    [rows, measure]
   );
-  const sorted = useMemo(() => [...rows].sort((a, b) => b.bestSeries - a.bestSeries), [rows]);
+  const sorted = useMemo(
+    () => [...rows].sort((a, b) => rowTop(b) - rowTop(a)),
+    [rows, measure]
+  );
 
   const x = (v: number) => (v / max) * 100;
 
@@ -78,6 +88,23 @@ export default function StatSpreadChart({
               onClick={() => setRole(r)}>{ROLE_LABELS[r]}</button>
           ))}
         </div>
+        <div className="pill-row">
+          <button className="pill" aria-pressed={measure === "average"}
+            onClick={() => setMeasure("average")}>
+            Average per series
+          </button>
+          <button className="pill" aria-pressed={measure === "best"}
+            onClick={() => setMeasure("best")}>
+            Best single series
+          </button>
+          <Info title="Which number">
+            <strong>Average per series</strong> is what you would expect from picking an
+            entry — their mean over every series they played.{" "}
+            <strong>Best single series</strong> is the one big night, the number that
+            actually appeared on a scoreboard. The second is always larger. Both the chart
+            and the table below follow this choice.
+          </Info>
+        </div>
       </section>
 
       <section className="card stack">
@@ -98,12 +125,19 @@ export default function StatSpreadChart({
         <div className="legend">
           <span><i className="dot-mark dot-all" /> a {role === "mid" ? "player" : "duo"}</span>
           <span>
-            <i className="dot-mark dot-strong" /> strongest four
-            <Info title="The strongest four">
-              {league?.strongBasis === "rating"
-                ? "The four highest-rated teams at this event, by Elo. Chosen by strength rather than by how the event turned out — using final placement would make the comparison circular."
-                : "The ratings failed their accuracy check for this event, so the four deepest-running teams are used instead. Less satisfying, because it partly measures the result rather than the teams."}
-              {" "}Here: {(league?.strongTeams ?? []).join(", ")}.
+            <i className="dot-mark dot-strong" /> top 4 teams
+            <Info title="The top 4 teams">
+              The four that looked strongest <strong>going into</strong> the event, not the
+              four that turned out best — judging them on the result would make this
+              circular.
+              <br /><br />
+              {league?.strongBasis === "form"
+                ? "Ranked on their map win rate across the tournaments played before this one, shrunk towards even so a small sample cannot top the table."
+                : league?.strongBasis === "rating"
+                  ? "No pre-event tournaments are loaded for this event, so the stored Elo rating is used — it passed its accuracy check here."
+                  : "Neither pre-event form nor a trustworthy rating is available for this event, so final placement is used. Weaker, because it partly measures the result."}
+              <br /><br />
+              Here: {(league?.strongTeams ?? []).join(", ")}.
             </Info>
           </span>
           <span>
@@ -114,8 +148,8 @@ export default function StatSpreadChart({
             </Info>
           </span>
           <span>
-            <i className="tick-mark tick-savg" /> strong-four average
-            <Info title="Strong-four average">
+            <i className="tick-mark tick-savg" /> top-4 average
+            <Info title="Top-4 average">
               The mean across only those four teams. Where it sits well right of the field
               average, that stat is one strong teams genuinely produce more of.
             </Info>
@@ -141,13 +175,15 @@ export default function StatSpreadChart({
                   <span
                     key={`${p.name}-${i}`}
                     className={`spread-dot ${p.strong ? "strong" : ""}`}
-                    style={{ left: `${x(p.value)}%` }}
-                    title={`${p.name} · ${p.team}\n${fmt(p.value)} per series over ${p.series}, best ${fmt(p.best)}`}
+                    style={{ left: `${x(pick(p))}%` }}
+                    title={`${p.name} · ${p.team}\n${fmt(p.value)} average over ${p.series} series, best ${fmt(p.best)}`}
                   />
                 ))}
               </div>
               <div className="spread-nums">
-                <span className="num" title={`best average — ${row.highestName}`}>{fmt(row.highest)}</span>
+                <span className="num" title={`${measure === "best" ? "biggest single series" : "best average"} — ${rowTopName(row)}`}>
+                  {fmt(rowTop(row))}
+                </span>
                 <span className="num faint" title="field average">{fmt(row.average)}</span>
               </div>
             </div>
@@ -162,10 +198,11 @@ export default function StatSpreadChart({
             <div className="verdict">
               <strong>{STAT_LABELS[row.stat]}</strong> — biggest single series{" "}
               <strong>{fmt(row.bestSeries)}</strong> ({row.bestSeriesName}); best average{" "}
-              {fmt(row.highest)} ({row.highestName}) against a field average of{" "}
-              {fmt(row.average)}, so the leader is <strong>{lead.toFixed(2)}×</strong> the field.
-              Best among the strongest four: {fmt(row.strongBest)} ({row.strongBestName}),
-              their average {fmt(row.strongAverage)}
+              <strong>{fmt(row.highest)}</strong> ({row.highestName}) against a field average
+              of {fmt(row.average)}, so the leader is{" "}
+              <strong>{lead.toFixed(2)}×</strong> the field.
+              Best among the top 4: {fmt(row.strongBest)} ({row.strongBestName}), their
+              average {fmt(row.strongAverage)}
               {row.strongAverage > row.average
                 ? ` — ${((row.strongAverage / Math.max(1, row.average) - 1) * 100).toFixed(0)}% above the field.`
                 : ` — no better than the field.`}
@@ -203,11 +240,13 @@ export default function StatSpreadChart({
                   </Info>
                 </th>
                 <th style={{ textAlign: "right" }}>
-                  Strong-four avg <Info title="Strong-four average" align="right">
-                    The mean across the four strongest teams
-                    {league?.strongBasis === "rating" ? " by rating" : " by final placement"}.
-                    The percentage is how far above or below the whole field they sit — a big
-                    positive is a stat strong teams actually produce more of.
+                  Top-4 avg <Info title="Top-4 average" align="right">
+                    The mean across the four teams that looked strongest going in
+                    {league?.strongBasis === "form" ? ", by their form before the event"
+                      : league?.strongBasis === "rating" ? ", by rating"
+                      : ", by final placement (nothing better available)"}. The percentage is
+                    how far above or below the whole field they sit — a big positive is a
+                    stat strong teams actually produce more of.
                   </Info>
                 </th>
                 <th style={{ textAlign: "right" }}>

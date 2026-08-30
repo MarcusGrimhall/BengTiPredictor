@@ -886,6 +886,13 @@ request to see that setup. Anything malformed is rejected whole rather than
 partly applied — a link that half works is worse than one that plainly does not,
 since the numbers would still look real.
 
+## What is assumed
+
+Six things the calculator applies are guesses of mine, and the biggest is the
+token cost of each reroll. [ASSUMPTIONS.md](ASSUMPTIONS.md) lists every rule,
+where it came from, and what breaks if an assumption is wrong — along with the
+ones I got wrong and have since fixed.
+
 ## Credits and prior art
 
 Inspired by [Kadadji1/dota2-fantasy-optimizer-2026](https://github.com/Kadadji1/dota2-fantasy-optimizer-2026)
