@@ -453,23 +453,27 @@ function pairUp(a: PlayerEntry, b: PlayerEntry, teamName: string, role: Role): P
 }
 
 /**
- * Finds the best banner for a role, sweeping stats, traits and tier placement.
+ * Finds the best banner for a role.
  *
- * Four kinds of move, repeated until nothing improves:
- *   - the stat in each slot, restricted to the slot's colour and to stats not
- *     already on the banner;
- *   - the trait in each slot, since a trait's value depends on its position;
- *   - swapping two tiers between slots, which redistributes the qualities you
- *     actually hold rather than inventing better ones;
- *   - swapping two stats, which a per-slot sweep cannot reach because it moves
- *     both at once.
+ * Two things make this harder than a per-slot sweep, and both bit an earlier
+ * version of it:
  *
- * Tiers are moved, never raised. Raising them would return a banner of five
- * tier Vs, which is not a banner anybody has - the useful question is where to
- * put the qualities already on the board.
+ *   Friendly is worth exactly nothing on its own. It pays +50%, but only when
+ *   three of them share a banner, so hill-climbing one slot at a time never
+ *   takes the first step - every single change scores zero. It has to be tried
+ *   as a set. On a group stage core banner that miss cost 57%.
  *
- * The search space is small (5 slots x ~5 stats per colour), so a greedy
- * sweep to convergence is enough - no need for full brute force.
+ *   Fractal needs every tier on the banner to differ, so it is not a property
+ *   of its own slot either. It only becomes worth anything alongside a
+ *   particular arrangement of tiers.
+ *
+ * So the sweep runs the single-slot moves to convergence and then tries the
+ * combinations explicitly.
+ *
+ * `freeTiers` decides which question is being asked. With it, tiers may be
+ * raised and the answer is the banner to aim for. Without it, the tiers on the
+ * board are kept and only moved between slots, which answers "given what I
+ * hold, where should it go".
  */
 export function optimizeEmblems(
   players: PlayerEntry[],
@@ -477,13 +481,25 @@ export function optimizeEmblems(
   slotOptions: StatKey[][],
   current: Emblem[],
   risk = 50,
-  mapsByTeam: Record<string, number> = {}
+  seriesByTeam: Record<string, number> = {},
+  { freeTiers = false }: { freeTiers?: boolean } = {}
 ): Emblem[] {
   const top = (emblems: Emblem[]) =>
-    rankPlayers(players, role, emblems, risk, mapsByTeam)[0]?.total ?? 0;
+    rankPlayers(players, role, emblems, risk, seriesByTeam)[0]?.total ?? 0;
 
   let best = [...current];
   let bestScore = top(best);
+
+  const tryIt = (candidate: Emblem[]) => {
+    const score = top(candidate);
+    if (score > bestScore + 1e-6) {
+      best = candidate;
+      bestScore = score;
+      return true;
+    }
+    return false;
+  };
+
   let improved = true;
   let guard = 0;
 
@@ -491,61 +507,49 @@ export function optimizeEmblems(
     improved = false;
     guard += 1;
 
-    // Try every legal stat in every slot. A stat already used elsewhere on the
-    // banner is not legal, so those candidates are skipped.
+    // Stats, one slot at a time. A stat already on the banner is not legal.
     for (let slot = 0; slot < best.length; slot += 1) {
       for (const stat of availableStats(best, slot, slotOptions)) {
         if (stat === best[slot].stat) continue;
         const candidate = [...best];
         candidate[slot] = { ...candidate[slot], stat };
-        const score = top(candidate);
-        if (score > bestScore + 1e-6) {
-          best = candidate;
-          bestScore = score;
-          improved = true;
-        }
+        if (tryIt(candidate)) improved = true;
       }
     }
 
-    // Traits, one slot at a time. A trait's value depends on where it sits -
-    // Vampiric's penalty falls on its neighbours, Benevolent's bonus does -
-    // so this has to be a per-slot sweep rather than a per-trait choice.
+    // Traits, one slot at a time. A trait's value depends on where it sits.
     for (let slot = 0; slot < best.length; slot += 1) {
       for (const trait of TRAITS) {
         if (trait === best[slot].trait) continue;
         const candidate = [...best];
         candidate[slot] = { ...candidate[slot], trait };
-        const score = top(candidate);
-        if (score > bestScore + 1e-6) {
-          best = candidate;
-          bestScore = score;
-          improved = true;
+        if (tryIt(candidate)) improved = true;
+      }
+    }
+
+    // Tiers: raised when the question allows it, otherwise only redistributed.
+    if (freeTiers) {
+      for (let slot = 0; slot < best.length; slot += 1) {
+        for (const tier of TIERS) {
+          if (tier === best[slot].tier) continue;
+          const candidate = [...best];
+          candidate[slot] = { ...candidate[slot], tier };
+          if (tryIt(candidate)) improved = true;
+        }
+      }
+    } else {
+      for (let a = 0; a < best.length; a += 1) {
+        for (let b = a + 1; b < best.length; b += 1) {
+          if (best[a].tier === best[b].tier) continue;
+          const candidate = [...best];
+          candidate[a] = { ...candidate[a], tier: best[b].tier };
+          candidate[b] = { ...candidate[b], tier: best[a].tier };
+          if (tryIt(candidate)) improved = true;
         }
       }
     }
 
-    // Tiers. Left free the optimiser would put everything at V, which is not a
-    // banner anybody holds - so the tiers on the board are kept and only moved
-    // between slots. That answers the question actually being asked: given the
-    // qualities I have, where should they go?
-    for (let a = 0; a < best.length; a += 1) {
-      for (let b = a + 1; b < best.length; b += 1) {
-        if (best[a].tier === best[b].tier) continue;
-        const candidate = [...best];
-        candidate[a] = { ...candidate[a], tier: best[b].tier };
-        candidate[b] = { ...candidate[b], tier: best[a].tier };
-        const score = top(candidate);
-        if (score > bestScore + 1e-6) {
-          best = candidate;
-          bestScore = score;
-          improved = true;
-        }
-      }
-    }
-
-    // Swapping two slots keeps every stat legal but changes which tier and
-    // trait each one sits on, and traits depend on position. A pure per-slot
-    // sweep cannot reach these, so try them explicitly.
+    // Swapping two stats moves both at once, which a per-slot sweep cannot do.
     for (let a = 0; a < best.length; a += 1) {
       for (let b = a + 1; b < best.length; b += 1) {
         if (!slotOptions[a].includes(best[b].stat)) continue;
@@ -553,15 +557,45 @@ export function optimizeEmblems(
         const candidate = [...best];
         candidate[a] = { ...candidate[a], stat: best[b].stat };
         candidate[b] = { ...candidate[b], stat: best[a].stat };
-        const score = top(candidate);
-        if (score > bestScore + 1e-6) {
-          best = candidate;
-          bestScore = score;
-          improved = true;
-        }
+        if (tryIt(candidate)) improved = true;
+      }
+    }
+
+    // --- combinations, which no single-slot move can reach ---
+
+    // Friendly on every subset of three or more. Each one alone is worth zero.
+    for (const subset of subsetsOfAtLeast(best.length, 3)) {
+      const candidate = best.map((e, i) =>
+        subset.includes(i) ? { ...e, trait: "friendly" as Trait } : e
+      );
+      if (tryIt(candidate)) improved = true;
+    }
+
+    // Fractal wants every tier different, which is only reachable with free
+    // tiers - otherwise the tiers you hold decide whether it can ever pay.
+    if (freeTiers && best.length <= TIERS.length) {
+      for (let slot = 0; slot < best.length; slot += 1) {
+        const candidate = best.map((e, i) => ({
+          ...e,
+          tier: TIERS[TIERS.length - best.length + i],
+          trait: i === slot ? ("fractal" as Trait) : e.trait
+        }));
+        if (tryIt(candidate)) improved = true;
       }
     }
   }
 
   return best;
 }
+
+/** Index subsets of `n` slots with at least `min` members. */
+function subsetsOfAtLeast(n: number, min: number): number[][] {
+  const out: number[][] = [];
+  for (let mask = 1; mask < 1 << n; mask += 1) {
+    const members: number[] = [];
+    for (let i = 0; i < n; i += 1) if (mask & (1 << i)) members.push(i);
+    if (members.length >= min) out.push(members);
+  }
+  return out;
+}
+

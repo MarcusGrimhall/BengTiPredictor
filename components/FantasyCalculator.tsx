@@ -194,16 +194,19 @@ export default function FantasyCalculator({
 
   // Only the emblems this stage scores are optimised; the rest are left alone
   // so switching stages does not quietly rewrite the other card.
-  const optimize = (r: Role) =>
+  const optimize = (r: Role, freeTiers: boolean) =>
     setBanners((current) => ({
       ...current,
       [r]: [
-        ...optimizeEmblems(playersByRole[r] ?? [], r, slotOptionsFor(r), current[r].slice(0, slots), risk, seriesByTeam),
+        ...optimizeEmblems(
+          playersByRole[r] ?? [], r, slotOptionsFor(r),
+          current[r].slice(0, slots), risk, seriesByTeam, { freeTiers }
+        ),
         ...current[r].slice(slots)
       ]
     }));
 
-  const optimizeAll = () => ROLES.forEach(optimize);
+  const optimizeAll = (freeTiers: boolean) => ROLES.forEach((r) => optimize(r, freeTiers));
   const resetAll = () => setBanners(defaultBanners());
 
   const info = riskLabel(risk);
@@ -270,11 +273,22 @@ export default function FantasyCalculator({
             <h2>Roster · {fmt(rosterTotal)}</h2>
             <p className="faint" style={{ marginTop: 2 }}>
               The best entry at each role under the banners above, at risk {risk}.
-              Optimise picks the emblems that maximise this stage&rsquo;s total.
+              <br />
+              <strong>Best possible</strong> is the banner to aim for — free choice of tier,
+              so it is a target rather than something you hold.{" "}
+              <strong>Arrange what I hold</strong> keeps your tiers and only moves them
+              between slots, which answers where to put what you already have.
             </p>
           </div>
           <div style={{ display: "flex", gap: 8 }}>
-            <button onClick={optimizeAll} className="btn-primary">Optimise all</button>
+            <button onClick={() => optimizeAll(true)} className="btn-primary"
+              title="The banner to aim for: best stats, best traits, every emblem at the tier it should be">
+              Best possible
+            </button>
+            <button onClick={() => optimizeAll(false)}
+              title="Keep the tiers you actually hold and only rearrange them, along with stats and traits">
+              Arrange what I hold
+            </button>
             <button onClick={share} title="Copy a link that reproduces this exact setup">
               {copied ? "Link copied" : "Share setup"}
             </button>
@@ -315,7 +329,7 @@ export default function FantasyCalculator({
             <h2>Ranking · {ROLE_LABELS[r]}</h2>
             <span className="faint">
               {leagueName} · {cards[r].map((e) => STAT_LABELS[e.stat]).join(" · ")}{" "}
-              <button className="link-button" onClick={() => optimize(r)}>optimise</button>
+              <button className="link-button" onClick={() => optimize(r, true)}>optimise</button>
             </span>
           </div>
           <div className="scroll-x">
