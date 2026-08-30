@@ -50,8 +50,12 @@ export type Contribution = {
   emblem: Emblem;
   rawPerGame: number;
   basePoints: number;
-  tierFactor: number;
-  traitFactor: number;
+  /** Tier's share of the bonus, in percent. */
+  tierBonus: number;
+  /** Traits' share, in percent. Negative next to a Vampiric. */
+  traitBonus: number;
+  /** 1 + tier + traits, all added together. */
+  multiplier: number;
   points: number;
 };
 
@@ -80,48 +84,74 @@ export function availableStats(
  * banner can hit the same emblem. So every factor is computed for the whole
  * banner first, before any emblem is scored.
  */
-export function traitFactors(emblems: Emblem[]): number[] {
-  const factors = emblems.map(() => 1);
+/**
+ * Trait bonuses, as percentages that ADD to the tier bonus.
+ *
+ * Everything on an emblem stacks additively onto one multiplier. A tier V is
+ * +150% and a Unique is +30%, so together they are +180% - a x2.80 multiplier,
+ * not x2.50 x 1.30 = x3.25.
+ *
+ * That matters for more than the size of the numbers. Multiplying makes a big
+ * bonus on an already-big emblem compound, which pushed the optimiser towards
+ * stacking everything on one slot. Adding does not, so spreading a Benevolent
+ * onto a high-earning neighbour competes much better than it used to.
+ */
+export function traitBonuses(emblems: Emblem[]): number[] {
+  const bonus = emblems.map(() => 0);
   const allTiersDifferent = new Set(emblems.map((e) => e.tier)).size === emblems.length;
   const uniqueCount = emblems.filter((e) => e.trait === "unique").length;
   const friendlyCount = emblems.filter((e) => e.trait === "friendly").length;
 
   emblems.forEach((emblem, index) => {
-    if (emblem.trait === "fractal" && allTiersDifferent) factors[index] *= 1.6;
-    if (emblem.trait === "unique" && uniqueCount === 1) factors[index] *= 1.3;
-    if (emblem.trait === "friendly" && friendlyCount >= 3) factors[index] *= 1.5;
+    if (emblem.trait === "fractal" && allTiersDifferent) bonus[index] += 0.6;
+    if (emblem.trait === "unique" && uniqueCount === 1) bonus[index] += 0.3;
+    if (emblem.trait === "friendly" && friendlyCount >= 3) bonus[index] += 0.5;
 
     if (emblem.trait === "benevolent") {
       emblems.forEach((_, target) => {
-        if (isAdjacent(index, target)) factors[target] *= 1.2;
+        if (isAdjacent(index, target)) bonus[target] += 0.2;
       });
     }
 
     if (emblem.trait === "vampiric") {
-      factors[index] *= 1.5;
+      bonus[index] += 0.5;
       emblems.forEach((_, target) => {
-        if (isAdjacent(index, target)) factors[target] *= 0.9;
+        if (isAdjacent(index, target)) bonus[target] -= 0.1;
       });
     }
   });
 
-  return factors;
+  return bonus;
+}
+
+/**
+ * The full multiplier on each emblem: 1 + tier bonus + trait bonuses.
+ *
+ * Never below zero - a stack of Vampiric penalties cannot turn an emblem into
+ * a negative contribution.
+ */
+export function emblemMultipliers(emblems: Emblem[]): number[] {
+  const traits = traitBonuses(emblems);
+  return emblems.map((e, i) => Math.max(0, 1 + TIER_BONUSES[e.tier] / 100 + traits[i]));
 }
 
 export function contributions(player: PlayerEntry, emblems: Emblem[]): Contribution[] {
-  const factors = traitFactors(emblems);
+  const traits = traitBonuses(emblems);
+  const multipliers = emblemMultipliers(emblems);
   return emblems.map((emblem, index) => {
     const rawPerGame = player.perGame[emblem.stat] ?? 0;
     const basePoints = statToPoints(emblem.stat, rawPerGame);
-    const tierFactor = 1 + TIER_BONUSES[emblem.tier] / 100;
-    const traitFactor = factors[index];
     return {
       emblem,
       rawPerGame,
       basePoints,
-      tierFactor,
-      traitFactor,
-      points: basePoints * tierFactor * traitFactor
+      /** Tier's share of the bonus, as a percentage. */
+      tierBonus: TIER_BONUSES[emblem.tier],
+      /** Traits' share, which can be negative next to a Vampiric. */
+      traitBonus: traits[index] * 100,
+      /** 1 + tier + traits, all added. */
+      multiplier: multipliers[index],
+      points: basePoints * multipliers[index]
     };
   });
 }
@@ -139,11 +169,11 @@ export function scorePlayer(player: PlayerEntry, emblems: Emblem[]): number {
  * AND high GPM at the same time.
  */
 export function gameScores(player: PlayerEntry, emblems: Emblem[]): number[] {
-  const factors = traitFactors(emblems);
+  const multipliers = emblemMultipliers(emblems);
   return (player.gameLines ?? []).map((line) =>
     emblems.reduce((sum, emblem, index) => {
       const base = statToPoints(emblem.stat, line[emblem.stat] ?? 0);
-      return sum + base * (1 + TIER_BONUSES[emblem.tier] / 100) * factors[index];
+      return sum + base * multipliers[index];
     }, 0)
   );
 }
@@ -569,6 +599,24 @@ export function optimizeEmblems(
         subset.includes(i) ? { ...e, trait: "friendly" as Trait } : e
       );
       if (tryIt(candidate)) improved = true;
+    }
+
+    // Two traits at once. Since the bonuses add rather than compound, swapping
+    // one slot from Friendly to Benevolent trades its own +50% for +20% on each
+    // neighbour - a gain only if the neighbours earn enough, and a move that a
+    // one-slot sweep can refuse on the way to a better banner.
+    for (let a = 0; a < best.length; a += 1) {
+      for (let b = a + 1; b < best.length; b += 1) {
+        for (const ta of TRAITS) {
+          for (const tb of TRAITS) {
+            if (ta === best[a].trait && tb === best[b].trait) continue;
+            const candidate = [...best];
+            candidate[a] = { ...candidate[a], trait: ta };
+            candidate[b] = { ...candidate[b], trait: tb };
+            if (tryIt(candidate)) improved = true;
+          }
+        }
+      }
     }
 
     // Fractal wants every tier different, which is only reachable with free

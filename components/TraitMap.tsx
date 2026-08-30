@@ -191,17 +191,24 @@ export default function TraitMap({
             </table>
           </div>
           <p className="faint" style={{ maxWidth: 740 }}>
+            Best <em>across every entry in the role</em> — a property of the arrangement
+            rather than of one duo. The Fantasy page optimises something slightly
+            different: the single entry you would actually pick, which can prefer a
+            different arrangement.
+            <br /><br />
             It changes with the number of emblems <em>and</em> with the role, so there is
             no single right answer to carry between banners.
             <br /><br />
-            All-Friendly is a flat ×1.50 on every emblem. Vampiric on both ends with
-            Benevolent between them lands ×1.80, ×0.81, ×1.80 — better whenever the weakest
-            stat can sit in the penalised middle, which is why it wins for a group stage
-            Core and loses for a Mid, whose value is spread more evenly.
+            Bonuses <strong>add</strong>, they do not compound. A tier V is +150% and a
+            Friendly is +50%, so together they are +200% — a ×3.00 multiplier, not
+            ×2.50 × ×1.50. That is why spreading beats stacking: putting a second bonus on
+            an already-large emblem buys the same flat percentage it would buy anywhere.
             <br /><br />
-            On five emblems, Friendly and Benevolent interleaved beats both: the middle
-            Friendly has a Benevolent either side, so it lands on ×2.16 — higher than a
-            three-emblem banner can reach at all.
+            On three emblems that makes all-Friendly hard to beat — a flat ×3.00 on every
+            slot. On five it usually is not: swapping one Friendly for a Benevolent trades
+            that slot&rsquo;s +50% for +20% on each of its two neighbours, which pays when
+            the neighbours out-earn it. The optimiser puts the Benevolent on the weakest
+            emblem for exactly that reason.
           </p>
         </section>
       )}

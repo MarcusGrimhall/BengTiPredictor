@@ -82,9 +82,12 @@ export default function StatSpreadChart({
     () => Math.max(1, ...rows.flatMap((r) => r.points.map(pick))),
     [rows, measure]
   );
+  // Ordered by what the strongest four produce. A stat one lucky duo spiked
+  // once tells you less than one the best teams reliably generate, and that is
+  // the question a banner is answering.
   const sorted = useMemo(
-    () => [...rows].sort((a, b) => rowTop(b) - rowTop(a)),
-    [rows, measure]
+    () => [...rows].sort((a, b) => b.strongAverage - a.strongAverage),
+    [rows]
   );
 
   const x = (v: number) => (v / max) * 100;
