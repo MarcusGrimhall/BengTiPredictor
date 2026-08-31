@@ -8,7 +8,7 @@ wrong, the numbers that depend on it are wrong.
 
 | Rule | Source |
 | --- | --- |
-| Point value of all 16 extractable stats | In-game rules, cross-checked against a community-compiled table and against my own data (31 of 36 values within a few percent) |
+| Point value of all 16 extractable stats | In-game rules, cross-checked against a community-compiled table and against my own data (33 of 36 values within a few percent) |
 | Tier bonuses +10 / +30 / +60 / +100 / +150% | In-game rules |
 | Trait effects (Fractal +60%, Benevolent +20% adjacent, Vampiric +50%/−10%, Unique +30%, Friendly +50%) | In-game rules |
 | Slot colours per role | In-game rules |
@@ -36,7 +36,6 @@ wrong, the numbers that depend on it are wrong.
 | Stage boundary, group stage format, series counts | Derived from the match data itself |
 | Player names | OpenDota's pro registry |
 | Roles | OpenDota's per-match lane detection, resolved per team. Agrees with the pro registry on 160 of 160 players and 32 of 32 mids across the two Internationals where the registry is contemporaneous, and no decision anywhere is close — across 88 squads the tightest mid is 69 percentage points clear and the tightest core/support boundary 114 last hits a game. Still a heuristic, not Valve's own assignment |
-| Tormentor attribution | The combat log's kill credit. Cannot be made exact - the game credits everyone involved |
 | Team strength effect on scoring (1.84% per 100 Elo) | Measured here, n=2910, t=4.05 |
 | Suffix trigger rates | Measured from the matches themselves |
 | **No stat pays negative points** — the scale floors at zero, so ten-plus deaths pay 0 rather than a penalty | You |
@@ -44,7 +43,7 @@ wrong, the numbers that depend on it are wrong.
 | Kills, deaths, last hits, GPM, courier kills, observer wards, camps stacked | Verified field by field against STRATZ on the same match, 10/10 players each |
 | Roshan is the player credited with the kill | Sum of `killed.npc_dota_roshan` equals the count of `CHAT_MESSAGE_ROSHAN_KILL` events exactly, over 12 matches |
 | First Blood | Sum of `firstblood_claimed` equals the count of `CHAT_MESSAGE_FIRSTBLOOD` events exactly |
-| Tormentor is the player the combat log credits with the kill | `killed.npc_dota_miniboss`. The chat message was worse and has been dropped — see Retracted. STRATZ has no tormentor data at all |
+| Tormentor is the player the combat log credits with the kill | `killed.npc_dota_miniboss`. Cannot be made exact — the game credits everyone involved in the kill. The chat message was worse and has been dropped, see Retracted. STRATZ has no tormentor data at all |
 | Runes count **power, bounty and bottled runes, but not Wisdom** | You, and `rune_pickups` matches that rule exactly — see below |
 | A tower goes to whoever landed the **last hit** | You |
 | Teamfight participation is a **0–1 share**, scored per unit and not per percentage point | You |
@@ -83,10 +82,12 @@ equals OpenDota's rune map on 10 of 10 players.
 That is the rule you gave, so the field needs no adjustment. Had it excluded
 bottled runes we would have been understating the emblem by about a fifth.
 
-## Genuinely unavailable
+## Not in any public API
 
-Four things TI fantasy scores that **no public API exposes**. Checked in both
-OpenDota and STRATZ field by field, not assumed:
+Four things TI fantasy scores that **no public API reports directly**. Checked in
+both OpenDota and STRATZ field by field, not assumed. Two of the four are
+genuinely absent and are reported as missing; two are approximated from a
+related field, and those approximations are on the assumed list above:
 
 | Missing | What exists instead | How far off |
 | --- | --- | --- |
@@ -100,8 +101,8 @@ generic interaction, and that interaction is the only trace either leaves.
 STRATZ's schema was read directly rather than assumed — all 513 types were
 introspected, and `lotus`, `watcher` and `madstone` return zero hits apiece;
 `MatchPlayerType`, `MatchPlayerStatsType` and every `MatchPlaybackData*Event`
-type carry no such field; its playback events cover only buildings, couriers, Roshan, runes,
-towers and wards. `damage.npc_dota_miniboss` looked like a way to find everyone
+type carry no such field; its playback events cover only buildings, couriers,
+Roshan, runes, towers and wards. `damage.npc_dota_miniboss` looked like a way to find everyone
 who fought a Tormentor, but it is a kill counter under a different name: it
 fires in exactly the same 203 player-games as `killed`. Getting real numbers for
 any of the four means parsing replays, which is what the community calculators
@@ -180,17 +181,16 @@ Things I asserted that turned out to be invented or wrong, and have been fixed:
   `killed.npc_dota_miniboss`, has the right shape instead: core 0.73x, mid
   1.18x, support 0.55x. Neither can be exact, because the game credits the kill
   to everyone involved in it.
-- **The pro registry is the best source of roles** - it is a snapshot of who
-  plays what *today*. Applied to an old event it is an anachronism: it files
-  Team Liquid's TI 2022 mid as a core, because core is what he plays in 2026.
-  Roles now come from the lane detection in each event's own replays, which
-  reproduces the registry exactly where the registry is contemporaneous.
-- **The pro registry's role is authoritative player by player** — it is right
-  about core vs support, but only a few dozen players worldwide carry
-  `fantasy_role: 4`, so most mids are filed as core. Read one player at a time
-  that left teams with three cores and no mid, and `buildLineups` then dropped
-  their Mid entry entirely and mixed a mid's farm into the Core pair: TI 2022
-  shipped 13 mids for 20 teams, TI 2023 fourteen for 20. Roles are now resolved
-  per team — one mid each, and a five-player squad is filled out to the only
-  line-up a fantasy roster can have. All five Internationals now offer a
-  complete set of entries for every team.
+- **The pro registry is the best source of roles** — it is a snapshot of who
+  plays what *today*, so applied to an old event it is an anachronism: it files
+  Team Liquid's TI 2022 mid as a core, because core is what he plays in 2026. It
+  is also thin on mid — only a few dozen players worldwide carry
+  `fantasy_role: 4` — so most mids came back labelled core. Read one player at a
+  time that left squads with three cores and no mid, and `buildLineups` then
+  dropped their Mid entry entirely and mixed a mid's farm into the Core pair: TI
+  2022 shipped 13 mids for 20 teams, TI 2023 fourteen for 20. Roles now come
+  from the lane detection in each event's own replays and are resolved per team
+  — one mid each, and a five-player squad is filled out to the only line-up a
+  fantasy roster can have. It reproduces the registry exactly where the registry
+  is contemporaneous, and all five Internationals now offer a complete set of
+  entries for every team.

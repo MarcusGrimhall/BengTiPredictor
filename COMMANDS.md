@@ -286,7 +286,7 @@ command, and the pages read the answer.
 
 | Where | What it does |
 | --- | --- |
-| Reroll comparison | Enumerates every outcome exactly — 24 of 26 options |
+| Reroll comparison | Enumerates every outcome exactly — every option but the two wildcards |
 | Reroll wildcards | Sampled; they pick emblems at random |
 | Bracket picks | Counted against a build-time ensemble, ~6ms |
 | Map and series projections | Computed at build time |

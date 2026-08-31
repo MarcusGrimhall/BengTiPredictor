@@ -53,7 +53,7 @@ them would cover the gap.
 
 ## The Information page ships the whole dataset
 
-`/information` is ~4.6 MB and takes about 3 seconds, and **98% of the payload is
+`/information` is ~5.2 MB and takes about 3 seconds, and **98% of the payload is
 serialised props**. `spread` alone is ~1,178 rows — one per league × stage × role
 × stat, each carrying every player's value — because the page sends every
 tournament so tab switching is instant.
@@ -74,14 +74,32 @@ six. That OpenDota does this is known; that Valve does the same is likely, since
 both read the same combat log, but it is not verified. It systematically favours
 wide AoE stuns.
 
-## Unparsed matches vanish quietly
+## Unparsed matches vanish quietly — but right now none do
 
 `extractMatch` returns null when a replay is not parsed, and the match is simply
-dropped. That is the right call — half the stats would be empty — but nothing
-checks whether the dropped matches are a random sample. If parsing correlates
-with region, tier or recency, the training set is skewed in a way no test would
-catch. `matchesSkipped` is already stored per league, so this is measurable
-without fetching anything.
+dropped. That is the right call: half the stats would be empty. The worry was
+that the dropped matches might not be a random sample — if parsing correlated
+with region, tier or recency, the training set would be skewed in a way no test
+would catch.
+
+Measured on the current data, and the answer is that nothing is being dropped:
+`matchesSkipped` is **0 across all 22 leagues**, 2,540 of 2,540 used. So there is
+no bias today. The code path is still live and silent, though, so a future fetch
+of a less-parsed event would reintroduce the question without announcing it.
+Worth a validator check that fails when the skip rate rises above zero.
+
+## STRATZ could remove the role guess entirely
+
+Roles are now inferred from lane detection, which is a good heuristic and has
+never disagreed where it can be checked — but it is still inference, and it is
+on the assumed list for that reason.
+
+STRATZ exposes a real per-match `Position` field (`POSITION_1`…`POSITION_5`)
+behind a free API token, which the project already has in `.env.local`. That is
+Valve-side role data per match, not a reading of where a hero stood. Swapping it
+in would move roles off the assumed list. The work is a fetch path and a
+reconciliation against the current lane assignment on the events where both
+exist — not large, and worth doing before trusting the role split further.
 
 ## Things that turned out not to be problems
 

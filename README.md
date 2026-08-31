@@ -33,7 +33,7 @@ does arithmetic, not simulation.
 The model is fitted **only on tournaments played before** the event it predicts,
 then graded on that event. Nothing about the target leaks back into the fit.
 
-`npm run validate` runs that grading as a standing test — 31 checks across five
+`npm run validate` runs that grading as a standing test — 36 checks across five
 Internationals, always against a baseline, exiting non-zero if one fails.
 
 The two rules that matter most, and that took a few tries to get right:
@@ -50,7 +50,7 @@ real world best at TI 2026 was 106,966. That is the right relationship.
 | File | What is in it |
 | --- | --- |
 | **[COMMANDS.md](COMMANDS.md)** | Every command. Starting and stopping the site, fetching data, training the model, and each flag grouped by what it decides. |
-| **[ASSUMPTIONS.md](ASSUMPTIONS.md)** | Every rule the calculator applies and where it came from — including the two things still assumed, and the ones I got wrong and fixed. |
+| **[ASSUMPTIONS.md](ASSUMPTIONS.md)** | Every rule the calculator applies and where it came from — including the four things still assumed, and the ones I got wrong and fixed. |
 | `/method` in the app | The same, in the browser. |
 
 ## Layout
@@ -78,9 +78,14 @@ data/
   two it was, so they are marked missing rather than split on a guess. For a
   support that is a bigger blue emblem than wards, which is the largest known
   gap in the model.
-- **Madstones are inferred and run low.** OpenDota counts bundles, not stones,
-  and a bundle only drops on a contested camp — so the figure is about a third
-  of the truth. See ASSUMPTIONS.md.
+- **Madstones are inferred, not counted.** OpenDota counts bundles, not stones,
+  and a bundle only drops on a contested camp. The extractor corrects for that
+  with a measured factor of 2.7, so the emblem is no longer understated — but
+  the factor itself is an estimate, not a published number. See ASSUMPTIONS.md.
+- **Roles are read from lane play, not from Valve.** The pro registry is a
+  snapshot of today's roster and mislabels old events, so roles come from where
+  each hero actually stood. It matches the registry wherever the registry is
+  contemporaneous, but it is still inference.
 - **Ratings are current, not historical.** They are graded per event and the app
   warns when they are worse than a coin flip, which happens for older events.
 - **A period pays a maximum**, and a maximum is largely luck. Prior form picks
@@ -90,5 +95,5 @@ data/
 
 Scoring, emblem colours, tiers and traits are the Compendium's own, from the
 in-game rules text. Point values are cross-checked against a community-compiled
-table as a standing test in `npm run validate` — 31 of 36 values agree within a
+table as a standing test in `npm run validate` — 33 of 36 values agree within a
 few percent. Everything else is built here from OpenDota match data.
