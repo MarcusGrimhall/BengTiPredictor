@@ -73,8 +73,14 @@ data/
   on each quality or trait. It is the one assumption left in the reroll model.
 - **Prefix titles cannot be valued.** They fire on the hero's colour group, and
   that classification is in no public API.
-- **Three stats are unavailable** — lotuses, watchers, madstones. OpenDota does
-  not expose them, so those emblems are marked missing rather than guessed.
+- **Two stats are unavailable** — lotuses (176 pts) and watchers (147 pts).
+  OpenDota counts the interaction that grabs either one, but not which of the
+  two it was, so they are marked missing rather than split on a guess. For a
+  support that is a bigger blue emblem than wards, which is the largest known
+  gap in the model.
+- **Madstones are inferred and run low.** OpenDota counts bundles, not stones,
+  and a bundle only drops on a contested camp — so the figure is about a third
+  of the truth. See ASSUMPTIONS.md.
 - **Ratings are current, not historical.** They are graded per event and the app
   warns when they are worse than a coin flip, which happens for older events.
 - **A period pays a maximum**, and a maximum is largely luck. Prior form picks

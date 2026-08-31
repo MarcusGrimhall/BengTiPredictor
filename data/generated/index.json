@@ -2,7 +2,7 @@
   {
     "leagueId": 20009,
     "leagueName": "1win Essence II",
-    "fetchedAt": "2026-08-30T17:17:15.740Z",
+    "fetchedAt": "2026-08-31T06:20:18.281Z",
     "matchesUsed": 60,
     "teams": 10,
     "players": 50,
@@ -11,7 +11,7 @@
   {
     "leagueId": 19917,
     "leagueName": "The Games of the Future 2026",
-    "fetchedAt": "2026-08-30T17:17:21.003Z",
+    "fetchedAt": "2026-08-31T06:20:16.107Z",
     "matchesUsed": 72,
     "teams": 19,
     "players": 80,
@@ -20,7 +20,7 @@
   {
     "leagueId": 19894,
     "leagueName": "The International 2026 - Regional Qualifier Southeast Asia",
-    "fetchedAt": "2026-08-30T17:17:30.969Z",
+    "fetchedAt": "2026-08-31T06:20:14.283Z",
     "matchesUsed": 44,
     "teams": 10,
     "players": 50,
@@ -29,7 +29,7 @@
   {
     "leagueId": 19893,
     "leagueName": "The International 2026 - Regional Qualifier China",
-    "fetchedAt": "2026-08-30T17:17:33.344Z",
+    "fetchedAt": "2026-08-31T06:20:12.552Z",
     "matchesUsed": 29,
     "teams": 8,
     "players": 41,
@@ -38,7 +38,7 @@
   {
     "leagueId": 19892,
     "leagueName": "The International 2026 - Regional Qualifier Europe",
-    "fetchedAt": "2026-08-30T17:17:35.401Z",
+    "fetchedAt": "2026-08-31T06:20:10.620Z",
     "matchesUsed": 63,
     "teams": 16,
     "players": 80,
@@ -47,7 +47,7 @@
   {
     "leagueId": 19891,
     "leagueName": "The International 2026 - Regional Qualifier South America",
-    "fetchedAt": "2026-08-30T17:17:37.668Z",
+    "fetchedAt": "2026-08-31T06:20:07.995Z",
     "matchesUsed": 39,
     "teams": 10,
     "players": 50,
@@ -56,7 +56,7 @@
   {
     "leagueId": 19890,
     "leagueName": "The International 2026 - Regional Qualifier North America",
-    "fetchedAt": "2026-08-30T17:17:41.411Z",
+    "fetchedAt": "2026-08-31T06:20:05.554Z",
     "matchesUsed": 13,
     "teams": 4,
     "players": 20,
@@ -65,7 +65,7 @@
   {
     "leagueId": 19785,
     "leagueName": "Esports World Cup 2026",
-    "fetchedAt": "2026-08-30T17:17:53.781Z",
+    "fetchedAt": "2026-08-31T06:19:48.093Z",
     "matchesUsed": 157,
     "teams": 24,
     "players": 120,
@@ -74,7 +74,7 @@
   {
     "leagueId": 19719,
     "leagueName": "The International 2026",
-    "fetchedAt": "2026-08-30T17:19:45.957Z",
+    "fetchedAt": "2026-08-31T06:19:20.372Z",
     "matchesUsed": 147,
     "teams": 16,
     "players": 80,
@@ -83,7 +83,7 @@
   {
     "leagueId": 19696,
     "leagueName": "DreamLeague Season 29",
-    "fetchedAt": "2026-08-30T17:18:03.420Z",
+    "fetchedAt": "2026-08-31T06:19:45.814Z",
     "matchesUsed": 185,
     "teams": 17,
     "players": 80,
@@ -92,7 +92,7 @@
   {
     "leagueId": 19543,
     "leagueName": "PGL Wallachia 2026 Season 8",
-    "fetchedAt": "2026-08-30T17:18:08.602Z",
+    "fetchedAt": "2026-08-31T06:19:43.421Z",
     "matchesUsed": 119,
     "teams": 16,
     "players": 80,
@@ -101,7 +101,7 @@
   {
     "leagueId": 19435,
     "leagueName": "PGL Wallachia 2026 Season 7",
-    "fetchedAt": "2026-08-30T17:18:12.052Z",
+    "fetchedAt": "2026-08-31T06:19:40.551Z",
     "matchesUsed": 124,
     "teams": 16,
     "players": 81,
@@ -110,7 +110,7 @@
   {
     "leagueId": 19422,
     "leagueName": "ESL One Birmingham 2026",
-    "fetchedAt": "2026-08-30T17:18:22.306Z",
+    "fetchedAt": "2026-08-31T06:19:38.426Z",
     "matchesUsed": 142,
     "teams": 16,
     "players": 80,
@@ -119,7 +119,7 @@
   {
     "leagueId": 19269,
     "leagueName": "DreamLeague Season 28",
-    "fetchedAt": "2026-08-30T17:18:27.226Z",
+    "fetchedAt": "2026-08-31T06:19:35.904Z",
     "matchesUsed": 195,
     "teams": 16,
     "players": 83,
@@ -128,7 +128,7 @@
   {
     "leagueId": 19239,
     "leagueName": "FISSURE Universe Episode 8",
-    "fetchedAt": "2026-08-30T17:18:32.777Z",
+    "fetchedAt": "2026-08-31T06:19:33.209Z",
     "matchesUsed": 96,
     "teams": 21,
     "players": 106,
@@ -137,7 +137,7 @@
   {
     "leagueId": 19101,
     "leagueName": "BLAST SLAM VII",
-    "fetchedAt": "2026-08-30T17:18:52.018Z",
+    "fetchedAt": "2026-08-31T06:19:31.193Z",
     "matchesUsed": 102,
     "teams": 12,
     "players": 61,
@@ -146,7 +146,7 @@
   {
     "leagueId": 19099,
     "leagueName": "BLAST SLAM VI",
-    "fetchedAt": "2026-08-30T17:19:32.271Z",
+    "fetchedAt": "2026-08-31T06:19:28.406Z",
     "matchesUsed": 100,
     "teams": 12,
     "players": 61,
@@ -155,7 +155,7 @@
   {
     "leagueId": 18988,
     "leagueName": "DreamLeague Season 27",
-    "fetchedAt": "2026-08-30T17:19:36.344Z",
+    "fetchedAt": "2026-08-31T06:19:23.521Z",
     "matchesUsed": 206,
     "teams": 24,
     "players": 121,
@@ -164,7 +164,7 @@
   {
     "leagueId": 18324,
     "leagueName": "The International 2025",
-    "fetchedAt": "2026-08-30T17:19:52.054Z",
+    "fetchedAt": "2026-08-31T06:19:17.451Z",
     "matchesUsed": 144,
     "teams": 16,
     "players": 80,
@@ -173,7 +173,7 @@
   {
     "leagueId": 16935,
     "leagueName": "The International 2024",
-    "fetchedAt": "2026-08-30T17:19:55.062Z",
+    "fetchedAt": "2026-08-31T06:19:14.783Z",
     "matchesUsed": 121,
     "teams": 16,
     "players": 80,
@@ -182,7 +182,7 @@
   {
     "leagueId": 15728,
     "leagueName": "The International 2023",
-    "fetchedAt": "2026-08-30T17:19:58.005Z",
+    "fetchedAt": "2026-08-31T06:19:12.025Z",
     "matchesUsed": 151,
     "teams": 20,
     "players": 100,
@@ -191,7 +191,7 @@
   {
     "leagueId": 14268,
     "leagueName": "The International 2022",
-    "fetchedAt": "2026-08-30T17:20:01.310Z",
+    "fetchedAt": "2026-08-31T06:19:08.763Z",
     "matchesUsed": 231,
     "teams": 20,
     "players": 100,

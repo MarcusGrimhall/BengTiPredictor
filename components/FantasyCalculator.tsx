@@ -317,7 +317,7 @@ export default function FantasyCalculator({
                     </div>
                     <div>{best.player.name}</div>
                     <span className="faint">
-                      {best.player.teamName} · {fmt(best.score)} per match × {best.series.toFixed(1)} series
+                      {best.player.teamName} · best of {best.series.toFixed(1)} series
                     </span>
                   </>
                 ) : (
@@ -493,6 +493,13 @@ function Breakdown({ ranked, banner, risk }: { ranked: Ranked; banner: Emblem[];
   const span = ranked.ceiling - ranked.floor || 1;
   const marker = ((ranked.score - ranked.floor) / span) * 100;
 
+  // `contributions` is an average series; the headline is the best of several
+  // at the chosen risk, with any title multiplier already in it. Same unit,
+  // different point on the distribution - so the rows are lifted onto the
+  // headline by one factor and add up to it.
+  const mean = ranked.contributions.reduce((sum, c) => sum + c.points, 0);
+  const scale = mean > 0 ? total / mean : 0;
+
   return (
     <div className="stack">
       <div>
@@ -503,7 +510,7 @@ function Breakdown({ ranked, banner, risk }: { ranked: Ranked; banner: Emblem[];
           {fmt(ranked.total)}
         </div>
         <span className="faint">
-          projected over the stage · {fmt(ranked.score)} per match × {ranked.series.toFixed(1)} series
+          projected over the stage · the best of {ranked.series.toFixed(1)} series at risk {risk}
         </span>
       </div>
 
@@ -521,7 +528,8 @@ function Breakdown({ ranked, banner, risk }: { ranked: Ranked; banner: Emblem[];
 
       <div className="stack" style={{ gap: 7 }}>
         {ranked.contributions.map((c, index) => {
-          const share = total > 0 ? Math.max(0, (c.points / total) * 100) : 0;
+          const points = c.points * scale;
+          const share = total > 0 ? Math.max(0, (points / total) * 100) : 0;
           return (
             <div key={index}>
               <div className="row-between" style={{ fontSize: "0.86rem" }}>
@@ -533,7 +541,7 @@ function Breakdown({ ranked, banner, risk }: { ranked: Ranked; banner: Emblem[];
                     {c.emblem.trait !== "none" && ` · ${c.emblem.trait}`}
                   </span>
                 </span>
-                <span className="num">{fmt(c.points)}</span>
+                <span className="num">{fmt(points)}</span>
               </div>
               <div className="bar"><div className="bar-fill" style={{ width: `${Math.min(100, share)}%` }} /></div>
             </div>
