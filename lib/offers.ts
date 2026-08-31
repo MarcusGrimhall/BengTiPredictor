@@ -37,6 +37,16 @@ export type OfferDecision = {
   edge: number;
   /** Value right now, before anything. */
   current: number;
+  /** Play-outs this pair actually got. Contenders get more than also-rans. */
+  runsUsed: number;
+  /**
+   * True when this pair cannot be told apart from the leader.
+   *
+   * Measured as a paired difference over the play-outs the two shared, which is
+   * the whole point of giving every candidate the same futures: the difference
+   * is a real quantity with its own error bar, not two noisy means subtracted.
+   */
+  tied: boolean;
 };
 
 export type OfferPlan = {
@@ -49,6 +59,13 @@ export type OfferPlan = {
 };
 
 const ROLES: Role[] = ["core", "mid", "support"];
+
+/**
+ * How many options a deal puts in front of you. Always exactly three, plus the
+ * standing option to use none of them - never more, never fewer. Exported so
+ * the simulator's UI and the play-out below cannot drift apart.
+ */
+export const OPTIONS_DEALT = 3;
 
 /**
  * Deals `count` distinct options.
@@ -115,7 +132,7 @@ function playOut(
   let left = rerolls;
 
   while (left > 0) {
-    const options = deal(catalogue, 3, random);
+    const options = deal(catalogue, OPTIONS_DEALT, random);
     let best: { role: Role; banner: Emblem[]; value: number; gain: number } | null = null;
 
     for (const action of options) {
@@ -170,24 +187,121 @@ export function planOffers(
   // Stopping now: the banners are what they are.
   const skipValue = current;
 
-  const decisions: OfferDecision[] = [];
+  type Candidate = {
+    role: Role; action: RerollAction; total: number; runsUsed: number;
+    /** Result per run index, so pairs can be compared run for run. */
+    byRun: Map<number, number>;
+  };
+  const candidates: Candidate[] = [];
   for (const action of options) {
     for (const role of applicable(action, catalogues)) {
-      let total = 0;
-      for (let run = 0; run < runs; run += 1) {
-        const random = seededRandom(`${seed}:${role}:${action.id}:${run}`);
-        const rolled = applyAction(banners[role], role, action, random);
-        const after = hasDuplicateStats(rolled) ? banners[role] : rolled;
-        total += playOut(
-          { ...banners, [role]: after }, catalogue, catalogues, valueOf,
-          Math.max(0, rerolls - 1), random
-        );
-      }
-      const takeValue = total / runs;
-      decisions.push({ role, action, takeValue, skipValue, edge: takeValue - skipValue, current });
+      candidates.push({ role, action, total: 0, runsUsed: 0, byRun: new Map() });
     }
   }
+  if (!candidates.length) {
+    return { decisions: [], skipValue, current, rounds: rerolls, runs };
+  }
 
-  decisions.sort((a, b) => b.edge - a.edge);
+  /**
+   * One play-out of one candidate.
+   *
+   * Two independent streams, on purpose. The action's own roll is part of what
+   * is being judged, so it is drawn per candidate. The FUTURE is the shared
+   * environment, so it is keyed on the run index alone - every candidate at run
+   * 7 meets the same run of deals. Comparing candidates against a common future
+   * removes the luck of the draw from the difference between them, which is the
+   * quantity being ranked. Without it a candidate can win on a kind future
+   * rather than on its merits.
+   */
+  function playCandidate(c: Candidate, run: number): number {
+    const rollRandom = seededRandom(`${seed}:roll:${c.role}:${c.action.id}:${run}`);
+    const futureRandom = seededRandom(`${seed}:future:${run}`);
+    const rolled = applyAction(banners[c.role], c.role, c.action, rollRandom);
+    const after = hasDuplicateStats(rolled) ? banners[c.role] : rolled;
+    return playOut(
+      { ...banners, [c.role]: after }, catalogue, catalogues, valueOf,
+      Math.max(0, rerolls - 1), futureRandom
+    );
+  }
+
+  /**
+   * Sequential halving, rather than an equal split.
+   *
+   * The old scheme gave every pair the same number of play-outs, including the
+   * ones that were plainly behind after ten. With a handful of candidates and a
+   * fixed budget, the question is "which is best", not "what is each worth", and
+   * for that: run everyone cheaply, drop the worst half, spend what they would
+   * have used on the survivors. The winner ends up with several times the
+   * play-outs it would have had, and the total work is unchanged.
+   */
+  const budget = runs * candidates.length;
+  const phases = Math.max(1, Math.ceil(Math.log2(candidates.length)));
+  let alive = [...candidates];
+  let runOffset = 0;
+
+  for (let phase = 0; phase < phases && alive.length > 0; phase += 1) {
+    const each = Math.max(1, Math.floor(budget / (phases * alive.length)));
+    for (const c of alive) {
+      for (let i = 0; i < each; i += 1) {
+        const value = playCandidate(c, runOffset + i);
+        c.total += value;
+        c.byRun.set(runOffset + i, value);
+      }
+      c.runsUsed += each;
+    }
+    runOffset += each;
+    if (alive.length <= 1) break;
+    alive.sort((a, b) => b.total / b.runsUsed - a.total / a.runsUsed);
+    alive = alive.slice(0, Math.max(1, Math.ceil(alive.length / 2)));
+  }
+
+  // The leader is the pair the search spent most of its budget on, and among
+  // equals the one with the highest average.
+  const leader = [...candidates].sort(
+    (a, b) => b.runsUsed - a.runsUsed ||
+      b.total / Math.max(1, b.runsUsed) - a.total / Math.max(1, a.runsUsed)
+  )[0];
+
+  /**
+   * Can this pair be told apart from the leader?
+   *
+   * Both met the same futures on the run indices they share, so the difference
+   * can be measured run by run and averaged. That paired difference has a much
+   * smaller error bar than either mean on its own - which is exactly what common
+   * random numbers buy. Anything inside two standard errors of zero is a pair
+   * the model cannot separate, and saying so is more honest than ranking it.
+   */
+  function tiedWithLeader(c: Candidate): boolean {
+    if (c === leader) return false;
+    const diffs: number[] = [];
+    for (const [run, value] of c.byRun) {
+      const other = leader.byRun.get(run);
+      if (other !== undefined) diffs.push(value - other);
+    }
+    if (diffs.length < 2) return false;
+    const mean = diffs.reduce((a, b) => a + b, 0) / diffs.length;
+    const variance =
+      diffs.reduce((a, d) => a + (d - mean) * (d - mean), 0) / (diffs.length - 1);
+    const standardError = Math.sqrt(variance / diffs.length);
+    return Math.abs(mean) < 2 * standardError;
+  }
+
+  const decisions: OfferDecision[] = candidates.map((c) => {
+    const takeValue = c.total / Math.max(1, c.runsUsed);
+    return {
+      role: c.role, action: c.action, takeValue, skipValue,
+      edge: takeValue - skipValue, current, runsUsed: c.runsUsed,
+      tied: tiedWithLeader(c)
+    };
+  });
+
+  // Order by the search's own verdict, not by the raw mean.
+  //
+  // Halving leaves survivors with several times the play-outs of the ones it
+  // dropped early, so their estimates are not comparable: a pair eliminated on
+  // 66 runs can post a flattering average that a pair measured over 343 would
+  // never sustain. Depth of evidence comes first, and the mean only separates
+  // pairs the search examined equally hard.
+  decisions.sort((a, b) => b.runsUsed - a.runsUsed || b.edge - a.edge);
   return { decisions, skipValue, current, rounds: rerolls, runs };
 }

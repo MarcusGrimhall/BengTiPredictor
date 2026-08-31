@@ -5,9 +5,9 @@ import {
   Emblem, PlayerEntry, TIERS, TIER_BONUSES, TRAITS, TRAIT_DESCRIPTIONS,
   Tier, Trait, availableStats, rankPlayers, riskToPercentile
 } from "../lib/fantasy";
-import { BANNER_SLOTS, Role, STAT_LABELS, StatKey, statsForColor } from "../lib/scoring";
+import { BANNER_SLOTS, Role, STAT_DEFINITIONS, STAT_LABELS, StatKey, statsForColor } from "../lib/scoring";
 import { actionCatalogue, randomBanner } from "../lib/reroll";
-import { OfferPlan, RosterOffer, planOffers } from "../lib/offers";
+import { OfferDecision, OfferPlan, RosterOffer, planOffers, OPTIONS_DEALT } from "../lib/offers";
 import { STAGE_LABELS, STAGE_SLOTS, STAGE_TOKENS, type Stage } from "../lib/stages";
 import { seededRandom } from "../lib/rng";
 import Info from "./Info";
@@ -117,11 +117,27 @@ export default function FantasySimulator({
     [playersByRole, staged, risk, seriesByTeam]
   );
 
-  const valueOf = useMemo(
-    () => (role: Role, banner: Emblem[]) =>
-      rankPlayers(shortlists[role] ?? [], role, banner, risk, seriesByTeam)[0]?.total ?? 0,
-    [shortlists, risk, seriesByTeam]
-  );
+  /**
+   * What a banner is worth, with a transposition table.
+   *
+   * The forward search re-visits the same banner constantly - 59% of lookups in
+   * a measured 40-reroll plan were states already seen. Ranking is a pure
+   * function of (role, banner) once the shortlist, risk and series counts are
+   * fixed, so the answer can be cached. The cache is rebuilt whenever any of
+   * those three change, which is what the dependency list is for.
+   */
+  const valueOf = useMemo(() => {
+    const seen = new Map<string, number>();
+    return (role: Role, banner: Emblem[]) => {
+      let key = role;
+      for (const e of banner) key += `|${e.stat}:${e.tier}:${e.trait}`;
+      const hit = seen.get(key);
+      if (hit !== undefined) return hit;
+      const value = rankPlayers(shortlists[role] ?? [], role, banner, risk, seriesByTeam)[0]?.total ?? 0;
+      seen.set(key, value);
+      return value;
+    };
+  }, [shortlists, risk, seriesByTeam]);
 
   const roleValues = useMemo(
     () => Object.fromEntries(ROLES.map((r) => [r, valueOf(r, staged[r])])) as Record<Role, number>,
@@ -141,12 +157,29 @@ export default function FantasySimulator({
     return [...seen.values()];
   }, [catalogue]);
 
-  const toggle = (id: string) =>
-    setChosen((now) => (now.includes(id) ? now.filter((x) => x !== id) : [...now, id]));
+  /**
+   * A deal is always exactly three options, so the form has exactly three slots.
+   * The constraint is structural rather than a guard on a longer list - there is
+   * no fourth box to refuse.
+   */
+  const setSlot = (index: number, id: string) =>
+    setChosen((now) => {
+      const next = [now[0] ?? "", now[1] ?? "", now[2] ?? ""];
+      next[index] = id;
+      return next.filter(Boolean).length === 0 ? [] : next;
+    });
+
+  /** The catalogue split by emblem colour, which is how the game groups them. */
+  const byColour = useMemo(() => {
+    const groups: Record<string, typeof shared> = {};
+    for (const a of shared) (groups[a.color] ??= []).push(a);
+    return groups;
+  }, [shared]);
 
   const run = () => {
-    const options = shared.filter((a) => chosen.includes(a.id));
-    if (!options.length) return;
+    const picked = chosen.filter(Boolean);
+    const options = shared.filter((a) => picked.includes(a.id));
+    if (options.length !== OPTIONS_DEALT) return;
     setBusy(true);
     setTimeout(() => {
       setResults(planOffers(staged, options, shared, catalogue, valueOf, rerolls, FUTURES));
@@ -167,7 +200,7 @@ export default function FantasySimulator({
   };
 
   const info = riskLabel(risk);
-  const chosenCount = chosen.length;
+  const chosenCount = chosen.filter(Boolean).length;
 
   return (
     <section className="card stack" id="simulator">
@@ -176,7 +209,7 @@ export default function FantasySimulator({
           <h2>Fantasy simulator</h2>
           <p className="faint" style={{ marginTop: 2 }}>
             {budget} rerolls for the whole roster — Core, Mid and Support share them,
-            and every option costs one. Tick the three the game just dealt you and see
+            and every option costs one. Record the three the game just dealt you and see
             whether any beats waiting for the next deal.
           </p>
         </div>
@@ -239,8 +272,8 @@ export default function FantasySimulator({
           </span>
         </div>
         <div className="stat-tile">
-          <small>Options ticked</small>
-          <b>{chosenCount}</b>
+          <small>Options recorded</small>
+          <b>{chosenCount} / {OPTIONS_DEALT}</b>
           <span className="faint">skip is always compared too</span>
         </div>
 
@@ -250,33 +283,62 @@ export default function FantasySimulator({
         <div className="row-between">
           <h3>Options on offer</h3>
           <div style={{ display: "flex", gap: 8 }}>
-            <button onClick={run} className="btn-primary" disabled={!chosenCount || busy}>
-              {busy ? "Simulating…" : `Compare ${chosenCount || ""}`}
+            <button onClick={run} className="btn-primary"
+                    disabled={chosenCount !== OPTIONS_DEALT || busy}>
+              {busy
+                ? "Simulating…"
+                : chosenCount === OPTIONS_DEALT
+                  ? "Compare all three"
+                  : `Fill ${OPTIONS_DEALT - chosenCount} more`}
             </button>
             <button onClick={() => { setChosen([]); setResults(null); }}>Clear</button>
           </div>
         </div>
         <p className="faint">
-          Tick the <strong>three options the game is showing you</strong>. They are the
-          same three for every banner, so the answer is a pair: which option, and which
-          banner to spend it on. Using one replaces all three, so declining means stopping
-          rather than waiting.
+          Record the <strong>three options the game is showing you</strong>, one per slot.
+          They are the same three for every banner, so the answer is a pair: which option,
+          and which banner to spend it on. Using one replaces all three, so declining means
+          stopping rather than waiting.
         </p>
-        <div className="option-grid">
-          {shared.map((action) => (
-            <label key={action.id} className={`option-chip ${chosen.includes(action.id) ? "on" : ""}`}>
-              <input type="checkbox" checked={chosen.includes(action.id)}
-                onChange={() => toggle(action.id)} />
-              <span>{action.label}</span>
-            </label>
-          ))}
+        <div className="offer-slots">
+          {[0, 1, 2].map((i) => {
+            const value = chosen[i] ?? "";
+            const taken = chosen.filter((id, j) => id && j !== i);
+            return (
+              <label key={i} className={`offer-slot ${value ? "on" : ""}`}>
+                <span className="offer-slot-n">{i + 1}</span>
+                <select
+                  value={value}
+                  aria-label={`Option ${i + 1} the game dealt`}
+                  onChange={(e) => { setSlot(i, e.target.value); setResults(null); }}
+                >
+                  <option value="">— pick the option —</option>
+                  {Object.entries(byColour).map(([colour, actions]) => (
+                    <optgroup key={colour} label={colour === "any" ? "Wildcards" : `${colour} emblems`}>
+                      {actions.map((a) => (
+                        <option key={a.id} value={a.id} disabled={taken.includes(a.id)}>
+                          {a.label}
+                        </option>
+                      ))}
+                    </optgroup>
+                  ))}
+                </select>
+              </label>
+            );
+          })}
         </div>
       </div>
 
       {results && (
         <Results
           plan={results}
-          onSpend={() => setRerolls((r) => Math.max(0, r - 1))}
+          onSpend={() => {
+            // Using an option replaces all three, so the slots go back to empty
+            // for whatever the game deals next.
+            setRerolls((r) => Math.max(0, r - 1));
+            setChosen([]);
+            setResults(null);
+          }}
           rerolls={rerolls}
         />
       )}
@@ -303,6 +365,7 @@ export default function FantasySimulator({
                 <div key={index} className="emblem-row">
                   <span className={`dot dot-${color}`} aria-label={color} />
                   <select value={emblem.stat} aria-label={`${ROLE_LABELS[role]} emblem ${index + 1} stat`}
+                    title={STAT_DEFINITIONS[emblem.stat]}
                     onChange={(e) => update(role, index, { stat: e.target.value as StatKey })}>
                     {availableStats(staged[role], index, slotOptions).map((stat) => (
                       <option key={stat} value={stat}>{STAT_LABELS[stat]}</option>
@@ -347,6 +410,35 @@ function Results({
   const best = plan.decisions[0];
   const worthTaking = best && best.edge > 0;
 
+  /**
+   * One row per option, not one per option-and-banner.
+   *
+   * A deal is three options; the model scores each against every banner it can
+   * legally go on, which is up to nine pairs. Listing all nine reads as though
+   * the game dealt nine. So each option gets its best banner as the row, and the
+   * runners-up are named beside it.
+   */
+  const bestPerOption = Object.values(
+    plan.decisions.reduce<Record<string, OfferDecision>>((acc, d) => {
+      if (!acc[d.action.id] || d.edge > acc[d.action.id].edge) acc[d.action.id] = d;
+      return acc;
+    }, {})
+  ).sort((a, b) => b.edge - a.edge);
+
+  /**
+   * How many pairs the model cannot separate from the leader.
+   *
+   * When the field is this close, naming one of them "best" claims a precision
+   * the search does not have - the lead is smaller than its own error bar. Say
+   * they are equivalent and let the player pick on something else.
+   */
+  const tiedCount = plan.decisions.filter((d) => d.tied && d.edge > 0).length;
+
+  const alternatives = (d: OfferDecision) =>
+    plan.decisions
+      .filter((x) => x.action.id === d.action.id && x.role !== d.role)
+      .sort((a, b) => b.edge - a.edge);
+
   return (
     <div className="stack">
       <h3>Take one, or wait for the next deal</h3>
@@ -372,10 +464,14 @@ function Results({
         <div className="stat-tile">
           <small>Verdict</small>
           <b style={{ color: worthTaking ? "var(--accent)" : "var(--muted)" }}>
-            {worthTaking ? "Take one" : "Decline"}
+            {!worthTaking ? "Decline" : tiedCount ? "Take any" : "Take one"}
           </b>
           <span className="faint">
-            {worthTaking ? `${signed(best.edge)} over stopping` : "none of them beat what you hold"}
+            {!worthTaking
+              ? "none of them beat what you hold"
+              : tiedCount
+                ? `${tiedCount + 1} pairs too close to separate`
+                : `${signed(best.edge)} over stopping`}
           </span>
         </div>
       </div>
@@ -403,15 +499,28 @@ function Results({
             </tr>
           </thead>
           <tbody>
-            {plan.decisions.map((d, index) => (
+            {bestPerOption.map((d, index) => (
               <tr key={`${d.role}:${d.action.id}`}>
                 <td>
-                  {index === 0 && d.edge > 0 && (
+                  {index === 0 && d.edge > 0 && !tiedCount && (
                     <span className="tag" style={{ marginRight: 6 }}>best</span>
+                  )}
+                  {(d.tied || (index === 0 && tiedCount > 0)) && d.edge > 0 && (
+                    <span className="tag tag-tied" style={{ marginRight: 6 }}>tied</span>
                   )}
                   {d.action.label}
                 </td>
-                <td className="muted">{ROLE_LABELS[d.role]}</td>
+                <td className="muted">
+                  {ROLE_LABELS[d.role]}
+                  <span className="faint" style={{ display: "block", fontSize: "0.72rem" }}>
+                    {d.runsUsed.toLocaleString()} play-outs
+                  </span>
+                  {alternatives(d).length > 0 && (
+                    <span className="faint" style={{ display: "block", fontSize: "0.78rem" }}>
+                      or {alternatives(d).map((a) => `${ROLE_LABELS[a.role]} ${signed(a.edge)}`).join(" · ")}
+                    </span>
+                  )}
+                </td>
                 <td className="num" style={{ textAlign: "right" }}>{fmt(d.takeValue)}</td>
                 <td className="num" style={{
                   textAlign: "right", fontWeight: 650,
