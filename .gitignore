@@ -9,3 +9,6 @@ data/cache
 
 # validation build output
 .validate
+
+# simulation run output
+sim-*.txt

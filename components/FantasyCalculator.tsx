@@ -6,7 +6,8 @@ import {
   Tier, Trait, availableStats, buildLineups, matchScores, optimizeEmblems, rankPlayers
 } from "../lib/fantasy";
 import {
-  BANNER_SLOTS, Role, STAT_COLORS, STAT_LABELS, StatKey, UNAVAILABLE_STATS, statsForColor
+  BANNER_SLOTS, Role, STAT_COLORS, STAT_DEFINITIONS, STAT_LABELS, StatKey, UNAVAILABLE_STATS,
+  statsForColor
 } from "../lib/scoring";
 import { useMainEventMaps, type MainEventMaps } from "./useMainEventMaps";
 import type { TeamEntry } from "../lib/data";
@@ -525,7 +526,7 @@ function Breakdown({ ranked, banner, risk }: { ranked: Ranked; banner: Emblem[];
           return (
             <div key={index}>
               <div className="row-between" style={{ fontSize: "0.86rem" }}>
-                <span>
+                <span title={STAT_DEFINITIONS[c.emblem.stat]}>
                   <span className={`dot dot-${STAT_COLORS[c.emblem.stat]}`} />{" "}
                   {STAT_LABELS[c.emblem.stat]}
                   <span className="faint">

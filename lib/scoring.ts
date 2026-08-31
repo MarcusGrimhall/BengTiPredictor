@@ -48,6 +48,50 @@ export const STAT_LABELS: Record<StatKey, string> = {
   smokes: "Smokes used", madstones: "Madstones collected"
 };
 
+/**
+ * What each number actually counts, as opposed to what it is called.
+ *
+ * Written after checking every field against OpenDota and STRATZ on the same
+ * matches. Several of these read the opposite way round to the obvious guess -
+ * wards are placed rather than bought, stacks are camps rather than creeps,
+ * smokes are used rather than purchased - and each of those is a mistake this
+ * project made at some point. See ASSUMPTIONS.md.
+ */
+export const STAT_DEFINITIONS: Record<StatKey, string> = {
+  kills:
+    "Hero kills the player took themselves. Assists are not counted here at all.",
+  deaths:
+    "Starts at 1950 and subtracts 195 a death, with a floor of zero — ten deaths pays nothing rather than a penalty. Scored per game, then averaged.",
+  creeps:
+    "Creep last hits. Denies are a separate number and no emblem uses them.",
+  gpm:
+    "Gold per minute, already averaged over the match. The only stat that is a rate rather than a count, so a long game does not inflate it.",
+  towers:
+    "Whoever lands the last hit on the tower takes all of it. Towers that fall to creeps are credited to nobody.",
+  roshan:
+    "The killing blow on Roshan, not the team that took it.",
+  tormentor:
+    "The last hit on a Tormentor. Often a support, who wants the Shard.",
+  courier:
+    "Couriers killed. Couriers that die to creeps or towers count for no one.",
+  firstBlood:
+    "Once a game, to whoever took the kill rather than the assist. It pays 1934, but it only fires in about a tenth of games.",
+  teamfight:
+    "The player's share of their team's fighting: kills plus assists, over the number of times the other team died. A fraction between 0 and 1, typically about two thirds.",
+  stuns:
+    "Seconds of stun applied, summed per hero hit — a three-hero, two-second stun counts as six. That favours wide AoE stuns over single-target ones.",
+  wards:
+    "Observer wards actually placed, not bought. Sentries are not counted.",
+  stacks:
+    "Neutral camps stacked — camps, not the creeps inside them.",
+  runes:
+    "Runes taken, including ones put straight into a bottle. Wisdom runes are the exception and are not counted.",
+  smokes:
+    "Smokes used, whoever paid for them. A smoke bought and never used is worth nothing.",
+  madstones:
+    "Madstone bundles collected. Worth little per unit and rarely enough volume to earn a slot."
+};
+
 export const STAT_KEYS = Object.keys(POINT_VALUES) as StatKey[];
 
 // Stats TI fantasy scores but neither OpenDota nor STRATZ exposes at all.
@@ -63,10 +107,17 @@ export const BANNER_SLOTS: Record<Role, EmblemColor[]> = {
   support: ["blue", "green", "blue", "green", "blue"]
 };
 
-/** Converts a per-game raw value into fantasy points for that stat. */
+/**
+ * Converts a per-game raw value into fantasy points for that stat.
+ *
+ * Never below zero. Only Deaths can go negative on the raw scale - it starts at
+ * 1950 and subtracts 195 a death, so it crosses zero at exactly ten deaths, and
+ * about one player-game in eleven is above that. No emblem pays a penalty: the
+ * floor is zero, the same way emblemMultipliers refuses to go negative.
+ */
 export function statToPoints(stat: StatKey, rawPerGame: number): number {
   const { per, base = 0 } = POINT_VALUES[stat];
-  return base + per * rawPerGame;
+  return Math.max(0, base + per * rawPerGame);
 }
 
 export function statsForColor(color: EmblemColor): StatKey[] {

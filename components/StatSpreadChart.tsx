@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import type { StatSpread } from "../lib/statSpread";
-import { Role, STAT_COLORS, STAT_LABELS } from "../lib/scoring";
+import { Role, STAT_COLORS, STAT_DEFINITIONS, STAT_LABELS } from "../lib/scoring";
 import { STAGE_LABELS, type Stage } from "../lib/stages";
 import Info from "./Info";
 
@@ -238,6 +238,8 @@ export default function StatSpreadChart({
               <div className="spread-label">
                 <span className={`dot dot-${STAT_COLORS[row.stat]}`} />
                 {STAT_LABELS[row.stat]}
+                {/* What the number counts, which is not always what it is called. */}
+                <Info title={STAT_LABELS[row.stat]}>{STAT_DEFINITIONS[row.stat]}</Info>
               </div>
               <div className="spread-track">
                 <div className="spread-axis" />

@@ -18,6 +18,7 @@ wrong, the numbers that depend on it are wrong.
 | A series is the **sum** of its two best games | You, and the in-game rules |
 | A period pays only the **best single series** | In-game rules |
 | The same three options serve every banner; you choose which to apply one to | In-game rules |
+| A deal is **always exactly three options**, plus the standing option to use none — never more, never fewer | You. Enforced by `OPTIONS_DEALT` in `lib/offers.ts`, which the simulator's UI now also obeys |
 | Using an option **replaces all three** | In-game rules |
 | Titles are free to change and cost no rerolls | In-game rules |
 | Group stage 3 emblems / 40 tokens, playoffs 5 / 30 | You |
@@ -33,9 +34,21 @@ wrong, the numbers that depend on it are wrong.
 | Reroll scopes: stat / quality / trait × all / first / last / random of a colour | Community guides |
 | Compendium prediction payout scale | Community guides |
 | Stage boundary, group stage format, series counts | Derived from the match data itself |
-| Player names and roles | OpenDota's pro registry |
+| Player names and roles | OpenDota's pro registry `fantasy_role`, authoritative where present — 621 of 651 entries (95.4%) across ten re-fetched leagues, and 80 of 80 at TI 2026. The last-hits heuristic is only the fallback |
 | Team strength effect on scoring (1.84% per 100 Elo) | Measured here, n=2910, t=4.05 |
 | Suffix trigger rates | Measured from the matches themselves |
+| **No stat pays negative points** — the scale floors at zero, so ten-plus deaths pay 0 rather than a penalty | You |
+| Smokes are **smokes used**, `item_uses.smoke_of_deceit` | Verified against STRATZ `itemUsed` item 188, 10/10 players on a checked match |
+| Kills, deaths, last hits, GPM, courier kills, observer wards, camps stacked | Verified field by field against STRATZ on the same match, 10/10 players each |
+| Roshan is the player credited with the kill | Sum of `killed.npc_dota_roshan` equals the count of `CHAT_MESSAGE_ROSHAN_KILL` events exactly, over 12 matches |
+| First Blood | Sum of `firstblood_claimed` equals the count of `CHAT_MESSAGE_FIRSTBLOOD` events exactly |
+| Tormentor is the player who last-hit it | Every `CHAT_MESSAGE_MINIBOSS_KILL` event carries a `player_slot`. STRATZ has no tormentor data at all |
+| Runes count **power, bounty and bottled runes, but not Wisdom** | You, and `rune_pickups` matches that rule exactly — see below |
+| A tower goes to whoever landed the **last hit** | You |
+| Teamfight participation is a **0–1 share**, scored per unit and not per percentage point | You |
+| One `madstone_bundle` is **one madstone** | You |
+| Teamfight participation is **(kills + assists) / the opposing team's total deaths** — the standard share, not OpenDota's teamfight-graph clustering | Reconstructed from the data: reproduces the field exactly in 102 of 120 player-games, and in 13 more with a numerator one assist lower. 95.8% accounted for. Note the denominator is **deaths, not kills** — a hero killed by creeps or a tower raises it without being anyone's kill, which happened in 6 of 24 teams |
+| `p.stuns` **sums per target hit** — a three-hero, two-second stun counts as six seconds | OpenDota reads `modifier_stunned` from the combat log per affected hero. Means the emblem systematically favours AoE stuns |
 
 ## Assumed — not verified anywhere
 
@@ -43,10 +56,27 @@ wrong, the numbers that depend on it are wrong.
 | --- | --- | --- |
 | **Every reroll outcome is equally likely** — a quality reroll on a tier II gives I, III, IV or V at 25% each; a trait reroll gives any of the other five at 20% each | `tierOptions`, `traitOptions` in `lib/reroll.ts` | The value of every quality and trait reroll. Searched for published odds and found none — no guide carries them. |
 | Hero colour/theme groups | `HERO_GROUPS`, empty | Prefix titles — reported as unknown rather than guessed |
-| **Madstones are `item_uses.madstone_bundle`** | `scripts/extract.mjs` | The Madstones emblem. OpenDota has no field by that name. This one correlates r=0.87 with `neutral_kills` over 1,793 player-games, at roughly one per three camps cleared, and is present in ~90% of parsed matches — the shape of pickups, not of a player activating an item twelve times a game. It is still an inference. Low stakes either way: at TI 2026 it is worth 246 points a game to a core against 1,512 for last hits, so it never enters an optimal banner. |
 
-That is the whole list. It used to be six entries; the token costs turned out
-not to exist, and the rest were replaced by rules you confirmed.
+That is the whole list, and it is down to two. Runes, Towers, Teamfight and
+Madstones were on it briefly: they were never new guesses, they were old guesses
+that had never been written down, and you settled all four.
+
+## What `rune_pickups` actually counts
+
+Worth recording, because it took two sources to establish and it is easy to get
+backwards. OpenDota's `rune_pickups` is **every rune the player took, including
+ones that went through a bottle, minus Wisdom runes.**
+
+Both halves are measured, not assumed. `rune_pickups` equals the player's own
+rune map minus type 8 on 120 of 120 player-games. And STRATZ, which reports a
+`PICKUP` and a `BOTTLE` action, turns out to emit `BOTTLE` as an *annotation on
+a rune that is also counted as a `PICKUP`* — all 18 bottle events in a checked
+match are followed by a pickup of the same rune type within 90 seconds, none
+unmatched. So bottled runes are already in the number. STRATZ's pickup count
+equals OpenDota's rune map on 10 of 10 players.
+
+That is the rule you gave, so the field needs no adjustment. Had it excluded
+bottled runes we would have been understating the emblem by about a fifth.
 
 ## Genuinely unavailable
 
@@ -55,7 +85,9 @@ the calculator, because no public source has them. Every one of OpenDota's 146
 player fields was searched, along with the whole match object and every
 objective type: the only `lotus` keys are the item Lotus Orb and its recipe,
 and `watcher` does not appear anywhere at all. STRATZ's GraphQL schema has no
-field for either. Getting them would mean parsing replays.
+field for either — this is now checked rather than assumed: all 513 types were
+introspected and searched, and `lotus`, `watcher` and `madstone` return zero
+hits apiece. Getting them would mean parsing replays.
 
 ## Retracted
 
@@ -86,3 +118,13 @@ Things I asserted that turned out to be invented or wrong, and have been fixed:
   banners, and you choose which to apply one to.
 - **Declining waits for a better deal** — the options only change when one is
   used, so declining means stopping.
+- **Smokes were smokes bought** — `purchase.smoke_of_deceit`, while the label
+  said "Smokes used". The two differ in 29 of 56 player-games that have the
+  data: a smoke bought and never used counted, one bought by a team mate and
+  used by this player did not.
+- **Deaths could pay a negative score** — 1950 − 195 a death crosses zero at ten
+  deaths, and 5.9% of player-games are above that. No stat pays a penalty.
+- **An emblem's average was scored from the average stat line** — scoring
+  happens per game, so the average has to be taken over scored games. Identical
+  for fifteen stats, which are linear; wrong for Deaths, which is floored. It
+  understated Deaths by 3% across the board and by up to 4x for one player.

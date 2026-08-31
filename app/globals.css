@@ -235,18 +235,23 @@ footer.site-footer {
 }
 
 /* --- fantasy simulator: option chips --- */
-.option-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 6px; }
-.option-chip {
-  display: flex; align-items: center; gap: 9px; cursor: pointer;
-  padding: 7px 10px; border-radius: var(--radius-sm);
-  border: 1px solid var(--border); background: var(--bg-inset); font-size: 0.85rem;
+/* --- the three options a deal puts in front of you --- */
+
+.offer-slots { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 10px; }
+.offer-slot {
+  display: flex; align-items: center; gap: 10px;
+  background: var(--bg-inset); border: 1px solid var(--border);
+  border-radius: var(--radius-sm); padding: 9px 11px;
 }
-.option-chip:hover { border-color: var(--border-strong); }
-.option-chip.on { border-color: var(--accent); background: var(--accent-soft); }
-.option-chip input { width: 14px; height: 14px; flex: none; margin: 0; accent-color: var(--accent); }
-.option-chip span { flex: 1; min-width: 0; }
-.option-chip em { font-style: normal; color: var(--text-faint); flex: none; }
-.option-chip.on em { color: var(--accent); }
+.offer-slot.on { border-color: var(--accent); }
+.offer-slot-n {
+  flex: none; width: 22px; height: 22px; border-radius: 5px;
+  display: grid; place-items: center;
+  font-family: var(--mono); font-size: 0.78rem; font-weight: 700;
+  background: var(--bg-raised); color: var(--text-faint);
+}
+.offer-slot.on .offer-slot-n { background: var(--accent-soft); color: var(--accent); }
+.offer-slot select { flex: 1; min-width: 0; }
 
 /* --- fantasy simulator --- */
 
@@ -306,7 +311,12 @@ footer.site-footer {
   align-items: center; gap: 12px; padding: 3px 0; border-radius: 4px;
 }
 .spread-row:hover { background: var(--bg-inset); }
-.spread-label { font-size: 0.86rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.spread-label {
+  font-size: 0.86rem; white-space: nowrap; min-width: 0;
+  display: flex; align-items: center; gap: 6px;
+}
+/* The label itself truncates; the dot and the ? keep their space. */
+.spread-label > .dot, .spread-label > .info { flex: none; }
 .spread-track { position: relative; height: 22px; }
 .spread-axis {
   position: absolute; top: 50%; left: 0; right: 0; height: 1px;
@@ -399,3 +409,6 @@ footer.site-footer {
   width: 56px; padding: 4px 6px; text-align: center;
   font-family: var(--mono); font-size: 0.9rem;
 }
+
+/* Pairs the search cannot separate from the leader. */
+.tag-tied { background: var(--bg-raised); color: var(--text-muted); border: 1px solid var(--border-strong); }

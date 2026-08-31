@@ -135,12 +135,32 @@ export function emblemMultipliers(emblems: Emblem[]): number[] {
   return emblems.map((e, i) => Math.max(0, 1 + TIER_BONUSES[e.tier] / 100 + traits[i]));
 }
 
+/**
+ * Average points an emblem pays per game.
+ *
+ * Scoring happens per game, so the average has to be taken over scored games -
+ * not by scoring the average stat line. For fifteen of the sixteen stats those
+ * are the same number, because points are linear in the raw value. Deaths are
+ * the exception: they are floored at zero, and flooring an average is not the
+ * same as averaging floors. A player who goes 18, 8, 6, 6, 15, 3 averages 9.3
+ * deaths and looks like 130 points, while the games actually paid 553.
+ *
+ * Falls back to the season average when a player has no per-game lines.
+ */
+function averageBasePoints(player: PlayerEntry, stat: StatKey): number {
+  const lines = player.gameLines;
+  if (!lines?.length) return statToPoints(stat, player.perGame[stat] ?? 0);
+  let total = 0;
+  for (const line of lines) total += statToPoints(stat, line[stat] ?? 0);
+  return total / lines.length;
+}
+
 export function contributions(player: PlayerEntry, emblems: Emblem[]): Contribution[] {
   const traits = traitBonuses(emblems);
   const multipliers = emblemMultipliers(emblems);
   return emblems.map((emblem, index) => {
     const rawPerGame = player.perGame[emblem.stat] ?? 0;
-    const basePoints = statToPoints(emblem.stat, rawPerGame);
+    const basePoints = averageBasePoints(player, emblem.stat);
     return {
       emblem,
       rawPerGame,

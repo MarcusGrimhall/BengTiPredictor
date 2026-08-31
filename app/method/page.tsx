@@ -1,5 +1,5 @@
 import { loadDefaultLeague } from "../../lib/data";
-import { POINT_VALUES, STAT_LABELS, STAT_KEYS, UNAVAILABLE_STATS } from "../../lib/scoring";
+import { POINT_VALUES, STAT_DEFINITIONS, STAT_LABELS, STAT_KEYS, UNAVAILABLE_STATS } from "../../lib/scoring";
 import { TIER_BONUSES, TRAIT_DESCRIPTIONS, TRAITS } from "../../lib/fantasy";
 
 export const metadata = { title: "Method · BengTiPredictor" };
@@ -38,7 +38,11 @@ export default async function MethodPage() {
         <div className="grid grid-2">
           <section className="card stack">
             <h2>Points per unit</h2>
-            <p className="faint">Valve&rsquo;s official TI 2026 Compendium fantasy scale.</p>
+            <p className="faint">
+              Valve&rsquo;s official TI 2026 Compendium fantasy scale. Nothing pays a
+              penalty — Deaths floors at zero rather than going negative. Hover a
+              stat to see what the number actually counts.
+            </p>
             <div className="scroll-x">
               <table>
                 <thead><tr><th>Stat</th><th style={{ textAlign: "right" }}>Formula</th></tr></thead>
@@ -47,7 +51,7 @@ export default async function MethodPage() {
                     const { per, base } = POINT_VALUES[key];
                     return (
                       <tr key={key}>
-                        <td>{STAT_LABELS[key]}</td>
+                        <td title={STAT_DEFINITIONS[key]}>{STAT_LABELS[key]}</td>
                         <td className="num" style={{ textAlign: "right" }}>
                           {base ? `${base} − ${Math.abs(per)} ×` : `${per} ×`} value
                         </td>
@@ -181,9 +185,10 @@ export default async function MethodPage() {
           <h2>What cannot be calculated</h2>
           <p className="muted">
             OpenDota does not expose <strong>{UNAVAILABLE_STATS.join(" or ")}</strong> at all,
-            and neither does STRATZ — all 146 player fields, the whole match object and every
-            objective type were searched. Those two emblems are not in the calculator; better
-            to show fewer stats than guessed ones.
+            and neither does STRATZ — all 147 player fields, the whole match object and every
+            objective type were searched on one side, and all 513 types of the STRATZ schema
+            on the other. Both return zero hits. Those two emblems are not in the calculator;
+            better to show fewer stats than guessed ones.
           </p>
           <p className="faint">
             <strong>Madstones</strong> are in, but derived rather than labelled. OpenDota has no

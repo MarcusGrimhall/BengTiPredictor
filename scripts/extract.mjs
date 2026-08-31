@@ -130,7 +130,12 @@ export function extractMatch(match) {
         wards: p.obs_placed ?? 0,
         stacks: p.camps_stacked ?? 0,
         runes: p.rune_pickups ?? 0,
-        smokes: p.purchase?.smoke_of_deceit ?? 0,
+        // Smokes USED, not bought. purchase.smoke_of_deceit counts what the
+        // player paid for, which is a different number in 29 of 56 player-games
+        // with data - a smoke bought and never used counted, one bought by a
+        // team mate and used by this player did not. STRATZ's itemUsed for item
+        // 188 matches item_uses 10/10 on a checked match, purchase 8/10.
+        smokes: p.item_uses?.smoke_of_deceit ?? 0,
         // Derived, not labelled: OpenDota has no madstone field, but it counts
         // madstone_bundle events, which correlate r=0.87 with neutral_kills
         // over 1,793 player-games at about one per three camps - the shape of
