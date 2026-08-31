@@ -24,7 +24,6 @@ wrong, the numbers that depend on it are wrong.
 | Group stage 3 emblems / 40 tokens, playoffs 5 / 30 | You |
 | Tokens are one shared pool across all three banners | You |
 | Three random options per deal, ~40 deals | You |
-| The same option cannot be offered twice in a row | You |
 | Skip is always available and free | You |
 | A quality change lands on a **random** available tier, not ±1 | You |
 | A reroll never returns the value it replaced | You |
@@ -57,13 +56,17 @@ wrong, the numbers that depend on it are wrong.
 | **Every reroll outcome is equally likely** — a quality reroll on a tier II gives I, III, IV or V at 25% each; a trait reroll gives any of the other five at 20% each | `tierOptions`, `traitOptions` in `lib/reroll.ts` | The value of every quality and trait reroll. Searched for published odds and found none — no guide carries them. |
 | Hero colour/theme groups | `HERO_GROUPS`, empty | Prefix titles — reported as unknown rather than guessed |
 | **Madstones are 2.7 × `item_uses.madstone_bundle`** | `MADSTONES_PER_BUNDLE` in `scripts/extract.mjs` | The Madstones emblem. OpenDota has no madstone field; it counts bundles, and a bundle is not a stone. Three independent sources put the ratio between 2.5 and 3 — see below. At TI 2026 the emblem is worth 663 points a game to a core, level with Kills and still well behind Last hits at 1,512. |
+| **The same option may not be offered twice in a row** | Nowhere — `deal()` in `lib/offers.ts` draws freely | The value of a reroll. This was in the verified table, credited to observation, but the observation was not close enough to rely on and the code never enforced it. As it stands **about 22% of deals repeat at least one option** (3 drawn from 38, twice running). If the rule is real, reshuffling is worth slightly more than the simulator says. Note the rule is also ambiguous as written — it could block only the option you used, all three you were shown, or only the ones you declined, and those are three different implementations. Settle what it means before enforcing it. |
 | **A role heuristic is a role** | `scripts/fetch-league.mjs` | Every ranking. Lane detection is OpenDota's reading of where a hero stood, not Valve's fantasy assignment. It has never disagreed where it can be checked and is never close, but it is inference. STRATZ exposes a real per-match `Position` (POSITION_1…POSITION_5) behind a free API token, which would remove the inference entirely. |
 
-That is the whole list, and it is down to four. Runes, Towers and Teamfight
-were on it briefly: they were never new guesses, they were old guesses that had
-never been written down, and you settled all three. Madstones came back on it —
-the bundle count is measured, but the stones-per-bundle factor that turns it
-into the scored stat is not.
+That is the whole list, and it is five. Runes, Towers and Teamfight were on it
+briefly: they were never new guesses, they were old guesses that had never been
+written down, and you settled all three. Two came back the other way. Madstones,
+because the bundle count is measured but the stones-per-bundle factor that turns
+it into the scored stat is not. And the no-repeat rule, which had been sitting in
+the verified table on the strength of an observation that turned out not to be a
+careful one — a reminder that "You" is a source like any other, and worth
+re-checking rather than promoting.
 
 ## What `rune_pickups` actually counts
 

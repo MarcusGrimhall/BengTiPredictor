@@ -73,6 +73,17 @@ export const OPTIONS_DEALT = 3;
  * One deal serves all three banners, so options are drawn from the catalogue
  * once rather than per role. A scope that only makes sense on one banner - "all
  * blue emblems" on a Core banner with no blue - simply cannot be applied there.
+ *
+ * Distinct WITHIN a deal, but with no memory of the previous one: an option can
+ * be dealt again immediately, and with 3 drawn from 38 that happens in about
+ * 22% of deals. ASSUMPTIONS.md once listed "the same option cannot be offered
+ * twice in a row" as verified; it is now on the assumed list, because the
+ * observation behind it was not a careful one and nobody has checked.
+ *
+ * Do not enforce it without settling what it means first - it could block only
+ * the option just used, all three just shown, or only the ones declined, and
+ * those are three different rules. If it is real, the simulator currently
+ * understates what a reshuffle is worth.
  */
 function deal(
   catalogue: RerollAction[],

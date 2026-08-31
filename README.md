@@ -50,7 +50,7 @@ real world best at TI 2026 was 106,966. That is the right relationship.
 | File | What is in it |
 | --- | --- |
 | **[COMMANDS.md](COMMANDS.md)** | Every command. Starting and stopping the site, fetching data, training the model, and each flag grouped by what it decides. |
-| **[ASSUMPTIONS.md](ASSUMPTIONS.md)** | Every rule the calculator applies and where it came from — including the four things still assumed, and the ones I got wrong and fixed. |
+| **[ASSUMPTIONS.md](ASSUMPTIONS.md)** | Every rule the calculator applies and where it came from — including the five things still assumed, and the ones I got wrong and fixed. |
 | `/method` in the app | The same, in the browser. |
 
 ## Layout
