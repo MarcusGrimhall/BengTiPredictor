@@ -3,7 +3,7 @@ import { listLeagues, loadLeague, toPlayerEntries } from "../../lib/data";
 import { buildLineups, optimizeEmblems, type Emblem, type PlayerEntry } from "../../lib/fantasy";
 import { BANNER_SLOTS, Role, StatKey, statsForColor } from "../../lib/scoring";
 import { STAGES, STAGE_SLOTS, type Stage } from "../../lib/stages";
-import { statSpread, type StatSpread } from "../../lib/statSpread";
+import { statSpread, type RoleSpread } from "../../lib/statSpread";
 import { preEventStrength } from "../../lib/strength";
 import { monthsOf, poolWindow, windowCuts, type WindowSource } from "../../lib/metaWindow";
 import { loadTraining } from "../../lib/data";
@@ -54,7 +54,7 @@ export default async function InformationPage() {
     if (results.length) preEventStrengthFor.set(league.leagueId, preEventStrength(results, names));
   }
 
-  const spread: Record<string, Record<Stage, Record<Role, StatSpread[]>>> = {};
+  const spread: Record<string, Record<Stage, Record<Role, RoleSpread>>> = {};
   const meta: Array<{
     id: string;
     name: string;
@@ -91,7 +91,7 @@ export default async function InformationPage() {
     if (!entries.length || events.length < 2) continue;
 
     // A pooled window has no group stage or playoffs - it is professional play.
-    spread[id] = { groupStage: {}, playoffs: {} } as Record<Stage, Record<Role, StatSpread[]>>;
+    spread[id] = { groupStage: {}, playoffs: {} } as Record<Stage, Record<Role, RoleSpread>>;
     // Strongest four across the window, by pre-event Elo over its own matches.
     const windowResults: Array<{ radiant: number; dire: number; radiantWin: boolean }> = [];
     const windowNames: Record<number, string> = {};
@@ -110,7 +110,7 @@ export default async function InformationPage() {
       const colours = [...new Set(BANNER_SLOTS[role])];
       const stats = colours.flatMap((c) => statsForColor(c)) as StatKey[];
       return [role, statSpread(entries, role, stats, strongWindow)];
-    })) as Record<Role, StatSpread[]>;
+    })) as Record<Role, RoleSpread>;
 
     spread[id].groupStage = byRole;
     spread[id].playoffs = byRole;
@@ -172,7 +172,7 @@ export default async function InformationPage() {
     const strong = new Set(order.slice(0, 4));
 
     const stagesPresent: Stage[] = [];
-    spread[id] = {} as Record<Stage, Record<Role, StatSpread[]>>;
+    spread[id] = {} as Record<Stage, Record<Role, RoleSpread>>;
 
     for (const stage of STAGES) {
       const entries = buildLineups(toPlayerEntries(league, stage));
@@ -184,7 +184,7 @@ export default async function InformationPage() {
         const colours = [...new Set(BANNER_SLOTS[role])];
         const stats = colours.flatMap((c) => statsForColor(c)) as StatKey[];
         return [role, statSpread(entries, role, stats, strong)];
-      })) as Record<Role, StatSpread[]>;
+      })) as Record<Role, RoleSpread>;
 
       if (league.leagueId === primary.leagueId) {
         entriesByStage[stage] = entries;

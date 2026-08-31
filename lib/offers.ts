@@ -100,14 +100,6 @@ function applicable(
 }
 
 /**
- * Plays the remaining rounds out against random deals.
- *
- * The policy is greedy: take the best offer on the table if it beats standing
- * pat, otherwise skip. Greedy understates the value of waiting - a perfect
- * policy would sometimes decline a small gain to keep tokens for a better deal
- * - so the skip figure this produces is a floor rather than an exact answer.
- */
-/**
  * Plays the remaining rerolls out against random deals.
  *
  * The policy: apply the best (option, banner) pair on the table if it gains
@@ -158,13 +150,6 @@ function playOut(
   return ROLES.reduce((sum, role) => sum + value[role], 0);
 }
 
-/**
- * Values every offer on the table against the option of declining.
- *
- * `rounds` is how many more deals are expected before the card locks. With one
- * token per reroll and forty tokens that is forty; with dearer actions it is
- * fewer. It is the caller's estimate because the token costs are not published.
- */
 /**
  * Values every (option, banner) pair against stopping.
  *

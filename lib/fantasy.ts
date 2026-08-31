@@ -417,6 +417,56 @@ export type Ranked = {
 };
 
 /**
+ * The top entry's score for a role, and nothing else.
+ *
+ * `rankPlayers` is the full answer: it builds percentiles, an expected best-of,
+ * and a per-emblem `seriesContributions` breakdown for every entry, then sorts.
+ * The forward reroll search calls it once per banner state and reads exactly one
+ * number off it - `[0].total` - so all of that is computed and thrown away. On
+ * the TI 2026 core shortlist that is 0.323 ms against 0.061 ms for the same
+ * number, a factor of 5.2, and the search is the one place it is called in a
+ * loop.
+ *
+ * This computes the identical figure by the identical route - `matchScores`,
+ * the same strength scaling, the same best-of-`series` percentile - and keeps a
+ * running maximum instead of sorting. It is deliberately a duplicate of the
+ * scoring lines in `rankPlayers` rather than a shared helper: `rankPlayers`
+ * needs the whole `dist` for its other percentiles, so factoring the common part
+ * out would hand it back the allocation this exists to avoid. The scoring rule
+ * lives in one place - `matchScores` - and both agree by construction; the
+ * validator checks that they still return the same number.
+ */
+export function bestTotal(
+  players: PlayerEntry[],
+  role: Role,
+  emblems: Emblem[],
+  risk = 50,
+  seriesByTeam: Record<string, number> = {},
+  strengthByTeam: Record<string, number> = {}
+): number {
+  const p = riskToPercentile(risk);
+  let best = 0;
+  let seen = false;
+  for (const player of players) {
+    if (player.role !== role) continue;
+    const raw = matchScores(player, emblems);
+    const strength = strengthByTeam[player.teamName] ?? 1;
+    const series = Math.max(1, seriesByTeam[player.teamName] ?? raw.length ?? 1);
+    let score: number;
+    if (raw.length) {
+      // matchScores returns ascending, and scaling by a positive strength keeps
+      // that order - so the percentile can read the raw array and scale after,
+      // rather than allocating a scaled copy per candidate.
+      score = percentile(raw, Math.pow(p / 100, 1 / series) * 100) * strength;
+    } else {
+      score = scorePlayer(player, emblems) * strength;
+    }
+    if (!seen || score > best) { best = score; seen = true; }
+  }
+  return seen ? best : 0;
+}
+
+/**
  * Ranks the entries that can actually be picked for a role.
  *
  * A period pays out the entry's **best single series**, so there is no

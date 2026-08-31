@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import {
   Emblem, PlayerEntry, TIERS, TIER_BONUSES, TRAITS, TRAIT_DESCRIPTIONS,
-  Tier, Trait, availableStats, rankPlayers, riskToPercentile
+  Tier, Trait, availableStats, bestTotal, rankPlayers, riskToPercentile
 } from "../lib/fantasy";
 import { BANNER_SLOTS, Role, STAT_DEFINITIONS, STAT_LABELS, StatKey, statsForColor } from "../lib/scoring";
 import { actionCatalogue, randomBanner } from "../lib/reroll";
@@ -133,7 +133,10 @@ export default function FantasySimulator({
       for (const e of banner) key += `|${e.stat}:${e.tier}:${e.trait}`;
       const hit = seen.get(key);
       if (hit !== undefined) return hit;
-      const value = rankPlayers(shortlists[role] ?? [], role, banner, risk, seriesByTeam)[0]?.total ?? 0;
+      // bestTotal, not rankPlayers: this needs the top entry's score and
+      // nothing else, and rankPlayers builds a full breakdown per entry to get
+      // there. Same number, 5.2x cheaper - see lib/fantasy.ts.
+      const value = bestTotal(shortlists[role] ?? [], role, banner, risk, seriesByTeam);
       seen.set(key, value);
       return value;
     };

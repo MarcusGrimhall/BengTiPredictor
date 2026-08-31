@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import type { StatSpread } from "../lib/statSpread";
+import type { RoleSpread, StatSpread } from "../lib/statSpread";
 import { BANNER_SLOTS, Role, STAT_COLORS, STAT_DEFINITIONS, STAT_LABELS, statsForColor } from "../lib/scoring";
 import { STAGE_LABELS, type Stage } from "../lib/stages";
 import Info from "./Info";
@@ -27,7 +27,7 @@ function offColour(role: Role): { colours: string[]; stats: string[] } {
 }
 const fmt = (n: number) => Math.round(n).toLocaleString("en-US");
 
-export type SpreadData = Record<string, Record<Stage, Record<Role, StatSpread[]>>>;
+export type SpreadData = Record<string, Record<Stage, Record<Role, RoleSpread>>>;
 
 /**
  * One row per stat, one dot per entry.
@@ -85,10 +85,11 @@ export default function StatSpreadChart({
   const available = league?.stages ?? [];
   const activeStage = available.includes(stage) ? stage : available[0] ?? "groupStage";
 
-  const rows = useMemo(
-    () => data[leagueId]?.[activeStage]?.[role] ?? [],
-    [data, leagueId, activeStage, role]
-  );
+  const spread = data[leagueId]?.[activeStage]?.[role];
+  const rows = useMemo(() => spread?.rows ?? [], [spread]);
+  // Names, teams and series counts live once per role rather than once per
+  // stat - see SpreadEntry. Points carry an index into this.
+  const entries = spread?.entries ?? [];
 
   const pick = (p: { value: number; best: number }) => (measure === "best" ? p.best : p.value);
   const rowTop = (r: StatSpread) => (measure === "best" ? r.bestSeries : r.highest);
@@ -285,14 +286,17 @@ export default function StatSpreadChart({
                   title={`field average ${fmt(row.average)}`} />
                 <span className="tick tick-savg" style={{ left: `${x(row.strongAverage)}%` }}
                   title={`top-4 average ${fmt(row.strongAverage)}`} />
-                {row.points.map((p, i) => (
+                {row.points.map((p, i) => {
+                  const e = entries[p.entry];
+                  return (
                   <span
-                    key={`${p.name}-${i}`}
-                    className={`spread-dot ${p.strong ? "strong" : ""}`}
+                    key={`${e?.name ?? p.entry}-${i}`}
+                    className={`spread-dot ${e?.strong ? "strong" : ""}`}
                     style={{ left: `${x(pick(p))}%` }}
-                    title={`${p.name} · ${p.team}\n${fmt(p.value)} average over ${p.series} series, best ${fmt(p.best)}`}
+                    title={`${e?.name ?? ""} · ${e?.team ?? ""}\n${fmt(p.value)} average over ${e?.series ?? 0} series, best ${fmt(p.best)}`}
                   />
-                ))}
+                  );
+                })}
               </div>
               <div className="spread-nums">
                 <span className="num" title={`${measure === "best" ? "biggest single series" : "best average"} — ${rowTopName(row)}`}>

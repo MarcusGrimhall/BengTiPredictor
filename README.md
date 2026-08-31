@@ -33,7 +33,7 @@ does arithmetic, not simulation.
 The model is fitted **only on tournaments played before** the event it predicts,
 then graded on that event. Nothing about the target leaks back into the fit.
 
-`npm run validate` runs that grading as a standing test — 36 checks across five
+`npm run validate` runs that grading as a standing test — 37 checks across five
 Internationals, always against a baseline, exiting non-zero if one fails.
 
 The two rules that matter most, and that took a few tries to get right:

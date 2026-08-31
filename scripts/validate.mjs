@@ -20,7 +20,7 @@ const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
 const require = createRequire(join(ROOT, "package.json"));
 const lib = (name) => require(join(ROOT, ".validate", `${name}.js`));
 
-const { rankPlayers, matchScores, scoreDistribution, percentile, optimizeEmblems, buildLineups } = lib("fantasy");
+const { rankPlayers, bestTotal, matchScores, scoreDistribution, percentile, optimizeEmblems, buildLineups } = lib("fantasy");
 const { BANNER_SLOTS, statsForColor, statToPoints } = lib("scoring");
 const { toPlayerEntries, actualMapsByStage, actualSeriesByStage, trainingPlayerEntries } = lib("data");
 const { STAGES, STAGE_SLOTS } = lib("stages");
@@ -536,6 +536,27 @@ function checkInvariants(league) {
   pass("floor <= at-risk <= ceiling for every entry",
     ranked.every((r) => r.floor <= r.score + 1e-6 && r.score <= r.ceiling + 1e-6));
   pass("ranking is sorted", ranked.every((r, i) => i === 0 || r.total <= ranked[i - 1].total + 1e-9));
+
+  // A real per-team series count, so the best-of-series percentile path is
+  // exercised and not only the degenerate one.
+  const seriesMaps = Object.fromEntries(
+    [...new Set(players.map((p) => p.teamName))].map((t, i) => [t, 2 + (i % 4)])
+  );
+
+  // bestTotal is the reroll search's fast path for the same number rankPlayers
+  // puts at [0].total. They duplicate the scoring lines on purpose - see
+  // lib/fantasy.ts - so this is what stops them drifting apart. Checked across
+  // the risk range and with series counts applied, since both feed the
+  // best-of-series percentile.
+  let drift = 0;
+  for (const risk of [0, 25, 50, 75, 100]) {
+    for (const maps of [{}, seriesMaps]) {
+      const full = rankPlayers(players, role, opt, risk, maps)[0]?.total ?? 0;
+      const lean = bestTotal(players, role, opt, risk, maps);
+      if (Math.abs(full - lean) > 1e-9) drift += 1;
+    }
+  }
+  pass("bestTotal agrees with rankPlayers[0].total", drift === 0, `${drift} mismatch(es) over 10 combinations`);
 }
 
 // ---------------------------------------------------------------------------

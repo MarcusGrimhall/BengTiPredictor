@@ -449,10 +449,12 @@ async function main() {
   console.log(`  teams        : ${payload.teams.length} (${withElo} with Elo rating)`);
   const sampleRows = output.reduce((n, p) => n + p.samples.length, 0);
   const named = output.filter((p) => p.name !== p.steamName).length;
-  const officialRoles = output.filter((p) => proById.get(p.accountId)?.fantasy_role).length;
+  // How many entries the registry could have had an opinion about at all. It no
+  // longer decides the role - the lanes do - so this is coverage, not authority.
+  const inRegistry = output.filter((p) => proById.get(p.accountId)?.fantasy_role).length;
   console.log(`  players      : ${output.length} (min ${minGames} games)`);
   console.log(`  pro names    : ${named} resolved, ${output.length - named} kept their handle`);
-  console.log(`  roles        : ${officialRoles} from the pro registry, ${output.length - officialRoles} from the heuristic`);
+  console.log(`  roles        : from this event's lanes; ${inRegistry}/${output.length} also carry a registry role`);
   const mids = output.filter((p) => p.role === "mid").length;
   const agrees = output.filter((p) => {
     const r = FANTASY_ROLE[proById.get(p.accountId)?.fantasy_role];
