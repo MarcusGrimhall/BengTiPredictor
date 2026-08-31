@@ -596,13 +596,15 @@ function checkAgainstReference(league) {
       console.log(`    ${o.role}/${o.stat} ${o.ratio.toFixed(2)}x (ours ${n(o.ours)}, theirs ${n(o.theirs)})`);
     }
   }
-  console.log("\n  Tormentor is the known disagreement. Ours credits the player who");
-  console.log("  actually last-hit it, which comes to exactly 1.00 credits per kill");
-  console.log("  in the data. The reference implies 1.29 credits per kill, which no");
-  console.log("  individual attribution can produce. Supports routinely take the last");
-  console.log("  hit to claim the Shard, so ours matching supports is expected.");
+  console.log("\n  Tormentor is the known disagreement, and it cannot be closed. The");
+  console.log("  game credits the kill to everyone involved in it; the reference");
+  console.log("  implies 1.29 credits per kill, and every field public data offers");
+  console.log("  carries exactly 1.00. We use the combat log's kill credit, which");
+  console.log("  puts cores and mids inside the band and leaves supports low. The");
+  console.log("  chat message, which we used to read, was far worse - it named a");
+  console.log("  support five times too often and a core six times too rarely.");
 
-  // Tormentor is a known and explained disagreement, so it does not count
+  // Tormentor cannot be attributed to one player at all, so it does not count
   // against the check. Everything else has to line up.
   const unexplained = offenders.filter((o) => o.stat !== "tormentor");
   pass("emblem values agree with an independent source", unexplained.length <= 2,

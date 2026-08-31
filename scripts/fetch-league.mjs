@@ -235,15 +235,88 @@ async function main() {
     progress(`${label} - ok (${rows.length} players)`);
   }
 
-  // Per-game averages, and the role the player held most often.
-  const output = [...players.values()]
-    .filter((p) => p.games >= minGames)
+  const kept = [...players.values()].filter((p) => p.games >= minGames);
+
+  // Roles, from the lanes of this event - not from who plays what today.
+  //
+  // The pro registry looks authoritative and is the obvious choice, but it is a
+  // snapshot of the CURRENT roster. Applied to an old event it is an
+  // anachronism: it files Team Liquid's TI 2022 mid as a core, because core is
+  // what he plays in 2026. It is also thin on mid - only a few dozen players
+  // worldwide carry fantasy_role 4 - so most mids come back labelled core,
+  // which leaves a squad with three cores and no mid at all. That squad then
+  // contributes no Mid entry to the rankings and mixes a mid's farm into the
+  // Core pair. Resolved from the registry, TI 2022 shipped 13 mids for 20 teams.
+  //
+  // OpenDota's own lane detection is about the match in front of it, and it is
+  // not a worse source - it is a better one. Checked against the registry on
+  // the two Internationals where the registry IS contemporaneous, it agrees on
+  // 160 of 160 players and 32 of 32 mids. Every tie-break tried (last hits, net
+  // worth, GPM, wards) scored the same, so the lanes are doing the work.
+  //
+  // So the lanes decide, and the registry is only consulted where they leave a
+  // genuine tie.
+  const registryRole = (p) => FANTASY_ROLE[proById.get(p.accountId)?.fantasy_role];
+  const laneRole = (p) => Object.entries(p.roleCounts).sort((a, b) => b[1] - a[1])[0][0];
+  const roleOf = new Map(kept.map((p) => [p, laneRole(p) ?? registryRole(p)]));
+
+  const squads = new Map();
+  for (const p of kept) {
+    const squad = squads.get(p.teamName);
+    if (squad) squad.push(p);
+    else squads.set(p.teamName, [p]);
+  }
+
+  // How much this event says a player is a core: how often the lanes put them
+  // in a core lane, then farm, and only then what the registry thinks.
+  const coreness = (p) => [
+    -(p.roleCounts.core ?? 0) / p.games,
+    -p.totals.creeps / p.games,
+    { core: 0, mid: 0, support: 2 }[registryRole(p)] ?? 1
+  ];
+  const byCoreness = (a, b) => {
+    const [x, y] = [coreness(a), coreness(b)];
+    return x[0] - y[0] || x[1] - y[1] || x[2] - y[2];
+  };
+
+  // Mid-lane games this event, with the registry only as a tie-break.
+  const midGames = (p) => p.roleCounts.mid ?? 0;
+  const byMid = (a, b) =>
+    midGames(b) - midGames(a) ||
+    (registryRole(b) === "mid" ? 1 : 0) - (registryRole(a) === "mid" ? 1 : 0) ||
+    b.totals.gpm / b.games - a.totals.gpm / a.games;
+
+  let reshaped = 0;
+  for (const squad of squads.values()) {
+    const before = squad.map((p) => roleOf.get(p));
+
+    // One mid per team: whoever actually stood in the mid lane most often.
+    const candidates = squad.filter((p) => midGames(p) > 0);
+    const mid = (candidates.length ? candidates : squad.filter((p) => registryRole(p) === "mid"))
+      .sort(byMid)[0];
+
+    // A five-player squad fills a fantasy roster exactly one way: two cores,
+    // one mid, two supports. Any other split costs a pickable entry -
+    // buildLineups needs two candidates to make a pair, so a 3/1/1 squad
+    // offers no Support pair at all. Squads carrying a substitute are left
+    // alone; there the shape is a real question.
+    if (squad.length !== 5) {
+      if (mid) roleOf.set(mid, "mid");
+    } else if (mid) {
+      const rest = squad.filter((p) => p !== mid).sort(byCoreness);
+      roleOf.set(mid, "mid");
+      rest.slice(0, 2).forEach((p) => roleOf.set(p, "core"));
+      rest.slice(2).forEach((p) => roleOf.set(p, "support"));
+    }
+
+    if (squad.some((p, i) => roleOf.get(p) !== before[i])) reshaped += 1;
+  }
+
+  // Per-game averages, and the resolved role.
+  const output = kept
     .map((p) => {
       const pro = proById.get(p.accountId);
-      // The registry role is authoritative; the heuristic decides only when a
-      // player is not in it.
-      const role = FANTASY_ROLE[pro?.fantasy_role]
-        ?? Object.entries(p.roleCounts).sort((a, b) => b[1] - a[1])[0][0];
+      const role = roleOf.get(p);
       const perGame = Object.fromEntries(
         RAW_STATS.map((s) => [s, Number((p.totals[s] / p.games).toFixed(3))])
       );
@@ -380,6 +453,16 @@ async function main() {
   console.log(`  players      : ${output.length} (min ${minGames} games)`);
   console.log(`  pro names    : ${named} resolved, ${output.length - named} kept their handle`);
   console.log(`  roles        : ${officialRoles} from the pro registry, ${output.length - officialRoles} from the heuristic`);
+  const mids = output.filter((p) => p.role === "mid").length;
+  const agrees = output.filter((p) => {
+    const r = FANTASY_ROLE[proById.get(p.accountId)?.fantasy_role];
+    return r && r === p.role;
+  }).length;
+  const rated = output.filter((p) => FANTASY_ROLE[proById.get(p.accountId)?.fantasy_role]).length;
+  console.log(`  mids         : ${mids} for ${squads.size} teams` +
+    (reshaped ? ` (${reshaped} squad(s) re-shaped into a legal line-up)` : ""));
+  console.log(`  vs registry  : ${agrees}/${rated} agree (the registry is today's roster, ` +
+    `so an old event is expected to differ)`);
   console.log(`  game samples : ${sampleRows}`);
   for (const [i, name] of STAGES.entries()) {
     const maps = output.reduce((n, p) => n + p.sampleStages.filter((s) => s === i).length, 0) / 10;

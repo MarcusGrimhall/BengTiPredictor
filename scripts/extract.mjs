@@ -11,22 +11,45 @@ export const RAW_STATS = [
   "runes", "smokes", "madstones"
 ];
 
-// Stats TI fantasy uses but OpenDota does not expose at all. Searched every
-// one of the 146 player fields, the whole match object and every objective
-// type: the only "lotus" keys are the item Lotus Orb, and "watcher" does not
-// appear anywhere. We do not pretend to have them.
+// Stats TI fantasy scores that we do not extract. Neither is named in the API:
+// there is no "lotus" key but the item Lotus Orb, and no "watcher" key at all.
+//
+// They are not, however, invisible. Both a lotus pickup and a watcher capture
+// go through the same generic interaction ability, and OpenDota does count it
+// as `ability_uses.ability_lamp_use` - 9.35 a game for a support at TI 2026,
+// which at 176 and 147 points apiece is a bigger blue emblem than wards. What
+// the counter cannot do is say which of the two a given press was, so it is
+// left out rather than split on a guess. See ASSUMPTIONS.md.
 export const UNAVAILABLE_STATS = ["lotuses", "watchers"];
 
-function tormentorKillsBySlot(match) {
-  const counts = new Map();
-  for (const obj of match.objectives ?? []) {
-    if (obj.type !== "CHAT_MESSAGE_MINIBOSS_KILL") continue;
-    const slot = obj.player_slot;
-    if (slot === undefined || slot === null) continue;
-    counts.set(slot, (counts.get(slot) ?? 0) + 1);
-  }
-  return counts;
-}
+/**
+ * Madstones per `madstone_bundle` event.
+ *
+ * A calibration, not a rule, and the one number in the extractor that is not
+ * read straight off the match. Three independent lines of evidence put it
+ * between 2.5 and 3:
+ *
+ *   1. The mechanic. A camp yields 2 stones to the clearer and 1 to a random
+ *      ally, auto-collected unless an enemy hero is within 800 - only then is
+ *      there a bundle, and only then an item event. Bundles land on about one
+ *      camp in three here (1 per 9-11 neutral creeps).
+ *   2. A community calculator that parses replays rather than reading the API
+ *      states the API figure "counted as bundles instead of stones" falls
+ *      threefold.
+ *   3. A second, unrelated fantasy project's per-player table. Normalised on
+ *      teamfight participation, where the two pipelines agree to 1.00, our
+ *      madstone count is low by a median of 2.64x over 30 matched entries
+ *      (mean 2.69, quartiles 2.26-3.04). That project's own older table shows
+ *      the same correction applied internally: every other stat moves by the
+ *      series factor of ~2.0 between their two tables, madstones by 5.37.
+ *
+ * 2.7 is the measured middle. It is a multiplier on a real observation rather
+ * than a guess at an absolute, so it scales with how much a player actually
+ * farmed. If the true figure is 3.0 the emblem is understated by 11%, which at
+ * 664 points a game for a core is 73 points - it does not change a banner.
+ */
+export const MADSTONES_PER_BUNDLE = 2.7;
+
 
 // OpenDota gives no reliable position. Heuristic per team:
 //   1. Mid  = the player with lane_role 2 (most last hits if several).
@@ -90,7 +113,6 @@ export function extractMatch(match) {
   const parsed = players.some((p) => p.teamfight_participation !== null && p.teamfight_participation !== undefined);
   if (!parsed) return null;
 
-  const tormentors = tormentorKillsBySlot(match);
   const radiant = players.filter((p) => p.player_slot < 128);
   const dire = players.filter((p) => p.player_slot >= 128);
   const roles = new Map([...assignRoles(radiant), ...assignRoles(dire)]);
@@ -122,7 +144,20 @@ export function extractMatch(match) {
         gpm: p.gold_per_min ?? 0,
         towers: p.towers_killed ?? 0,
         roshan: p.killed?.npc_dota_roshan ?? 0,
-        tormentor: tormentors.get(p.player_slot) ?? 0,
+        // From the combat log's kill credit, not from the chat message.
+        //
+        // CHAT_MESSAGE_MINIBOSS_KILL names one player per Tormentor, and it is
+        // the wrong one: it lands on supports five times more often than an
+        // independent per-role table says it should, while cores come out six
+        // times too low. `killed.npc_dota_miniboss` inverts that and lands
+        // core 0.73x, mid 1.18x, support 0.55x of the same table - the right
+        // shape, and two of three roles inside the validator's band.
+        //
+        // Neither is exactly right, and cannot be: the game credits the kill
+        // to everyone involved in it, which no single-player field reproduces.
+        // The chat message additionally drops ~4% of kills with no player_slot
+        // at all. This is the closest public data gets.
+        tormentor: p.killed?.npc_dota_miniboss ?? 0,
         courier: p.courier_kills ?? 0,
         firstBlood: p.firstblood_claimed ?? 0,
         teamfight: p.teamfight_participation ?? 0,
@@ -130,18 +165,25 @@ export function extractMatch(match) {
         wards: p.obs_placed ?? 0,
         stacks: p.camps_stacked ?? 0,
         runes: p.rune_pickups ?? 0,
-        // Smokes USED, not bought. purchase.smoke_of_deceit counts what the
-        // player paid for, which is a different number in 29 of 56 player-games
-        // with data - a smoke bought and never used counted, one bought by a
-        // team mate and used by this player did not. STRATZ's itemUsed for item
-        // 188 matches item_uses 10/10 on a checked match, purchase 8/10.
+        // Smokes USED, not bought. The emblem pays for a smoke that was
+        // popped, and a support who buys one for a team-mate never pops it.
+        // The two differ in 29 of 56 player-games that have the data, and
+        // across TI 2026's supports by a factor between 0.67 and 1.03 per
+        // player - so it reorders the ranking rather than just scaling it.
+        // STRATZ settles which is right: its itemUsed for item 188 matches
+        // item_uses on 10 of 10 players and purchase on 8.
         smokes: p.item_uses?.smoke_of_deceit ?? 0,
-        // Derived, not labelled: OpenDota has no madstone field, but it counts
-        // madstone_bundle events, which correlate r=0.87 with neutral_kills
-        // over 1,793 player-games at about one per three camps - the shape of
-        // madstone pickups, not of a player activating an item twelve times.
-        // Present in ~90% of parsed matches. See ASSUMPTIONS.md.
-        madstones: p.item_uses?.madstone_bundle ?? 0
+        // Estimated, and the estimate is a correction - see ASSUMPTIONS.md.
+        //
+        // OpenDota has no madstone field. It counts `madstone_bundle`, and a
+        // bundle is not a madstone: clearing a camp gives 2 stones to whoever
+        // cleared it and 1 to a random ally, and those fly straight to the
+        // player. A bundle only drops - and only then leaves an item event -
+        // when an enemy hero is within 800 of the camp. So the raw count is
+        // the contested subset, not the total. The bundle count itself is
+        // sound: it correlates r=0.87 with neutral_kills over 1,793
+        // player-games, and is present in ~90% of parsed matches.
+        madstones: MADSTONES_PER_BUNDLE * (p.item_uses?.madstone_bundle ?? 0)
       }
     };
   });

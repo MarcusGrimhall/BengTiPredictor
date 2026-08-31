@@ -34,7 +34,9 @@ wrong, the numbers that depend on it are wrong.
 | Reroll scopes: stat / quality / trait × all / first / last / random of a colour | Community guides |
 | Compendium prediction payout scale | Community guides |
 | Stage boundary, group stage format, series counts | Derived from the match data itself |
-| Player names and roles | OpenDota's pro registry `fantasy_role`, authoritative where present — 621 of 651 entries (95.4%) across ten re-fetched leagues, and 80 of 80 at TI 2026. The last-hits heuristic is only the fallback |
+| Player names | OpenDota's pro registry |
+| Roles | OpenDota's per-match lane detection, resolved per team. Agrees with the pro registry on 160 of 160 players and 32 of 32 mids across the two Internationals where the registry is contemporaneous, and no decision anywhere is close — across 88 squads the tightest mid is 69 percentage points clear and the tightest core/support boundary 114 last hits a game. Still a heuristic, not Valve's own assignment |
+| Tormentor attribution | The combat log's kill credit. Cannot be made exact - the game credits everyone involved |
 | Team strength effect on scoring (1.84% per 100 Elo) | Measured here, n=2910, t=4.05 |
 | Suffix trigger rates | Measured from the matches themselves |
 | **No stat pays negative points** — the scale floors at zero, so ten-plus deaths pay 0 rather than a penalty | You |
@@ -42,11 +44,10 @@ wrong, the numbers that depend on it are wrong.
 | Kills, deaths, last hits, GPM, courier kills, observer wards, camps stacked | Verified field by field against STRATZ on the same match, 10/10 players each |
 | Roshan is the player credited with the kill | Sum of `killed.npc_dota_roshan` equals the count of `CHAT_MESSAGE_ROSHAN_KILL` events exactly, over 12 matches |
 | First Blood | Sum of `firstblood_claimed` equals the count of `CHAT_MESSAGE_FIRSTBLOOD` events exactly |
-| Tormentor is the player who last-hit it | Every `CHAT_MESSAGE_MINIBOSS_KILL` event carries a `player_slot`. STRATZ has no tormentor data at all |
+| Tormentor is the player the combat log credits with the kill | `killed.npc_dota_miniboss`. The chat message was worse and has been dropped — see Retracted. STRATZ has no tormentor data at all |
 | Runes count **power, bounty and bottled runes, but not Wisdom** | You, and `rune_pickups` matches that rule exactly — see below |
 | A tower goes to whoever landed the **last hit** | You |
 | Teamfight participation is a **0–1 share**, scored per unit and not per percentage point | You |
-| One `madstone_bundle` is **one madstone** | You |
 | Teamfight participation is **(kills + assists) / the opposing team's total deaths** — the standard share, not OpenDota's teamfight-graph clustering | Reconstructed from the data: reproduces the field exactly in 102 of 120 player-games, and in 13 more with a numerator one assist lower. 95.8% accounted for. Note the denominator is **deaths, not kills** — a hero killed by creeps or a tower raises it without being anyone's kill, which happened in 6 of 24 teams |
 | `p.stuns` **sums per target hit** — a three-hero, two-second stun counts as six seconds | OpenDota reads `modifier_stunned` from the combat log per affected hero. Means the emblem systematically favours AoE stuns |
 
@@ -56,10 +57,14 @@ wrong, the numbers that depend on it are wrong.
 | --- | --- | --- |
 | **Every reroll outcome is equally likely** — a quality reroll on a tier II gives I, III, IV or V at 25% each; a trait reroll gives any of the other five at 20% each | `tierOptions`, `traitOptions` in `lib/reroll.ts` | The value of every quality and trait reroll. Searched for published odds and found none — no guide carries them. |
 | Hero colour/theme groups | `HERO_GROUPS`, empty | Prefix titles — reported as unknown rather than guessed |
+| **Madstones are 2.7 × `item_uses.madstone_bundle`** | `MADSTONES_PER_BUNDLE` in `scripts/extract.mjs` | The Madstones emblem. OpenDota has no madstone field; it counts bundles, and a bundle is not a stone. Three independent sources put the ratio between 2.5 and 3 — see below. At TI 2026 the emblem is worth 663 points a game to a core, level with Kills and still well behind Last hits at 1,512. |
+| **A role heuristic is a role** | `scripts/fetch-league.mjs` | Every ranking. Lane detection is OpenDota's reading of where a hero stood, not Valve's fantasy assignment. It has never disagreed where it can be checked and is never close, but it is inference. STRATZ exposes a real per-match `Position` (POSITION_1…POSITION_5) behind a free API token, which would remove the inference entirely. |
 
-That is the whole list, and it is down to two. Runes, Towers, Teamfight and
-Madstones were on it briefly: they were never new guesses, they were old guesses
-that had never been written down, and you settled all four.
+That is the whole list, and it is down to four. Runes, Towers and Teamfight
+were on it briefly: they were never new guesses, they were old guesses that had
+never been written down, and you settled all three. Madstones came back on it —
+the bundle count is measured, but the stones-per-bundle factor that turns it
+into the scored stat is not.
 
 ## What `rune_pickups` actually counts
 
@@ -80,14 +85,52 @@ bottled runes we would have been understating the emblem by about a fifth.
 
 ## Genuinely unavailable
 
-**Lotuses Grabbed** and **Watchers Taken** are real emblem stats and are not in
-the calculator, because no public source has them. Every one of OpenDota's 146
-player fields was searched, along with the whole match object and every
-objective type: the only `lotus` keys are the item Lotus Orb and its recipe,
-and `watcher` does not appear anywhere at all. STRATZ's GraphQL schema has no
-field for either — this is now checked rather than assumed: all 513 types were
-introspected and searched, and `lotus`, `watcher` and `madstone` return zero
-hits apiece. Getting them would mean parsing replays.
+Four things TI fantasy scores that **no public API exposes**. Checked in both
+OpenDota and STRATZ field by field, not assumed:
+
+| Missing | What exists instead | How far off |
+| --- | --- | --- |
+| **Watchers Taken** (147 pts) | `ability_uses.ability_lamp_use` — 9.35 a game for a support | Merged with lotuses; a naive read runs ~1.5× high |
+| **Lotuses Gained** (176 pts) | the same counter | Merged with watchers |
+| **Madstones Collected** (13 pts) | `item_uses.madstone_bundle` | Bundles, not stones — about 2.7× low, corrected in the extractor |
+| **Tormentor participation** (879 pts) | `killed.npc_dota_miniboss` | The game credits everyone involved, ~3.7 players a kill. Every public field carries exactly 1.00 |
+
+Neither a lotus nor a watcher is named anywhere. Both are taken through the same
+generic interaction, and that interaction is the only trace either leaves.
+STRATZ's schema was read directly rather than assumed — all 513 types were
+introspected, and `lotus`, `watcher` and `madstone` return zero hits apiece;
+`MatchPlayerType`, `MatchPlayerStatsType` and every `MatchPlaybackData*Event`
+type carry no such field; its playback events cover only buildings, couriers, Roshan, runes,
+towers and wards. `damage.npc_dota_miniboss` looked like a way to find everyone
+who fought a Tormentor, but it is a kill counter under a different name: it
+fires in exactly the same 203 player-games as `killed`. Getting real numbers for
+any of the four means parsing replays, which is what the community calculators
+that do have them are doing.
+
+For a support, watchers plus lotuses are worth more than Observer Wards. That is
+the largest known gap in this model.
+
+### Where 2.7 madstones per bundle comes from
+
+Three independent lines, and they converge:
+
+1. **The mechanic.** Clearing a camp gives 2 stones to whoever cleared it and 1
+   to a random ally, and they fly straight to the player. A bundle only drops —
+   and only then leaves an item event — when an enemy hero is within 800 of the
+   camp. Here that is about one camp in three: 1 bundle per 9–11 neutral creeps.
+2. **A replay-parsing community calculator** states the API figure, "counted as
+   bundles instead of stones", falls threefold. The same source names three
+   other API errors — watchers 1.5× high, lotuses a fifth low, Tormentor
+   credited to the last hitter — and all three check out against our own data.
+3. **A second, unrelated fantasy project's per-player table.** Normalised on
+   teamfight participation, where the two pipelines agree to 1.00, our madstone
+   count is low by a median of **2.64×** across 30 matched entries (mean 2.69,
+   quartiles 2.26–3.04). That project's own two tables show it applying the same
+   correction internally: between them every other stat moves by the series
+   factor of ~2.0, madstones by 5.37 and Tormentor by 3.95.
+
+2.7 is the measured middle. It multiplies a real observation rather than
+replacing it, so it still scales with how much a player farmed.
 
 ## Retracted
 
@@ -119,12 +162,35 @@ Things I asserted that turned out to be invented or wrong, and have been fixed:
 - **Declining waits for a better deal** — the options only change when one is
   used, so declining means stopping.
 - **Smokes were smokes bought** — `purchase.smoke_of_deceit`, while the label
-  said "Smokes used". The two differ in 29 of 56 player-games that have the
-  data: a smoke bought and never used counted, one bought by a team mate and
-  used by this player did not.
+  said "Smokes used". The emblem pays for a smoke that was *popped*: a support
+  who buys one and hands it to a team-mate never pops it, and a smoke bought by
+  a team mate and used by this player did not count at all. The two differ in
+  29 of 56 player-games that have the data, and by a factor between 0.67 and
+  1.03 per player across TI 2026's supports — so it reordered the support
+  ranking rather than just scaling it. Now `item_uses.smoke_of_deceit`.
 - **Deaths could pay a negative score** — 1950 − 195 a death crosses zero at ten
   deaths, and 5.9% of player-games are above that. No stat pays a penalty.
 - **An emblem's average was scored from the average stat line** — scoring
   happens per game, so the average has to be taken over scored games. Identical
   for fifteen stats, which are linear; wrong for Deaths, which is floored. It
   understated Deaths by 3% across the board and by up to 4x for one player.
+- **Tormentor goes to whoever the chat message names** - `CHAT_MESSAGE_MINIBOSS_KILL`
+  names a support five times more often than an independent per-role table says
+  it should, and a core six times too rarely. The combat log's kill credit,
+  `killed.npc_dota_miniboss`, has the right shape instead: core 0.73x, mid
+  1.18x, support 0.55x. Neither can be exact, because the game credits the kill
+  to everyone involved in it.
+- **The pro registry is the best source of roles** - it is a snapshot of who
+  plays what *today*. Applied to an old event it is an anachronism: it files
+  Team Liquid's TI 2022 mid as a core, because core is what he plays in 2026.
+  Roles now come from the lane detection in each event's own replays, which
+  reproduces the registry exactly where the registry is contemporaneous.
+- **The pro registry's role is authoritative player by player** — it is right
+  about core vs support, but only a few dozen players worldwide carry
+  `fantasy_role: 4`, so most mids are filed as core. Read one player at a time
+  that left teams with three cores and no mid, and `buildLineups` then dropped
+  their Mid entry entirely and mixed a mid's farm into the Core pair: TI 2022
+  shipped 13 mids for 20 teams, TI 2023 fourteen for 20. Roles are now resolved
+  per team — one mid each, and a five-player squad is filled out to the only
+  line-up a fantasy roster can have. All five Internationals now offer a
+  complete set of entries for every team.

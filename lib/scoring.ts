@@ -71,7 +71,7 @@ export const STAT_DEFINITIONS: Record<StatKey, string> = {
   roshan:
     "The killing blow on Roshan, not the team that took it.",
   tormentor:
-    "The last hit on a Tormentor. Often a support, who wants the Shard.",
+    "Read from the combat log's kill credit, not the kill announcement. The game credits everyone involved in the kill, which no single-player field reproduces, so this is the closest public data gets.",
   courier:
     "Couriers killed. Couriers that die to creeps or towers count for no one.",
   firstBlood:
@@ -89,7 +89,7 @@ export const STAT_DEFINITIONS: Record<StatKey, string> = {
   smokes:
     "Smokes used, whoever paid for them. A smoke bought and never used is worth nothing.",
   madstones:
-    "Madstone bundles collected. Worth little per unit and rarely enough volume to earn a slot."
+    "Estimated, not counted: OpenDota records dropped bundles, and a bundle is not a stone — stones from an uncontested camp fly straight to the player and leave no event. Scaled by 2.7, the measured middle of three independent estimates."
 };
 
 export const STAT_KEYS = Object.keys(POINT_VALUES) as StatKey[];

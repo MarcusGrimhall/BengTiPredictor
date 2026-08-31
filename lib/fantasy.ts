@@ -181,6 +181,69 @@ export function scorePlayer(player: PlayerEntry, emblems: Emblem[]): number {
 }
 
 /**
+ * The same breakdown, but per **series** - the unit everything else in `Ranked`
+ * is quoted in.
+ *
+ * `contributions` describes one average game. A series pays the sum of its two
+ * best games, so its numbers are a little over half the size, and putting the
+ * two side by side is what made the emblem bars on the calculator add up to
+ * 42% of the headline instead of 100%.
+ *
+ * The two counted games are chosen by the series total, exactly as
+ * `matchScores` chooses them, and then each emblem's share of those two games
+ * is added up. So these sum to the mean of `matchScores` by construction, and
+ * a stat that happens to spike in the games that decide a series is credited
+ * for it rather than averaged away.
+ *
+ * Falls back to the per-game breakdown when the entry has no games at all.
+ */
+export function seriesContributions(player: PlayerEntry, emblems: Emblem[]): Contribution[] {
+  const perGame = contributions(player, emblems);
+  const lines = player.gameLines ?? [];
+  if (!lines.length) return perGame;
+
+  const multipliers = emblemMultipliers(emblems);
+  // Per game: what each emblem paid, and what raw stat it was paid on.
+  const games = lines.map((line) => {
+    const raw = emblems.map((e) => line[e.stat] ?? 0);
+    const points = emblems.map((e, i) => statToPoints(e.stat, raw[i]) * multipliers[i]);
+    return { raw, points, total: points.reduce((a, b) => a + b, 0) };
+  });
+
+  const series = player.gameSeries;
+  const buckets = new Map<number, typeof games>();
+  games.forEach((game, i) => {
+    // No series information means every game is its own series, which is what
+    // matchScores degrades to as well.
+    const key = series?.length === games.length ? series[i] : -i - 1;
+    const bucket = buckets.get(key);
+    if (bucket) bucket.push(game);
+    else buckets.set(key, [game]);
+  });
+
+  const rawTotals = emblems.map(() => 0);
+  const pointTotals = emblems.map(() => 0);
+  for (const bucket of buckets.values()) {
+    const counted = [...bucket].sort((a, b) => b.total - a.total).slice(0, 2);
+    for (const game of counted) {
+      emblems.forEach((_, i) => {
+        rawTotals[i] += game.raw[i];
+        pointTotals[i] += game.points[i];
+      });
+    }
+  }
+
+  const n = buckets.size;
+  return emblems.map((emblem, i) => ({
+    ...perGame[i],
+    // Raw units and base points counted in an average series, not in a game.
+    rawPerGame: rawTotals[i] / n,
+    basePoints: multipliers[i] === 0 ? 0 : pointTotals[i] / n / multipliers[i],
+    points: pointTotals[i] / n
+  }));
+}
+
+/**
  * Scores every individual game, unsorted and in the original order.
  *
  * Order matters here because the caller needs to group these back into series.
@@ -349,6 +412,7 @@ export type Ranked = {
   series: number;
   /** What the entry banks over the period. Equals `score`. */
   total: number;
+  /** Per-emblem breakdown of an average series - see `seriesContributions`. */
   contributions: Contribution[];
 };
 
@@ -396,7 +460,11 @@ export function rankPlayers(
         ceiling: at(95),
         series,
         total: score,
-        contributions: contributions(player, emblems)
+        // Per series and scaled by strength, so the breakdown is in the same
+        // unit as every other number on this row.
+        contributions: seriesContributions(player, emblems).map((c) =>
+          strength === 1 ? c : { ...c, basePoints: c.basePoints * strength, points: c.points * strength }
+        )
       };
     })
     .sort((a, b) => b.total - a.total);

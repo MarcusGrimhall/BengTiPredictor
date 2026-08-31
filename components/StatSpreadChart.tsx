@@ -2,12 +2,29 @@
 
 import { useMemo, useState } from "react";
 import type { StatSpread } from "../lib/statSpread";
-import { Role, STAT_COLORS, STAT_DEFINITIONS, STAT_LABELS } from "../lib/scoring";
+import { BANNER_SLOTS, Role, STAT_COLORS, STAT_DEFINITIONS, STAT_LABELS, statsForColor } from "../lib/scoring";
 import { STAGE_LABELS, type Stage } from "../lib/stages";
 import Info from "./Info";
 
 const ROLES: Role[] = ["core", "mid", "support"];
 const ROLE_LABELS: Record<Role, string> = { core: "Core", mid: "Mid", support: "Support" };
+const COLOUR_LABELS: Record<string, string> = { red: "red", blue: "blue", green: "green" };
+
+/**
+ * Stats a role's banner has no slot for.
+ *
+ * A Core banner is red and green only, a Support banner blue and green, so
+ * between a third and a half of the sixteen stats simply cannot be placed
+ * there. Without saying so the chart looks like it is missing rows.
+ */
+function offColour(role: Role): { colours: string[]; stats: string[] } {
+  const has = new Set(BANNER_SLOTS[role]);
+  const colours = (["red", "blue", "green"] as const).filter((c) => !has.has(c));
+  return {
+    colours: colours.map((c) => COLOUR_LABELS[c]),
+    stats: colours.flatMap((c) => statsForColor(c)).map((k) => STAT_LABELS[k])
+  };
+}
 const fmt = (n: number) => Math.round(n).toLocaleString("en-US");
 
 export type SpreadData = Record<string, Record<Stage, Record<Role, StatSpread[]>>>;
@@ -188,11 +205,31 @@ export default function StatSpreadChart({
             <h2>{ROLE_LABELS[role]} · every {role === "mid" ? "player" : "duo"}, every stat</h2>
             <p className="faint" style={{ marginTop: 2, maxWidth: 720 }}>
               One dot per {role === "mid" ? "player" : "duo"}: mean points per series from
-              that stat alone, one emblem at tier III — a series being the average of its
+              that stat alone, one emblem at tier III — a series being the sum of its
               two best games. All stats share one scale, so a long row is
               genuinely worth more. What matters is the <strong>shape</strong> — a leader far
               clear of a tight cluster is a stat somebody dominates; a row where every dot
               overlaps is a slot to fill with whatever is cheapest to reroll.
+            </p>
+            <p className="faint" style={{ marginTop: 6, maxWidth: 720 }}>
+              {offColour(role).colours.length > 0 && (
+                <>
+                  Not every stat is here. A {ROLE_LABELS[role]} banner has no{" "}
+                  <strong>{offColour(role).colours.join(" or ")}</strong> slot, so{" "}
+                  {offColour(role).stats.join(", ")} cannot be placed on it and are left
+                  out.{" "}
+                </>
+              )}
+              <strong>Lotuses</strong> (176 pts) and <strong>Watchers</strong> (147 pts) are
+              missing from every role: both are grabbed through the same interaction, and
+              OpenDota counts the presses without saying which was which.
+              <Info title="Why lotuses and watchers are absent">
+                A lotus pickup and a watcher capture both fire{" "}
+                <code>ability_lamp_use</code>, and that is the only trace either leaves in
+                public match data — 9.35 a game for a support at TI 2026. Splitting one
+                counter into two emblems would be a guess, and at 176 and 147 points each
+                it would be a large one, so they are reported as absent instead.
+              </Info>
             </p>
           </div>
         </div>
