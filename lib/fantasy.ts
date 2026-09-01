@@ -4,7 +4,7 @@
 // (a percentage bonus) and may carry a trait affecting itself or its
 // neighbours. The final score is the sum of all five contributions.
 
-import { Role, StatKey, statToPoints } from "./scoring";
+import { Role, StatKey, pointsToStat, statToPoints } from "./scoring";
 
 export type Tier = "I" | "II" | "III" | "IV" | "V";
 export type Trait = "none" | "fractal" | "benevolent" | "vampiric" | "unique" | "friendly";
@@ -582,9 +582,20 @@ function pairUp(a: PlayerEntry, b: PlayerEntry, teamName: string, role: Role): P
     if (j === undefined) return; // only one of the pair played this game
     const left = a.gameLines[i];
     const right = b.gameLines[j];
+    // The glossary is specific about the order: "we then average the SCORE of
+    // all players for a role". Scoring first and averaging second is not the
+    // same as averaging the stat lines and scoring once, because Deaths floor
+    // at zero - a 2-death and an 18-death game average to exactly ten deaths,
+    // which scores nothing, while the two scores average to 780. It bites in
+    // 7.7% of pair-games across five Internationals.
+    //
+    // The entry still has to carry a raw line for everything downstream, so the
+    // averaged score is converted back to the raw value that produces it. Exact
+    // for all sixteen, and an identity for the fifteen linear ones.
     const combined = {} as Record<StatKey, number>;
     for (const stat of Object.keys(left) as StatKey[]) {
-      combined[stat] = ((left[stat] ?? 0) + (right[stat] ?? 0)) / 2;
+      const scored = (statToPoints(stat, left[stat] ?? 0) + statToPoints(stat, right[stat] ?? 0)) / 2;
+      combined[stat] = pointsToStat(stat, scored);
     }
     gameLines.push(combined);
     gameSeries.push(a.gameSeries?.[i] ?? -matchId);
@@ -598,9 +609,11 @@ function pairUp(a: PlayerEntry, b: PlayerEntry, teamName: string, role: Role): P
     if (a.gameTitles?.[i] != null) gameTitles.push(a.gameTitles[i]);
   });
 
+  // Same ordering as the game lines above, so perGame and gameLines agree.
   const perGame = {} as Record<StatKey, number>;
   for (const stat of Object.keys(a.perGame) as StatKey[]) {
-    perGame[stat] = ((a.perGame[stat] ?? 0) + (b.perGame[stat] ?? 0)) / 2;
+    const scored = (statToPoints(stat, a.perGame[stat] ?? 0) + statToPoints(stat, b.perGame[stat] ?? 0)) / 2;
+    perGame[stat] = pointsToStat(stat, scored);
   }
 
   return {

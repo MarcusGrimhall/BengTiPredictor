@@ -14,9 +14,9 @@ wrong, the numbers that depend on it are wrong.
 | Slot colours per role | In-game rules |
 | One stat per banner, never repeated | You |
 | Core and Support are same-team pairs, Mid is one player | In-game rules |
-| A pair is the **average** of its two players | You. The other public calculator sums instead — see below. Within a role this changes nothing; across roles it changes where rerolls go |
-| A series is the **sum** of its two best games | You, and the in-game rules |
-| A period pays only the **best single series** | In-game rules |
+| A pair is the **average** of its two players, and it is the **scores** that are averaged, not the stat lines | In-game Fantasy glossary: *"We then average the score of all players for a role and use that to decide the final score for a game."* Corroborated by Valve's TI 2026 announcement on the roster shape. The other public calculator sums, and is wrong |
+| A series is the **sum** of its two best games | In-game Fantasy glossary — the same paragraph as the averaging rule: the top two scoring games within a series decide the role's match score |
+| A period pays only the **best single series** | In-game Fantasy glossary — same paragraph: where a role plays several series in a period, the best-scoring series is used |
 | The same three options serve every banner; you choose which to apply one to | In-game rules |
 | A deal is **always exactly three options**, plus the standing option to use none — never more, never fewer | You. Enforced by `OPTIONS_DEALT` in `lib/offers.ts`, which the simulator's UI now also obeys |
 | Using an option **replaces all three** | In-game rules |
@@ -178,43 +178,44 @@ only the player's level, so the floor and ceiling the risk slider reads still
 come from real variation. And it does not touch `/information`, which reports
 what entries produced rather than what to expect from them.
 
-## Sum or average for a pair, and why it matters
+## How a pair is scored — settled, and the order matters
 
-This project averages a Core or Support pair's two players. The community
-calculator sums them: its stored value for `Ame & Xxs` is 1.02x our sum on GPM
-and 1.03x on Deaths, and about twice our average.
+The in-game Fantasy glossary says it directly:
 
-Their convention carries no authority. Their own file says the numbers are
-"Community-derived TI 2026 fantasy values **transcribed from the supplied
-tables**" — the pairs arrived pre-combined from a source they do not name, and
-the only comment about it explains their input file rather than the game. Across
-their whole repository exactly one rule cites a source, and it is not this one.
-Ours is credited to watching the game, which is thin but thinner still is a
-transcription of unknown origin.
+> We then average the score of all players for a role and use that to decide the
+> final score for a game.
 
-What is genuinely at stake is not the ranking. Every pair is scaled by the same
-factor, so the Core order and the Support order are identical either way, and no
-pick inside a role changes.
+So a pair is the **average**, not the sum. This project already averaged; the
+other public calculator sums, and its stored value for `Ame & Xxs` is 1.02x our
+sum on GPM and 1.03x on Deaths — about twice the correct figure. That convention
+came from a table its author transcribed from an unnamed source, which is why it
+carries no authority against the client's own text.
 
-It is the **reroll allocation**, which compares gains across banners. Measured
-over 200 random three-option hands at the playoff stage, the plan's top
-recommendation lands:
+Provenance, precisely: the wording above is Valve-authored text shown in the Dota
+2 client, but it was read from a screenshot hosted in a third-party repository
+rather than from a Valve domain. Valve's own TI 2026 announcement independently
+confirms the roster shape — "both supports from one team, the safelaner and
+offlaner from one team, and then your favorite midlaner" — but does not spell out
+the averaging sentence. Treat the rule as confirmed and the hosting as incidental.
 
-| role | recommended | value of the banner |
-| --- | --- | --- |
-| core | 49% | 17,965 |
-| mid | 35% | 12,729 |
-| support | 18% | 11,869 |
+The same sentence settles two more rules for free. The top two scoring games in a
+series decide the match score, and where a role plays several series in a period
+the best-scoring one is used. Both were previously credited to observation.
 
-The skew follows the value scale, which is correct behaviour: a fixed percentage
-gain on a bigger banner is worth more absolute points. But averaging is what puts
-the three roles on that scale in the first place. Summing would take Core to
-about 2.8x Mid and Support to 1.9x Mid instead of 1.41x and 0.93x, moving Support
-from the least-recommended banner to comfortably ahead of Mid. So the convention
-does not change who you pick, and does change what you reroll.
+### The order is the part that bit
 
-Worth settling from the in-game card rather than from either calculator: a pair's
-displayed points either look like one player's output or like two added together.
+"Average the **score**" is not the same as averaging the stat lines and scoring
+once. For the fifteen linear stats it is; Deaths are floored at zero, and a
+2-death game beside an 18-death game averages to exactly ten deaths, which scores
+nothing — while the two scores average to 780. This project had it the wrong way
+round, in 246 of 3,176 pair-games across five Internationals (7.7%),
+understating pair Deaths by 1.34% overall and by a whole emblem in the worst
+case. `pairUp` now scores each player, averages, and converts back through
+`pointsToStat`. Rankings and the backtest are unchanged, which is what a 1.34%
+correction on one stat should do.
+
+Note this only bites if Deaths really do floor at zero, which is still on the
+assumed list and is the next thing worth asking about.
 
 ## The reference table cannot settle Tormentor
 

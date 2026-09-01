@@ -117,17 +117,18 @@ in would move roles off the assumed list. The work is a fetch path and a
 reconciliation against the current lane assignment on the events where both
 exist — not large, and worth doing before trusting the role split further.
 
-## The reroll search prefers Core, and that is mostly the pair rule
+## The reroll search prefers Core, and the pair rule is why the scale is right
 
 Measured over 200 random hands at the playoff stage, the plan's top
 recommendation is Core 49%, Mid 35%, Support 18%. That tracks the banner values
 (17,965 / 12,729 / 11,869) and is the right shape: the same percentage gain on a
 bigger banner is worth more points.
 
-What sets that scale is the decision to average a pair rather than sum it. Under
-summing, Core would be ~2.8x Mid and Support ~1.9x Mid, and Support would go from
-last to second. So the open sum-versus-average question in ASSUMPTIONS.md is not
-cosmetic — it is the single input that decides where forty rerolls go.
+What sets that scale is averaging a pair rather than summing it, and the in-game
+glossary has since confirmed averaging is correct. Had it gone the other way,
+Core would be ~2.8x Mid and Support ~1.9x Mid, and Support would have moved from
+last to second — so this measurement is now a record of what was at stake rather
+than an open question.
 
 A prior suspicion, recorded because it was wrong: averaging was expected to bias
 the search TOWARD Mid, on the reasoning that halved pairs would produce smaller

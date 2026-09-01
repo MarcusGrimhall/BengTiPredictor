@@ -120,6 +120,23 @@ export function statToPoints(stat: StatKey, rawPerGame: number): number {
   return Math.max(0, base + per * rawPerGame);
 }
 
+/**
+ * The raw value that would score `points` - the inverse of `statToPoints`.
+ *
+ * Needed because a pair is scored by averaging its two players' SCORES, while
+ * an entry carries raw stat lines. For the fifteen linear stats the two are the
+ * same thing and this returns the plain average. Deaths are the exception: they
+ * are floored at zero, so averaging two scores and averaging two death counts
+ * are different numbers, and this is what keeps the pair on the first of those.
+ *
+ * Only meaningful for a target the scale can actually produce, which is
+ * guaranteed here: the average of two non-negative scores is non-negative.
+ */
+export function pointsToStat(stat: StatKey, points: number): number {
+  const { per, base = 0 } = POINT_VALUES[stat];
+  return (points - base) / per;
+}
+
 export function statsForColor(color: EmblemColor): StatKey[] {
   return STAT_KEYS.filter((key) => STAT_COLORS[key] === color);
 }
