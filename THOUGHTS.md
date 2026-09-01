@@ -117,6 +117,27 @@ in would move roles off the assumed list. The work is a fetch path and a
 reconciliation against the current lane assignment on the events where both
 exist — not large, and worth doing before trusting the role split further.
 
+## Supports killed unusually many couriers at TI 2026
+
+Not a bug, and worth recording so it is not chased as one. `courier_kills` is
+the right field and reconciles with the objective log: summed over 600 matches
+it is 0.906 of the `CHAT_MESSAGE_COURIER_LOST` count, and the missing 9% are
+couriers killed by creeps and towers, which are credited to nobody.
+
+The number itself is the anomaly. Support courier points per game:
+
+    TI 2026   436      <- 1.47x the reference
+    TI 2025   254
+    TI 2024   249
+    TI 2023   219
+    TI 2022   251
+
+Every earlier International sits near 250; TI 2026 is 74% above all of them.
+The validator is flagging a real feature of the event rather than a defect in
+the pipeline. Mid runs consistently low against the same reference (0.62-0.88
+across all five), which is more likely a difference in who each project counts
+as a mid than anything in the extraction.
+
 ## Things that turned out not to be problems
 
 Written down so they are not re-investigated:

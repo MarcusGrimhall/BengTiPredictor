@@ -102,5 +102,5 @@ data/
 
 Scoring, emblem colours, tiers and traits are the Compendium's own, from the
 in-game rules text. Point values are cross-checked against a community-compiled
-table as a standing test in `npm run validate` — 33 of 36 values agree within a
+table as a standing test in `npm run validate` — 35 of 38 values agree within a
 few percent. Everything else is built here from OpenDota match data.

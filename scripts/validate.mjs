@@ -15,6 +15,7 @@ import { readFile, readdir } from "node:fs/promises";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { createRequire } from "node:module";
+import { MADSTONES_PER_BUNDLE } from "./extract.mjs";
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
 const require = createRequire(join(ROOT, "package.json"));
@@ -586,10 +587,11 @@ function checkInvariants(league) {
  */
 const REFERENCE_EMBLEM_VALUES = {
   core: { gpm: 1297, creeps: 1293, deaths: 1213, kills: 715, towers: 691, teamfight: 1316,
-          roshan: 519, tormentor: 339, stuns: 295, firstBlood: 200, courier: 174 },
+          roshan: 519, tormentor: 339, stuns: 295, firstBlood: 200, courier: 174,
+          madstones: 223 },
   mid: { deaths: 1230, gpm: 1218, creeps: 1170, kills: 786, towers: 389, runes: 1432,
          stacks: 462, wards: 176, smokes: 14, teamfight: 1483, stuns: 338, roshan: 289,
-         courier: 209, tormentor: 127, firstBlood: 113 },
+         courier: 209, tormentor: 127, firstBlood: 113, madstones: 153 },
   support: { wards: 1036, smokes: 934, stacks: 895, runes: 414, teamfight: 1409, stuns: 404,
              courier: 296, firstBlood: 222, roshan: 53, tormentor: 49 }
 };
@@ -611,7 +613,14 @@ function checkAgainstReference(league) {
     if (!pool.length) continue;
     const ratios = [];
     for (const [stat, theirs] of Object.entries(REFERENCE_EMBLEM_VALUES[role])) {
-      const ours = pool.reduce((sum, p) => sum + statToPoints(stat, p.perGame[stat] ?? 0), 0) / pool.length;
+      // Their madstone column counts BUNDLES, which is what OpenDota reports and
+      // what this project scored before MADSTONES_PER_BUNDLE was introduced. So
+      // the factor is divided back out and the comparison is bundle against
+      // bundle - otherwise the check would "fail" by exactly the correction it
+      // is supposed to be testing. This is the only standing check on the
+      // extraction behind the project's largest assumption.
+      const scale = stat === "madstones" ? MADSTONES_PER_BUNDLE : 1;
+      const ours = pool.reduce((sum, p) => sum + statToPoints(stat, (p.perGame[stat] ?? 0) / scale), 0) / pool.length;
       const ratio = ours / theirs;
       ratios.push(ratio);
       total += 1;
@@ -631,13 +640,16 @@ function checkAgainstReference(league) {
       console.log(`    ${o.role}/${o.stat} ${o.ratio.toFixed(2)}x (ours ${n(o.ours)}, theirs ${n(o.theirs)})`);
     }
   }
-  console.log("\n  Tormentor is the known disagreement, and it cannot be closed. The");
-  console.log("  game credits the kill to everyone involved in it; the reference");
-  console.log("  implies 1.29 credits per kill, and every field public data offers");
-  console.log("  carries exactly 1.00. We use the combat log's kill credit, which");
-  console.log("  puts cores and mids inside the band and leaves supports low. The");
-  console.log("  chat message, which we used to read, was far worse - it named a");
-  console.log("  support five times too often and a core six times too rarely.");
+  console.log("\n  Tormentor is the known disagreement, and it cannot be closed.");
+  console.log("  All four public fields were tested over 2,540 matches: the chat");
+  console.log("  message names a support 5x too often, `damage` is the kill count");
+  console.log("  under another name (0 player-games damage without credit), and");
+  console.log("  `damage_taken` is participation of the wrong kind - supports get");
+  console.log("  hit and walk away, so it scores them 9.18x. The kill credit we");
+  console.log("  use is the least wrong of the four.");
+  console.log("  The reference cannot settle it either: its own companion table");
+  console.log("  disagrees with it on Tormentor by 2.0x, 3.5x and 17.1x, while");
+  console.log("  every other stat moves by a flat factor. See ASSUMPTIONS.md.");
 
   // Tormentor cannot be attributed to one player at all, so it does not count
   // against the check. Everything else has to line up.

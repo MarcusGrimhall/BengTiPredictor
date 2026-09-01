@@ -8,7 +8,7 @@ wrong, the numbers that depend on it are wrong.
 
 | Rule | Source |
 | --- | --- |
-| Point value of all 16 extractable stats | In-game rules, cross-checked against a community-compiled table and against my own data (33 of 36 values within a few percent) |
+| Point value of all 16 extractable stats | In-game rules, cross-checked against a community-compiled table and against my own data (35 of 38 values within a few percent) |
 | Tier bonuses +10 / +30 / +60 / +100 / +150% | In-game rules |
 | Trait effects (Fractal +60%, Benevolent +20% adjacent, Vampiric +50%/−10%, Unique +30%, Friendly +50%) | In-game rules |
 | Slot colours per role | In-game rules |
@@ -98,7 +98,7 @@ related field, and those approximations are on the assumed list above:
 | **Watchers Taken** (147 pts) | `ability_uses.ability_lamp_use` — 9.35 a game for a support | Merged with lotuses; a naive read runs ~1.5× high |
 | **Lotuses Gained** (176 pts) | the same counter | Merged with watchers |
 | **Madstones Collected** (13 pts) | `item_uses.madstone_bundle` | Bundles, not stones — about 2.7× low, corrected in the extractor |
-| **Tormentor participation** (879 pts) | `killed.npc_dota_miniboss` | The game credits everyone involved, ~3.7 players a kill. Every public field carries exactly 1.00 |
+| **Tormentor participation** (879 pts) | `killed.npc_dota_miniboss` | The game credits everyone involved. Every field that names one player carries exactly 1.00; the one field that names several is the wrong several. The reference is no help either — see below |
 
 Neither a lotus nor a watcher is named anywhere. Both are taken through the same
 generic interaction, and that interaction is the only trace either leaves.
@@ -106,9 +106,16 @@ STRATZ's schema was read directly rather than assumed — all 513 types were
 introspected, and `lotus`, `watcher` and `madstone` return zero hits apiece;
 `MatchPlayerType`, `MatchPlayerStatsType` and every `MatchPlaybackData*Event`
 type carry no such field; its playback events cover only buildings, couriers,
-Roshan, runes, towers and wards. `damage.npc_dota_miniboss` looked like a way to find everyone
-who fought a Tormentor, but it is a kill counter under a different name: it
-fires in exactly the same 203 player-games as `killed`. Getting real numbers for
+Roshan, runes, towers and wards. Two other Tormentor fields exist and both were tested against all 2,540 cached
+matches rather than a sample. `damage.npc_dota_miniboss` is a kill counter under
+a different name: across 3,826 credited player-games there are **zero** where a
+player dealt damage without also being credited the kill, so it carries no extra
+participation. `damage_taken.npc_dota_miniboss` genuinely is a participation
+signal — 2.65 players per kill took damage — but it is the wrong participation:
+scored as credit it lands core 1.28x, mid 3.13x and support **9.18x** of the
+reference, because supports get hit by a Tormentor and walk away. Splitting the
+credit by share of damage taken is no better (0.45 / 0.96 / 2.86). The plain
+kill credit remains the least wrong of the four. Getting real numbers for
 any of the four means parsing replays, which is what the community calculators
 that do have them are doing.
 
@@ -131,8 +138,12 @@ Three independent lines, and they converge:
    teamfight participation, where the two pipelines agree to 1.00, our madstone
    count is low by a median of **2.64×** across 30 matched entries (mean 2.69,
    quartiles 2.26–3.04). That project's own two tables show it applying the same
-   correction internally: between them every other stat moves by the series
-   factor of ~2.0, madstones by 5.37 and Tormentor by 3.95.
+   correction internally. Between them every other stat moves by a flat factor
+   — 2.0 for Core and Support, 1.0 for Mid — while madstones moves by 5.37 and
+   3.05. That factor is a **pair** factor, not a series one: their pair entries
+   are two players ("YSR-04E & niu") and their mid entries are one, so they sum
+   a pair where this project averages. Dividing it out, their implied madstone
+   correction is 2.69 for Core and 3.05 for Mid.
 
 2.7 is the measured middle. It multiplies a real observation rather than
 replacing it, so it still scales with how much a player farmed.
@@ -166,6 +177,20 @@ Two things it deliberately does not do. It does not shrink game-to-game spread,
 only the player's level, so the floor and ceiling the risk slider reads still
 come from real variation. And it does not touch `/information`, which reports
 what entries produced rather than what to expect from them.
+
+## The reference table cannot settle Tormentor
+
+Worth knowing before anyone grades against it again. The community table this
+project cross-checks has a companion per-player table in the same repository,
+and the two are a constant factor apart for every stat — 2.0 for pairs, 1.0 for
+mid — with two exceptions. Madstones, which is the correction described above.
+And Tormentor, where the two tables disagree by **2.0x for Core, 3.5x for Mid
+and 17.1x for Support**.
+
+Whatever that pipeline does with Tormentor, it does not reproduce itself. So
+`support/tormentor 0.55x` is not evidence this project is wrong; it is a
+disagreement with a number its own author's two tables disagree about far more
+violently. It stays reported and stays out of the unexplained count.
 
 ## Retracted
 
