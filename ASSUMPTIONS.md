@@ -14,7 +14,7 @@ wrong, the numbers that depend on it are wrong.
 | Slot colours per role | In-game rules |
 | One stat per banner, never repeated | You |
 | Core and Support are same-team pairs, Mid is one player | In-game rules |
-| A pair is the **average** of its two players | You |
+| A pair is the **average** of its two players | You. The other public calculator sums instead — see below. Within a role this changes nothing; across roles it changes where rerolls go |
 | A series is the **sum** of its two best games | You, and the in-game rules |
 | A period pays only the **best single series** | In-game rules |
 | The same three options serve every banner; you choose which to apply one to | In-game rules |
@@ -177,6 +177,44 @@ Two things it deliberately does not do. It does not shrink game-to-game spread,
 only the player's level, so the floor and ceiling the risk slider reads still
 come from real variation. And it does not touch `/information`, which reports
 what entries produced rather than what to expect from them.
+
+## Sum or average for a pair, and why it matters
+
+This project averages a Core or Support pair's two players. The community
+calculator sums them: its stored value for `Ame & Xxs` is 1.02x our sum on GPM
+and 1.03x on Deaths, and about twice our average.
+
+Their convention carries no authority. Their own file says the numbers are
+"Community-derived TI 2026 fantasy values **transcribed from the supplied
+tables**" — the pairs arrived pre-combined from a source they do not name, and
+the only comment about it explains their input file rather than the game. Across
+their whole repository exactly one rule cites a source, and it is not this one.
+Ours is credited to watching the game, which is thin but thinner still is a
+transcription of unknown origin.
+
+What is genuinely at stake is not the ranking. Every pair is scaled by the same
+factor, so the Core order and the Support order are identical either way, and no
+pick inside a role changes.
+
+It is the **reroll allocation**, which compares gains across banners. Measured
+over 200 random three-option hands at the playoff stage, the plan's top
+recommendation lands:
+
+| role | recommended | value of the banner |
+| --- | --- | --- |
+| core | 49% | 17,965 |
+| mid | 35% | 12,729 |
+| support | 18% | 11,869 |
+
+The skew follows the value scale, which is correct behaviour: a fixed percentage
+gain on a bigger banner is worth more absolute points. But averaging is what puts
+the three roles on that scale in the first place. Summing would take Core to
+about 2.8x Mid and Support to 1.9x Mid instead of 1.41x and 0.93x, moving Support
+from the least-recommended banner to comfortably ahead of Mid. So the convention
+does not change who you pick, and does change what you reroll.
+
+Worth settling from the in-game card rather than from either calculator: a pair's
+displayed points either look like one player's output or like two added together.
 
 ## The reference table cannot settle Tormentor
 
