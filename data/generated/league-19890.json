@@ -1,7 +1,7 @@
 {
   "leagueId": 19890,
   "leagueName": "The International 2026 - Regional Qualifier North America",
-  "fetchedAt": "2026-09-01T07:06:30.126Z",
+  "fetchedAt": "2026-09-01T07:32:04.241Z",
   "matchesTotal": 13,
   "matchesUsed": 13,
   "matchesSkipped": 0,
@@ -77,6 +77,14 @@
         {},
         {}
       ],
+      "roster": [
+        90423751,
+        160119017,
+        191362875,
+        154974246,
+        206642367
+      ],
+      "rosterOverlap": 5,
       "winRate": 1,
       "elo": 1218.9,
       "careerWins": 98,
@@ -111,6 +119,8 @@
         {},
         {}
       ],
+      "roster": null,
+      "rosterOverlap": 0,
       "winRate": 0.444,
       "elo": null,
       "careerWins": null,
@@ -145,6 +155,14 @@
         {},
         {}
       ],
+      "roster": [
+        86811043,
+        192120253,
+        92706637,
+        94364925,
+        1296625
+      ],
+      "rosterOverlap": 5,
       "winRate": 0.333,
       "elo": null,
       "careerWins": null,
@@ -179,6 +197,14 @@
         {},
         {}
       ],
+      "roster": [
+        1009469018,
+        206266593,
+        363178741,
+        197525587,
+        133615285
+      ],
+      "rosterOverlap": 5,
       "winRate": 0,
       "elo": null,
       "careerWins": null,

@@ -1,7 +1,7 @@
 {
   "leagueId": 19099,
   "leagueName": "BLAST SLAM VI",
-  "fetchedAt": "2026-09-01T07:07:11.510Z",
+  "fetchedAt": "2026-09-01T07:38:11.765Z",
   "matchesTotal": 100,
   "matchesUsed": 100,
   "matchesSkipped": 0,
@@ -77,6 +77,8 @@
         {},
         {}
       ],
+      "roster": null,
+      "rosterOverlap": 3,
       "winRate": 0.385,
       "elo": 1530.1,
       "careerWins": 943,
@@ -111,6 +113,14 @@
         {},
         {}
       ],
+      "roster": [
+        312436974,
+        93817671,
+        171262902,
+        103735745,
+        56351509
+      ],
+      "rosterOverlap": 4,
       "winRate": 0.591,
       "elo": 1433.1,
       "careerWins": 190,
@@ -145,6 +155,15 @@
         {},
         {}
       ],
+      "roster": [
+        152962063,
+        77490514,
+        201358612,
+        16497807,
+        97590558,
+        60943014
+      ],
+      "rosterOverlap": 5,
       "winRate": 0.72,
       "elo": 1407.6,
       "careerWins": 1877,
@@ -179,6 +198,15 @@
         {},
         {}
       ],
+      "roster": [
+        835864135,
+        957204049,
+        130991304,
+        185590374,
+        116249155,
+        919735867
+      ],
+      "rosterOverlap": 4,
       "winRate": 0.55,
       "elo": 1388.6,
       "careerWins": 1493,
@@ -213,6 +241,8 @@
         {},
         {}
       ],
+      "roster": null,
+      "rosterOverlap": 0,
       "winRate": 0.538,
       "elo": 1377.5,
       "careerWins": 797,
@@ -247,6 +277,14 @@
         {},
         {}
       ],
+      "roster": [
+        25907144,
+        100058342,
+        10366616,
+        183719386,
+        898455820
+      ],
+      "rosterOverlap": 5,
       "winRate": 0.556,
       "elo": 1372.3,
       "careerWins": 571,
@@ -281,6 +319,8 @@
         {},
         {}
       ],
+      "roster": null,
+      "rosterOverlap": 0,
       "winRate": 0.526,
       "elo": 1330,
       "careerWins": 351,
@@ -315,6 +355,14 @@
         {},
         {}
       ],
+      "roster": [
+        90423751,
+        160119017,
+        191362875,
+        154974246,
+        206642367
+      ],
+      "rosterOverlap": 4,
       "winRate": 0.438,
       "elo": 1218.9,
       "careerWins": 98,
@@ -349,6 +397,8 @@
         {},
         {}
       ],
+      "roster": null,
+      "rosterOverlap": 3,
       "winRate": 0.5,
       "elo": 1177.9,
       "careerWins": 1239,
@@ -383,6 +433,8 @@
         {},
         {}
       ],
+      "roster": null,
+      "rosterOverlap": 3,
       "winRate": 0.077,
       "elo": 1168.6,
       "careerWins": 166,
@@ -417,6 +469,13 @@
         {},
         {}
       ],
+      "roster": [
+        190826739,
+        127617979,
+        9403474,
+        116585378
+      ],
+      "rosterOverlap": 4,
       "winRate": 0.357,
       "elo": 1162.9,
       "careerWins": 421,
@@ -451,6 +510,8 @@
         {},
         {}
       ],
+      "roster": null,
+      "rosterOverlap": 3,
       "winRate": 0.462,
       "elo": 1162.5,
       "careerWins": 613,

@@ -1,7 +1,7 @@
 {
   "leagueId": 19422,
   "leagueName": "ESL One Birmingham 2026",
-  "fetchedAt": "2026-09-01T07:06:58.630Z",
+  "fetchedAt": "2026-09-01T07:36:35.515Z",
   "matchesTotal": 142,
   "matchesUsed": 142,
   "matchesSkipped": 0,
@@ -77,6 +77,14 @@
         {},
         {}
       ],
+      "roster": [
+        106573901,
+        164199202,
+        73401082,
+        1044002267,
+        195108598
+      ],
+      "rosterOverlap": 4,
       "winRate": 0.565,
       "elo": 1545.9,
       "careerWins": 345,
@@ -111,6 +119,14 @@
         {},
         {}
       ],
+      "roster": [
+        321580662,
+        302214028,
+        106305042,
+        847565596,
+        218231587
+      ],
+      "rosterOverlap": 4,
       "winRate": 0.65,
       "elo": 1530.1,
       "careerWins": 943,
@@ -145,6 +161,14 @@
         {},
         {}
       ],
+      "roster": [
+        312436974,
+        93817671,
+        171262902,
+        103735745,
+        56351509
+      ],
+      "rosterOverlap": 4,
       "winRate": 0.654,
       "elo": 1433.1,
       "careerWins": 190,
@@ -179,6 +203,8 @@
         {},
         {}
       ],
+      "roster": null,
+      "rosterOverlap": 0,
       "winRate": 0.286,
       "elo": 1403.2,
       "careerWins": 630,
@@ -213,6 +239,14 @@
         {},
         {}
       ],
+      "roster": [
+        317880638,
+        480412663,
+        165564598,
+        196878136,
+        172099728
+      ],
+      "rosterOverlap": 5,
       "winRate": 0.4,
       "elo": 1393,
       "careerWins": 702,
@@ -247,6 +281,8 @@
         {},
         {}
       ],
+      "roster": null,
+      "rosterOverlap": 0,
       "winRate": 0.783,
       "elo": 1377.5,
       "careerWins": 797,
@@ -281,6 +317,14 @@
         {},
         {}
       ],
+      "roster": [
+        25907144,
+        100058342,
+        10366616,
+        183719386,
+        898455820
+      ],
+      "rosterOverlap": 5,
       "winRate": 0.563,
       "elo": 1372.3,
       "careerWins": 571,
@@ -315,6 +359,15 @@
         {},
         {}
       ],
+      "roster": [
+        256156323,
+        124801257,
+        320219866,
+        126842529,
+        301750126,
+        389022189
+      ],
+      "rosterOverlap": 5,
       "winRate": 0.737,
       "elo": 1369.6,
       "careerWins": 375,
@@ -349,6 +402,8 @@
         {},
         {}
       ],
+      "roster": null,
+      "rosterOverlap": 0,
       "winRate": 0.286,
       "elo": 1239.4,
       "careerWins": 361,
@@ -383,6 +438,14 @@
         {},
         {}
       ],
+      "roster": [
+        90423751,
+        160119017,
+        191362875,
+        154974246,
+        206642367
+      ],
+      "rosterOverlap": 4,
       "winRate": 0.4,
       "elo": 1218.9,
       "careerWins": 98,
@@ -417,6 +480,8 @@
         {},
         {}
       ],
+      "roster": null,
+      "rosterOverlap": 3,
       "winRate": 0.357,
       "elo": 1213,
       "careerWins": 98,
@@ -451,6 +516,8 @@
         {},
         {}
       ],
+      "roster": null,
+      "rosterOverlap": 0,
       "winRate": 0.357,
       "elo": 1182.1,
       "careerWins": 214,
@@ -485,6 +552,8 @@
         {},
         {}
       ],
+      "roster": null,
+      "rosterOverlap": 3,
       "winRate": 0.286,
       "elo": 1177.9,
       "careerWins": 1239,
@@ -519,6 +588,8 @@
         {},
         {}
       ],
+      "roster": null,
+      "rosterOverlap": 3,
       "winRate": 0.143,
       "elo": 1168.6,
       "careerWins": 166,
@@ -553,6 +624,13 @@
         {},
         {}
       ],
+      "roster": [
+        190826739,
+        127617979,
+        9403474,
+        116585378
+      ],
+      "rosterOverlap": 4,
       "winRate": 0.529,
       "elo": 1162.9,
       "careerWins": 421,
@@ -587,6 +665,8 @@
         {},
         {}
       ],
+      "roster": null,
+      "rosterOverlap": 3,
       "winRate": 0.5,
       "elo": 1162.5,
       "careerWins": 613,

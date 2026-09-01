@@ -25,6 +25,14 @@ export type TeamEntry = {
   careerLosses: number | null;
   /** Maps played per stage. Absent on data generated before stage splitting. */
   stages?: Record<Stage, TeamStageStats>;
+  /**
+   * Account ids the team's roster names, kept only where it describes THIS
+   * event. null when OpenDota's roster is from a later line-up; absent on data
+   * generated before rosters were recorded.
+   */
+  roster?: number[] | null;
+  /** How many of that roster actually played here. The trust test. */
+  rosterOverlap?: number | null;
 };
 
 export type LeagueData = {
@@ -146,6 +154,14 @@ export function toPlayerEntries(league: LeagueData, stage?: Stage): PlayerEntry[
   const order = league.statOrder ?? league.availableStats;
   const wanted = stage ? STAGES.indexOf(stage) : -1;
 
+  // Who the event says is on each team. Null for a team whose roster could not
+  // be trusted, and absent entirely on data fetched before rosters existed - in
+  // both cases `onRoster` stays undefined and buildLineups falls back to games.
+  const onRoster = new Set<number>();
+  for (const team of league.teams ?? []) {
+    for (const id of team.roster ?? []) onRoster.add(id);
+  }
+
   return league.players
     .map((p) => {
       const tags = p.sampleStages;
@@ -175,6 +191,7 @@ export function toPlayerEntries(league: LeagueData, stage?: Stage): PlayerEntry[
       return {
         id: String(p.accountId ?? p.name),
         name: p.name,
+        onRoster: onRoster.size && p.accountId != null ? onRoster.has(p.accountId) : undefined,
         teamName: p.teamName,
         role: p.role,
         games: stageStats ? stageStats.games : rows.length || p.games,

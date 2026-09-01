@@ -1,7 +1,7 @@
 {
   "leagueId": 19893,
   "leagueName": "The International 2026 - Regional Qualifier China",
-  "fetchedAt": "2026-09-01T07:06:17.467Z",
+  "fetchedAt": "2026-09-01T07:28:34.312Z",
   "matchesTotal": 29,
   "matchesUsed": 29,
   "matchesSkipped": 0,
@@ -77,6 +77,14 @@
         {},
         {}
       ],
+      "roster": [
+        170896543,
+        145957968,
+        249835593,
+        315272623,
+        150961567
+      ],
+      "rosterOverlap": 5,
       "winRate": 1,
       "elo": 1257.5,
       "careerWins": 49,
@@ -111,6 +119,14 @@
         {},
         {}
       ],
+      "roster": [
+        137129583,
+        320252024,
+        111114687,
+        118134220,
+        157475523
+      ],
+      "rosterOverlap": 5,
       "winRate": 0.667,
       "elo": 1183.6,
       "careerWins": 1567,
@@ -145,6 +161,8 @@
         {},
         {}
       ],
+      "roster": null,
+      "rosterOverlap": 0,
       "winRate": 0.556,
       "elo": 1182.1,
       "careerWins": 214,
@@ -179,6 +197,14 @@
         {},
         {}
       ],
+      "roster": [
+        137193239,
+        139937922,
+        148215639,
+        207829314,
+        76904792
+      ],
+      "rosterOverlap": 5,
       "winRate": 0.556,
       "elo": null,
       "careerWins": null,
@@ -213,6 +239,15 @@
         {},
         {}
       ],
+      "roster": [
+        307291170,
+        373667079,
+        325674279,
+        188953151,
+        195072449,
+        212011074
+      ],
+      "rosterOverlap": 5,
       "winRate": 0.286,
       "elo": null,
       "careerWins": null,
@@ -247,6 +282,8 @@
         {},
         {}
       ],
+      "roster": null,
+      "rosterOverlap": 3,
       "winRate": 0.333,
       "elo": null,
       "careerWins": null,
@@ -281,6 +318,8 @@
         {},
         {}
       ],
+      "roster": null,
+      "rosterOverlap": 3,
       "winRate": 0,
       "elo": null,
       "careerWins": null,
@@ -315,6 +354,14 @@
         {},
         {}
       ],
+      "roster": [
+        164530809,
+        137895298,
+        165178538,
+        1101855381,
+        135607261
+      ],
+      "rosterOverlap": 5,
       "winRate": 0.2,
       "elo": null,
       "careerWins": null,

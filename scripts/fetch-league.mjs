@@ -78,6 +78,24 @@ async function main() {
   const FANTASY_ROLE = { 1: "core", 2: "support", 4: "mid" };
 
   const leagueName = leagueInfo?.name ?? `League ${leagueId}`;
+
+  /**
+   * A team's roster, so a pair is picked from who is ON the team rather than
+   * from who happened to play the most games.
+   *
+   * `/teams/{id}/players` flags current members. That flag is about TODAY, so it
+   * is an anachronism on an old event exactly the way the pro registry is for
+   * roles - it would hand TI 2022 the 2026 line-up. Rather than guess an age, we
+   * check the roster against the event itself: if at least four of the players
+   * it names actually played here, it describes this event and can be trusted.
+   * Otherwise it is from another era and is ignored, and `buildLineups` falls
+   * back to games played.
+   */
+  async function rosterFor(teamId) {
+    const rows = await odFetch(`/teams/${teamId}/players`).catch(() => null);
+    if (!Array.isArray(rows)) return null;
+    return rows.filter((r) => r.is_current_team_member).map((r) => r.account_id);
+  }
   console.log(`${leagueName}: ${matchList.length} matcher\n`);
 
   // Every match is loaded before anything is aggregated: the group stage /
@@ -345,6 +363,15 @@ async function main() {
     })
     .sort((a, b) => a.teamName.localeCompare(b.teamName) || a.name.localeCompare(b.name));
 
+  // Rosters, one call per team. Sequential so the public rate limit is not
+  // tripped; the whole league is a couple of dozen requests.
+  const rosterById = new Map();
+  for (const teamId of teams.keys()) {
+    const roster = await rosterFor(teamId);
+    if (roster) rosterById.set(teamId, roster);
+  }
+  progress(`rosters - ${rosterById.size} of ${teams.size} teams answered`);
+
   const payload = {
     leagueId: Number(leagueId),
     leagueName,
@@ -371,8 +398,17 @@ async function main() {
     teams: [...teams.values()]
       .map((t) => {
         const od = eloById.get(t.id);
+        const roster = rosterById.get(t.id) ?? null;
+        // Played here, so the roster can be checked against reality.
+        const played = new Set(
+          output.filter((p) => p.teamId === t.id).map((p) => p.accountId)
+        );
+        const overlap = roster ? roster.filter((id) => played.has(id)).length : 0;
         return {
           ...t,
+          // Only kept when it describes THIS event - see rosterFor.
+          roster: roster && overlap >= 4 ? roster : null,
+          rosterOverlap: roster ? overlap : null,
           winRate: t.games ? Number((t.wins / t.games).toFixed(3)) : 0,
           // OpenDota's own Elo, career-wide. Drives the bracket model.
           elo: od?.rating != null ? Number(od.rating.toFixed(1)) : null,

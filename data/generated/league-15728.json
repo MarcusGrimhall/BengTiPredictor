@@ -1,7 +1,7 @@
 {
   "leagueId": 15728,
   "leagueName": "The International 2023",
-  "fetchedAt": "2026-09-01T07:08:20.835Z",
+  "fetchedAt": "2026-09-01T07:44:25.334Z",
   "matchesTotal": 151,
   "matchesUsed": 151,
   "matchesSkipped": 0,
@@ -77,6 +77,8 @@
         {},
         {}
       ],
+      "roster": null,
+      "rosterOverlap": 3,
       "winRate": 0.905,
       "elo": 1530.1,
       "careerWins": 943,
@@ -111,6 +113,8 @@
         {},
         {}
       ],
+      "roster": null,
+      "rosterOverlap": 1,
       "winRate": 0.429,
       "elo": 1492.3,
       "careerWins": 326,
@@ -145,6 +149,8 @@
         {},
         {}
       ],
+      "roster": null,
+      "rosterOverlap": 3,
       "winRate": 0.722,
       "elo": 1407.6,
       "careerWins": 1877,
@@ -179,6 +185,8 @@
         {},
         {}
       ],
+      "roster": null,
+      "rosterOverlap": 0,
       "winRate": 0.429,
       "elo": 1403,
       "careerWins": 293,
@@ -213,6 +221,8 @@
         {},
         {}
       ],
+      "roster": null,
+      "rosterOverlap": 2,
       "winRate": 0.667,
       "elo": 1393,
       "careerWins": 702,
@@ -247,6 +257,8 @@
         {},
         {}
       ],
+      "roster": null,
+      "rosterOverlap": 1,
       "winRate": 0.583,
       "elo": 1377.5,
       "careerWins": 797,
@@ -281,6 +293,8 @@
         {},
         {}
       ],
+      "roster": null,
+      "rosterOverlap": 0,
       "winRate": 0.25,
       "elo": 1367.8,
       "careerWins": 249,
@@ -315,6 +329,8 @@
         {},
         {}
       ],
+      "roster": null,
+      "rosterOverlap": 0,
       "winRate": 0.2,
       "elo": 1337.9,
       "careerWins": 268,
@@ -349,6 +365,8 @@
         {},
         {}
       ],
+      "roster": null,
+      "rosterOverlap": 0,
       "winRate": 0.286,
       "elo": 1323,
       "careerWins": 269,
@@ -383,6 +401,8 @@
         {},
         {}
       ],
+      "roster": null,
+      "rosterOverlap": 1,
       "winRate": 0.667,
       "elo": 1321.2,
       "careerWins": 552,
@@ -417,6 +437,8 @@
         {},
         {}
       ],
+      "roster": null,
+      "rosterOverlap": 0,
       "winRate": 0.25,
       "elo": 1302.6,
       "careerWins": 360,
@@ -451,6 +473,8 @@
         {},
         {}
       ],
+      "roster": null,
+      "rosterOverlap": 0,
       "winRate": 0.722,
       "elo": 1292,
       "careerWins": 1818,
@@ -485,6 +509,8 @@
         {},
         {}
       ],
+      "roster": null,
+      "rosterOverlap": 0,
       "winRate": 0.438,
       "elo": 1238.8,
       "careerWins": 293,
@@ -519,6 +545,8 @@
         {},
         {}
       ],
+      "roster": null,
+      "rosterOverlap": 0,
       "winRate": 0.55,
       "elo": 1231.3,
       "careerWins": 275,
@@ -553,6 +581,8 @@
         {},
         {}
       ],
+      "roster": null,
+      "rosterOverlap": 1,
       "winRate": 0.167,
       "elo": 1218.1,
       "careerWins": 1627,
@@ -587,6 +617,8 @@
         {},
         {}
       ],
+      "roster": null,
+      "rosterOverlap": 1,
       "winRate": 0.438,
       "elo": 1216.3,
       "careerWins": 439,
@@ -621,6 +653,8 @@
         {},
         {}
       ],
+      "roster": null,
+      "rosterOverlap": 2,
       "winRate": 0.25,
       "elo": 1167.6,
       "careerWins": 218,
@@ -655,6 +689,8 @@
         {},
         {}
       ],
+      "roster": null,
+      "rosterOverlap": 1,
       "winRate": 0.471,
       "elo": 1157.8,
       "careerWins": 248,
@@ -689,6 +725,8 @@
         {},
         {}
       ],
+      "roster": null,
+      "rosterOverlap": 0,
       "winRate": 0.4,
       "elo": 1134.3,
       "careerWins": 537,
@@ -723,6 +761,8 @@
         {},
         {}
       ],
+      "roster": null,
+      "rosterOverlap": 0,
       "winRate": 0.111,
       "elo": null,
       "careerWins": null,

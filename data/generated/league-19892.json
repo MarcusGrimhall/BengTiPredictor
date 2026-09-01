@@ -1,7 +1,7 @@
 {
   "leagueId": 19892,
   "leagueName": "The International 2026 - Regional Qualifier Europe",
-  "fetchedAt": "2026-09-01T07:06:22.222Z",
+  "fetchedAt": "2026-09-01T07:31:39.228Z",
   "matchesTotal": 63,
   "matchesUsed": 63,
   "matchesSkipped": 0,
@@ -77,6 +77,14 @@
         {},
         {}
       ],
+      "roster": [
+        106573901,
+        164199202,
+        73401082,
+        1044002267,
+        195108598
+      ],
+      "rosterOverlap": 5,
       "winRate": 0.857,
       "elo": 1545.9,
       "careerWins": 345,
@@ -111,6 +119,14 @@
         {},
         {}
       ],
+      "roster": [
+        321580662,
+        302214028,
+        106305042,
+        847565596,
+        218231587
+      ],
+      "rosterOverlap": 5,
       "winRate": 0.857,
       "elo": 1530.1,
       "careerWins": 943,
@@ -145,6 +161,15 @@
         {},
         {}
       ],
+      "roster": [
+        835864135,
+        957204049,
+        130991304,
+        185590374,
+        116249155,
+        919735867
+      ],
+      "rosterOverlap": 5,
       "winRate": 0.556,
       "elo": 1388.6,
       "careerWins": 1493,
@@ -179,6 +204,14 @@
         {},
         {}
       ],
+      "roster": [
+        138880576,
+        152168157,
+        101356886,
+        111620041,
+        210053851
+      ],
+      "rosterOverlap": 5,
       "winRate": 0.7,
       "elo": 1355.5,
       "careerWins": 45,
@@ -213,6 +246,8 @@
         {},
         {}
       ],
+      "roster": null,
+      "rosterOverlap": 3,
       "winRate": 0.5,
       "elo": 1213,
       "careerWins": 98,
@@ -247,6 +282,8 @@
         {},
         {}
       ],
+      "roster": null,
+      "rosterOverlap": 3,
       "winRate": 0.2,
       "elo": 1197.5,
       "careerWins": 205,
@@ -281,6 +318,13 @@
         {},
         {}
       ],
+      "roster": [
+        217472313,
+        860145568,
+        140835095,
+        1682179459
+      ],
+      "rosterOverlap": 4,
       "winRate": 0.615,
       "elo": 1180.2,
       "careerWins": 350,
@@ -315,6 +359,8 @@
         {},
         {}
       ],
+      "roster": null,
+      "rosterOverlap": 2,
       "winRate": 0.333,
       "elo": 1179.2,
       "careerWins": 433,
@@ -349,6 +395,13 @@
         {},
         {}
       ],
+      "roster": [
+        190826739,
+        127617979,
+        9403474,
+        116585378
+      ],
+      "rosterOverlap": 4,
       "winRate": 0.333,
       "elo": 1162.9,
       "careerWins": 421,
@@ -383,6 +436,8 @@
         {},
         {}
       ],
+      "roster": null,
+      "rosterOverlap": 3,
       "winRate": 0.5,
       "elo": 1153.4,
       "careerWins": 604,
@@ -417,6 +472,13 @@
         {},
         {}
       ],
+      "roster": [
+        140251702,
+        145065875,
+        320017600,
+        123787715
+      ],
+      "rosterOverlap": 4,
       "winRate": 0.643,
       "elo": 1108.4,
       "careerWins": 16,
@@ -451,6 +513,8 @@
         {},
         {}
       ],
+      "roster": null,
+      "rosterOverlap": 2,
       "winRate": 0.2,
       "elo": 1084.8,
       "careerWins": 85,
@@ -485,6 +549,8 @@
         {},
         {}
       ],
+      "roster": null,
+      "rosterOverlap": 2,
       "winRate": 0.333,
       "elo": null,
       "careerWins": null,
@@ -519,6 +585,8 @@
         {},
         {}
       ],
+      "roster": null,
+      "rosterOverlap": 1,
       "winRate": 0.286,
       "elo": null,
       "careerWins": null,
@@ -553,6 +621,8 @@
         {},
         {}
       ],
+      "roster": null,
+      "rosterOverlap": 0,
       "winRate": 0.2,
       "elo": null,
       "careerWins": null,
@@ -587,6 +657,8 @@
         {},
         {}
       ],
+      "roster": null,
+      "rosterOverlap": 0,
       "winRate": 0,
       "elo": null,
       "careerWins": null,

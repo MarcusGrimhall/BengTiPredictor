@@ -1,7 +1,7 @@
 {
   "leagueId": 19696,
   "leagueName": "DreamLeague Season 29",
-  "fetchedAt": "2026-09-01T07:06:43.852Z",
+  "fetchedAt": "2026-09-01T07:35:20.797Z",
   "matchesTotal": 185,
   "matchesUsed": 185,
   "matchesSkipped": 0,
@@ -77,6 +77,14 @@
         {},
         {}
       ],
+      "roster": [
+        106573901,
+        164199202,
+        73401082,
+        1044002267,
+        195108598
+      ],
+      "rosterOverlap": 5,
       "winRate": 0.667,
       "elo": 1545.9,
       "careerWins": 345,
@@ -111,6 +119,14 @@
         {},
         {}
       ],
+      "roster": [
+        321580662,
+        302214028,
+        106305042,
+        847565596,
+        218231587
+      ],
+      "rosterOverlap": 5,
       "winRate": 0.692,
       "elo": 1530.1,
       "careerWins": 943,
@@ -145,6 +161,15 @@
         {},
         {}
       ],
+      "roster": [
+        152962063,
+        77490514,
+        201358612,
+        16497807,
+        97590558,
+        60943014
+      ],
+      "rosterOverlap": 5,
       "winRate": 0.565,
       "elo": 1407.6,
       "careerWins": 1877,
@@ -179,6 +204,14 @@
         {},
         {}
       ],
+      "roster": [
+        317880638,
+        480412663,
+        165564598,
+        196878136,
+        172099728
+      ],
+      "rosterOverlap": 5,
       "winRate": 0.52,
       "elo": 1393,
       "careerWins": 702,
@@ -213,6 +246,15 @@
         {},
         {}
       ],
+      "roster": [
+        835864135,
+        957204049,
+        130991304,
+        185590374,
+        116249155,
+        919735867
+      ],
+      "rosterOverlap": 5,
       "winRate": 0.636,
       "elo": 1388.6,
       "careerWins": 1493,
@@ -247,6 +289,8 @@
         {},
         {}
       ],
+      "roster": null,
+      "rosterOverlap": 0,
       "winRate": 0.476,
       "elo": 1377.5,
       "careerWins": 797,
@@ -281,6 +325,14 @@
         {},
         {}
       ],
+      "roster": [
+        25907144,
+        100058342,
+        10366616,
+        183719386,
+        898455820
+      ],
+      "rosterOverlap": 5,
       "winRate": 0.731,
       "elo": 1372.3,
       "careerWins": 571,
@@ -315,6 +367,15 @@
         {},
         {}
       ],
+      "roster": [
+        256156323,
+        124801257,
+        320219866,
+        126842529,
+        301750126,
+        389022189
+      ],
+      "rosterOverlap": 5,
       "winRate": 0.588,
       "elo": 1369.6,
       "careerWins": 375,
@@ -349,6 +410,8 @@
         {},
         {}
       ],
+      "roster": null,
+      "rosterOverlap": 3,
       "winRate": 0.333,
       "elo": 1355.5,
       "careerWins": 45,
@@ -383,6 +446,8 @@
         {},
         {}
       ],
+      "roster": null,
+      "rosterOverlap": 0,
       "winRate": 0.481,
       "elo": 1335.8,
       "careerWins": 50,
@@ -417,6 +482,8 @@
         {},
         {}
       ],
+      "roster": null,
+      "rosterOverlap": 0,
       "winRate": 0.4,
       "elo": 1274.6,
       "careerWins": 19,
@@ -451,6 +518,14 @@
         {},
         {}
       ],
+      "roster": [
+        90423751,
+        160119017,
+        191362875,
+        154974246,
+        206642367
+      ],
+      "rosterOverlap": 5,
       "winRate": 0.188,
       "elo": 1218.9,
       "careerWins": 98,
@@ -485,6 +560,8 @@
         {},
         {}
       ],
+      "roster": null,
+      "rosterOverlap": 3,
       "winRate": 0.4,
       "elo": 1213,
       "careerWins": 98,
@@ -519,6 +596,14 @@
         {},
         {}
       ],
+      "roster": [
+        137129583,
+        320252024,
+        111114687,
+        118134220,
+        157475523
+      ],
+      "rosterOverlap": 5,
       "winRate": 0.368,
       "elo": 1183.6,
       "careerWins": 1567,
@@ -553,6 +638,8 @@
         {},
         {}
       ],
+      "roster": null,
+      "rosterOverlap": 3,
       "winRate": 0.25,
       "elo": 1168.6,
       "careerWins": 166,
@@ -587,6 +674,8 @@
         {},
         {}
       ],
+      "roster": null,
+      "rosterOverlap": 3,
       "winRate": 0.435,
       "elo": 1162.5,
       "careerWins": 613,
@@ -621,6 +710,8 @@
         {},
         {}
       ],
+      "roster": null,
+      "rosterOverlap": 0,
       "winRate": 0.143,
       "elo": null,
       "careerWins": null,

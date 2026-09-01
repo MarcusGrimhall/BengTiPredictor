@@ -1,7 +1,7 @@
 {
   "leagueId": 18988,
   "leagueName": "DreamLeague Season 27",
-  "fetchedAt": "2026-09-01T07:07:19.447Z",
+  "fetchedAt": "2026-09-01T07:38:43.018Z",
   "matchesTotal": 206,
   "matchesUsed": 206,
   "matchesSkipped": 0,
@@ -77,6 +77,14 @@
         {},
         {}
       ],
+      "roster": [
+        106573901,
+        164199202,
+        73401082,
+        1044002267,
+        195108598
+      ],
+      "rosterOverlap": 4,
       "winRate": 0.615,
       "elo": 1545.9,
       "careerWins": 345,
@@ -111,6 +119,14 @@
         {},
         {}
       ],
+      "roster": [
+        321580662,
+        302214028,
+        106305042,
+        847565596,
+        218231587
+      ],
+      "rosterOverlap": 4,
       "winRate": 0.63,
       "elo": 1530.1,
       "careerWins": 943,
@@ -145,6 +161,14 @@
         {},
         {}
       ],
+      "roster": [
+        312436974,
+        93817671,
+        171262902,
+        103735745,
+        56351509
+      ],
+      "rosterOverlap": 4,
       "winRate": 0.667,
       "elo": 1433.1,
       "careerWins": 190,
@@ -179,6 +203,15 @@
         {},
         {}
       ],
+      "roster": [
+        152962063,
+        77490514,
+        201358612,
+        16497807,
+        97590558,
+        60943014
+      ],
+      "rosterOverlap": 5,
       "winRate": 0.563,
       "elo": 1407.6,
       "careerWins": 1877,
@@ -213,6 +246,8 @@
         {},
         {}
       ],
+      "roster": null,
+      "rosterOverlap": 0,
       "winRate": 0.429,
       "elo": 1403.2,
       "careerWins": 630,
@@ -247,6 +282,14 @@
         {},
         {}
       ],
+      "roster": [
+        317880638,
+        480412663,
+        165564598,
+        196878136,
+        172099728
+      ],
+      "rosterOverlap": 5,
       "winRate": 0.538,
       "elo": 1393,
       "careerWins": 702,
@@ -281,6 +324,15 @@
         {},
         {}
       ],
+      "roster": [
+        835864135,
+        957204049,
+        130991304,
+        185590374,
+        116249155,
+        919735867
+      ],
+      "rosterOverlap": 4,
       "winRate": 0.533,
       "elo": 1388.6,
       "careerWins": 1493,
@@ -315,6 +367,8 @@
         {},
         {}
       ],
+      "roster": null,
+      "rosterOverlap": 0,
       "winRate": 0.6,
       "elo": 1377.5,
       "careerWins": 797,
@@ -349,6 +403,14 @@
         {},
         {}
       ],
+      "roster": [
+        25907144,
+        100058342,
+        10366616,
+        183719386,
+        898455820
+      ],
+      "rosterOverlap": 5,
       "winRate": 0.526,
       "elo": 1372.3,
       "careerWins": 571,
@@ -383,6 +445,8 @@
         {},
         {}
       ],
+      "roster": null,
+      "rosterOverlap": 3,
       "winRate": 0.375,
       "elo": 1369.6,
       "careerWins": 375,
@@ -417,6 +481,8 @@
         {},
         {}
       ],
+      "roster": null,
+      "rosterOverlap": 0,
       "winRate": 0.429,
       "elo": 1330,
       "careerWins": 351,
@@ -451,6 +517,8 @@
         {},
         {}
       ],
+      "roster": null,
+      "rosterOverlap": 0,
       "winRate": 0.5,
       "elo": 1292.4,
       "careerWins": 150,
@@ -485,6 +553,8 @@
         {},
         {}
       ],
+      "roster": null,
+      "rosterOverlap": 0,
       "winRate": 0.5,
       "elo": 1231.3,
       "careerWins": 195,
@@ -519,6 +589,14 @@
         {},
         {}
       ],
+      "roster": [
+        90423751,
+        160119017,
+        191362875,
+        154974246,
+        206642367
+      ],
+      "rosterOverlap": 4,
       "winRate": 0.429,
       "elo": 1218.9,
       "careerWins": 98,
@@ -553,6 +631,8 @@
         {},
         {}
       ],
+      "roster": null,
+      "rosterOverlap": 3,
       "winRate": 0.474,
       "elo": 1213,
       "careerWins": 98,
@@ -587,6 +667,8 @@
         {},
         {}
       ],
+      "roster": null,
+      "rosterOverlap": 0,
       "winRate": 0.313,
       "elo": 1182.1,
       "careerWins": 214,
@@ -621,6 +703,8 @@
         {},
         {}
       ],
+      "roster": null,
+      "rosterOverlap": 1,
       "winRate": 0.231,
       "elo": 1179.2,
       "careerWins": 433,
@@ -655,6 +739,8 @@
         {},
         {}
       ],
+      "roster": null,
+      "rosterOverlap": 3,
       "winRate": 0.65,
       "elo": 1177.9,
       "careerWins": 1239,
@@ -689,6 +775,13 @@
         {},
         {}
       ],
+      "roster": [
+        190826739,
+        127617979,
+        9403474,
+        116585378
+      ],
+      "rosterOverlap": 4,
       "winRate": 0.462,
       "elo": 1162.9,
       "careerWins": 421,
@@ -723,6 +816,8 @@
         {},
         {}
       ],
+      "roster": null,
+      "rosterOverlap": 3,
       "winRate": 0.565,
       "elo": 1162.5,
       "careerWins": 613,
@@ -757,6 +852,8 @@
         {},
         {}
       ],
+      "roster": null,
+      "rosterOverlap": 3,
       "winRate": 0.438,
       "elo": 1145.7,
       "careerWins": 133,
@@ -791,6 +888,8 @@
         {},
         {}
       ],
+      "roster": null,
+      "rosterOverlap": 0,
       "winRate": 0.5,
       "elo": 1124.5,
       "careerWins": 131,
@@ -825,6 +924,8 @@
         {},
         {}
       ],
+      "roster": null,
+      "rosterOverlap": 0,
       "winRate": 0.267,
       "elo": 1084.6,
       "careerWins": 309,
@@ -859,6 +960,8 @@
         {},
         {}
       ],
+      "roster": null,
+      "rosterOverlap": 0,
       "winRate": 0.286,
       "elo": null,
       "careerWins": null,

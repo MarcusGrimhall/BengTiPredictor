@@ -42,6 +42,15 @@ export type PlayerEntry = {
   gameHeroes?: number[];
   /** Bitmask of the Suffix conditions that fired in each game, same order. */
   gameTitles?: number[];
+  /**
+   * On the team's roster as the event itself reports it.
+   *
+   * Undefined where no trustworthy roster was captured, which is every event
+   * fetched before rosters were recorded and every event where the roster
+   * OpenDota returns describes a later line-up. See `rosterFor` in
+   * scripts/fetch-league.mjs.
+   */
+  onRoster?: boolean;
   /** For a Core or Support pair, the two players it is made of. */
   members?: string[];
 };
@@ -543,9 +552,24 @@ export function buildLineups(players: PlayerEntry[]): PlayerEntry[] {
 
   for (const [teamName, squad] of byTeam) {
     for (const role of ["core", "support"] as Role[]) {
+      // Roster first, games only to break a tie.
+      //
+      // Fantasy locks against a line-up, not against a scoreboard. Picking the
+      // two who ended up playing most reads the event's own outcome back into
+      // the pick - a stand-in who covered four games would displace a regular
+      // who played three. Where the event reports a roster we can trust, that
+      // decides; games played is the fallback, and is what every event fetched
+      // before rosters were recorded still uses.
+      //
+      // It changes nothing at any International in this repo: after roles are
+      // resolved per team, all fifty-two team-events there have exactly two
+      // Cores and two Supports, so there is no choice to make. It exists for
+      // the squads that carry a substitute.
       const candidates = squad
         .filter((p) => p.role === role)
-        .sort((a, b) => (b.gameLines?.length ?? 0) - (a.gameLines?.length ?? 0))
+        .sort((a, b) =>
+          Number(b.onRoster ?? false) - Number(a.onRoster ?? false) ||
+          (b.gameLines?.length ?? 0) - (a.gameLines?.length ?? 0))
         .slice(0, 2);
       if (candidates.length === 2) out.push(pairUp(candidates[0], candidates[1], teamName, role));
     }

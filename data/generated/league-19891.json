@@ -1,7 +1,7 @@
 {
   "leagueId": 19891,
   "leagueName": "The International 2026 - Regional Qualifier South America",
-  "fetchedAt": "2026-09-01T07:06:27.768Z",
+  "fetchedAt": "2026-09-01T07:31:55.616Z",
   "matchesTotal": 39,
   "matchesUsed": 39,
   "matchesSkipped": 0,
@@ -77,6 +77,8 @@
         {},
         {}
       ],
+      "roster": null,
+      "rosterOverlap": 0,
       "winRate": 0.583,
       "elo": 1335.8,
       "careerWins": 50,
@@ -111,6 +113,14 @@
         {},
         {}
       ],
+      "roster": [
+        292921272,
+        177203952,
+        105045291,
+        81306398,
+        1026694469
+      ],
+      "rosterOverlap": 5,
       "winRate": 0.9,
       "elo": 1293.6,
       "careerWins": 46,
@@ -145,6 +155,8 @@
         {},
         {}
       ],
+      "roster": null,
+      "rosterOverlap": 1,
       "winRate": 0.444,
       "elo": 1145.7,
       "careerWins": 133,
@@ -179,6 +191,8 @@
         {},
         {}
       ],
+      "roster": null,
+      "rosterOverlap": 3,
       "winRate": 0.556,
       "elo": 1126.8,
       "careerWins": 136,
@@ -213,6 +227,14 @@
         {},
         {}
       ],
+      "roster": [
+        352623024,
+        117089283,
+        164685175,
+        399920568,
+        392385140
+      ],
+      "rosterOverlap": 5,
       "winRate": 0.5,
       "elo": null,
       "careerWins": null,
@@ -247,6 +269,8 @@
         {},
         {}
       ],
+      "roster": null,
+      "rosterOverlap": 0,
       "winRate": 0.5,
       "elo": null,
       "careerWins": null,
@@ -281,6 +305,13 @@
         {},
         {}
       ],
+      "roster": [
+        395770377,
+        125995177,
+        138177198,
+        183057960
+      ],
+      "rosterOverlap": 4,
       "winRate": 0.333,
       "elo": null,
       "careerWins": null,
@@ -315,6 +346,8 @@
         {},
         {}
       ],
+      "roster": null,
+      "rosterOverlap": 3,
       "winRate": 0.286,
       "elo": null,
       "careerWins": null,
@@ -349,6 +382,8 @@
         {},
         {}
       ],
+      "roster": null,
+      "rosterOverlap": 1,
       "winRate": 0.2,
       "elo": null,
       "careerWins": null,
@@ -383,6 +418,8 @@
         {},
         {}
       ],
+      "roster": null,
+      "rosterOverlap": 2,
       "winRate": 0,
       "elo": null,
       "careerWins": null,

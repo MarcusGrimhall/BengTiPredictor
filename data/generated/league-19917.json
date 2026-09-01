@@ -1,7 +1,7 @@
 {
   "leagueId": 19917,
   "leagueName": "The Games of the Future 2026",
-  "fetchedAt": "2026-09-01T07:06:02.991Z",
+  "fetchedAt": "2026-09-01T07:24:11.155Z",
   "matchesTotal": 72,
   "matchesUsed": 72,
   "matchesSkipped": 0,
@@ -77,6 +77,14 @@
         {},
         {}
       ],
+      "roster": [
+        137129583,
+        320252024,
+        111114687,
+        118134220,
+        157475523
+      ],
+      "rosterOverlap": 5,
       "winRate": 0.625,
       "elo": 1183.6,
       "careerWins": 1567,
@@ -111,6 +119,8 @@
         {},
         {}
       ],
+      "roster": null,
+      "rosterOverlap": 0,
       "winRate": 1,
       "elo": 1180.2,
       "careerWins": 350,
@@ -145,6 +155,8 @@
         {},
         {}
       ],
+      "roster": null,
+      "rosterOverlap": 0,
       "winRate": 1,
       "elo": 1179.2,
       "careerWins": 433,
@@ -179,6 +191,13 @@
         {},
         {}
       ],
+      "roster": [
+        154715080,
+        1031547092,
+        363758022,
+        157989498
+      ],
+      "rosterOverlap": 4,
       "winRate": 0.733,
       "elo": 1112.3,
       "careerWins": 11,
@@ -213,6 +232,8 @@
         {},
         {}
       ],
+      "roster": null,
+      "rosterOverlap": 0,
       "winRate": 0.333,
       "elo": 1089.3,
       "careerWins": 693,
@@ -247,6 +268,8 @@
         {},
         {}
       ],
+      "roster": null,
+      "rosterOverlap": 0,
       "winRate": 0.471,
       "elo": null,
       "careerWins": null,
@@ -281,6 +304,8 @@
         {},
         {}
       ],
+      "roster": null,
+      "rosterOverlap": 0,
       "winRate": 0.533,
       "elo": null,
       "careerWins": null,
@@ -315,6 +340,8 @@
         {},
         {}
       ],
+      "roster": null,
+      "rosterOverlap": 0,
       "winRate": 0.583,
       "elo": null,
       "careerWins": null,
@@ -349,6 +376,8 @@
         {},
         {}
       ],
+      "roster": null,
+      "rosterOverlap": 0,
       "winRate": 0.545,
       "elo": null,
       "careerWins": null,
@@ -383,6 +412,8 @@
         {},
         {}
       ],
+      "roster": null,
+      "rosterOverlap": 0,
       "winRate": 0.625,
       "elo": null,
       "careerWins": null,
@@ -417,6 +448,8 @@
         {},
         {}
       ],
+      "roster": null,
+      "rosterOverlap": 0,
       "winRate": 0.714,
       "elo": null,
       "careerWins": null,
@@ -451,6 +484,8 @@
         {},
         {}
       ],
+      "roster": null,
+      "rosterOverlap": 0,
       "winRate": 0.333,
       "elo": null,
       "careerWins": null,
@@ -485,6 +520,8 @@
         {},
         {}
       ],
+      "roster": null,
+      "rosterOverlap": 0,
       "winRate": 0.375,
       "elo": null,
       "careerWins": null,
@@ -519,6 +556,8 @@
         {},
         {}
       ],
+      "roster": null,
+      "rosterOverlap": 0,
       "winRate": 0.333,
       "elo": null,
       "careerWins": null,
@@ -553,6 +592,8 @@
         {},
         {}
       ],
+      "roster": null,
+      "rosterOverlap": 1,
       "winRate": 0.4,
       "elo": null,
       "careerWins": null,
@@ -587,6 +628,8 @@
         {},
         {}
       ],
+      "roster": null,
+      "rosterOverlap": 0,
       "winRate": 0.333,
       "elo": null,
       "careerWins": null,
@@ -621,6 +664,8 @@
         {},
         {}
       ],
+      "roster": null,
+      "rosterOverlap": 0,
       "winRate": 0,
       "elo": null,
       "careerWins": null,
@@ -655,6 +700,8 @@
         {},
         {}
       ],
+      "roster": null,
+      "rosterOverlap": 0,
       "winRate": 0.2,
       "elo": null,
       "careerWins": null,
@@ -689,6 +736,14 @@
         {},
         {}
       ],
+      "roster": [
+        352623024,
+        117089283,
+        164685175,
+        399920568,
+        392385140
+      ],
+      "rosterOverlap": 5,
       "winRate": 0.333,
       "elo": null,
       "careerWins": null,
