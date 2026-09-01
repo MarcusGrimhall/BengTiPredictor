@@ -22,6 +22,7 @@ const { rankPlayers, matchScores, optimizeEmblems, buildLineups, percentile,
         TIERS, TIER_BONUSES, TRAITS } = lib("fantasy");
 const { BANNER_SLOTS, statsForColor, STAT_LABELS } = lib("scoring");
 const { toPlayerEntries, actualSeriesByStage, trainingPlayerEntries } = lib("data");
+const { shrinkEntries } = lib("reliability");
 const { STAGE_SLOTS } = lib("stages");
 const { SUFFIXES, SUFFIX_BITS, suffixTriggerRate } = lib("titles");
 
@@ -50,7 +51,11 @@ const n = (x) => Math.round(x).toLocaleString("en-US");
 const head = (t) => console.log(`\n${t}\n${"=".repeat(t.length)}`);
 const sub = (t) => console.log(`\n${t}\n${"-".repeat(t.length)}`);
 
-const before = buildLineups(trainingPlayerEntries(train));
+// The predictor is shrunk, `truth` never is - that is the whole point of the
+// comparison. See lib/reliability.ts.
+let RELIABILITY = null;
+try { RELIABILITY = await readJson("reliability.json"); } catch { RELIABILITY = null; }
+const before = buildLineups(shrinkEntries(trainingPlayerEntries(train), RELIABILITY));
 const truth = {
   groupStage: buildLineups(toPlayerEntries(league, "groupStage")),
   playoffs: buildLineups(toPlayerEntries(league, "playoffs"))

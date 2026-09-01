@@ -57,9 +57,10 @@ wrong, the numbers that depend on it are wrong.
 | Hero colour/theme groups | `HERO_GROUPS`, empty | Prefix titles — reported as unknown rather than guessed |
 | **Madstones are 2.7 × `item_uses.madstone_bundle`** | `MADSTONES_PER_BUNDLE` in `scripts/extract.mjs` | The Madstones emblem. OpenDota has no madstone field; it counts bundles, and a bundle is not a stone. Three independent sources put the ratio between 2.5 and 3 — see below. At TI 2026 the emblem is worth 663 points a game to a core, level with Kills and still well behind Last hits at 1,512. |
 | **The same option may not be offered twice in a row** | Nowhere — `deal()` in `lib/offers.ts` draws freely | The value of a reroll. This was in the verified table, credited to observation, but the observation was not close enough to rely on and the code never enforced it. As it stands **about 22% of deals repeat at least one option** (3 drawn from 38, twice running). If the rule is real, reshuffling is worth slightly more than the simulator says. Note the rule is also ambiguous as written — it could block only the option you used, all three you were shown, or only the ones you declined, and those are three different implementations. Settle what it means before enforcing it. |
+| **A stat is trusted as far as it repeats** | `lib/reliability.ts`, weights from `data/generated/reliability.json` | Every ranking. Each stat's estimate is pulled toward the field average by however unreliable the stat was measured to be — the standard regression-to-the-mean correction, with the weight measured rather than chosen. What is assumed is that split-half reliability WITHIN an event is a fair stand-in for how well a stat carries ACROSS months and roster changes. It is not: measured inside one event it is an upper bound, so the correction is smaller than it should be. Backtested rather than argued — see below. |
 | **A role heuristic is a role** | `scripts/fetch-league.mjs` | Every ranking. Lane detection is OpenDota's reading of where a hero stood, not Valve's fantasy assignment. It has never disagreed where it can be checked and is never close, but it is inference. STRATZ exposes a real per-match `Position` (POSITION_1…POSITION_5) behind a free API token, which would remove the inference entirely. |
 
-That is the whole list, and it is five. Runes, Towers and Teamfight were on it
+That is the whole list, and it is six. Runes, Towers and Teamfight were on it
 briefly: they were never new guesses, they were old guesses that had never been
 written down, and you settled all three. Two came back the other way. Madstones,
 because the bundle count is measured but the stones-per-bundle factor that turns
@@ -135,6 +136,36 @@ Three independent lines, and they converge:
 
 2.7 is the measured middle. It multiplies a real observation rather than
 replacing it, so it still scales with how much a player farmed.
+
+## What shrinking unreliable stats did
+
+`npm run persistence` measures, per stat, whether the player who led beforehand
+still leads afterwards. Pooled over five Internationals the answer ranges from
+0.95 (a support's wards) to 0.00 (a support's Tormentor). Teamfight
+participation sits at 0.38–0.51 while paying 2,124 a unit, the second highest
+in the game, and First Blood at 0.11–0.30 while paying 1,934.
+
+So the ranking now trusts each stat by that measurement. Graded both ways, on
+the two out-of-sample tests the validator already ran:
+
+| | without | with |
+| --- | --- | --- |
+| Group → playoffs, mean percentile of the pick (5 events, 15 role-events) | 44th | **49th** |
+| Group → playoffs, share of the best possible pick captured | 76.8% | **79.0%** |
+| Group → playoffs, mean rank correlation | 0.07 | **0.10** |
+| Pre-event → event, mean percentile (TI 2026) | 51st | **61st** |
+| Pre-event → event, picks that beat the field | 3 of 5 | **4 of 5** |
+
+Every summary moved the right way and none moved back. It is a modest gain, not
+a transformation, and the samples behind it are small — 15 role-events and 5.
+The single largest move, a mid playoff pick going from the 50th percentile to
+the 100th, is one role at one event and should not be read as the size of the
+effect.
+
+Two things it deliberately does not do. It does not shrink game-to-game spread,
+only the player's level, so the floor and ceiling the risk slider reads still
+come from real variation. And it does not touch `/information`, which reports
+what entries produced rather than what to expect from them.
 
 ## Retracted
 

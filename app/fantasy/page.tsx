@@ -1,9 +1,10 @@
 import FantasyCalculator from "../../components/FantasyCalculator";
-import { actualSeriesByStage, loadDefaultLeague, toPlayerEntries } from "../../lib/data";
+import { actualSeriesByStage, loadDefaultLeague, loadReliability, toPlayerEntries } from "../../lib/data";
 import { projectGroupStageSeries } from "../../lib/groupStage";
 import { strengthByTeam } from "../../lib/strength";
 import { projectMainEvent } from "../../lib/tiBracket";
 import { STAGES, type Stage } from "../../lib/stages";
+import { shrinkEntries } from "../../lib/reliability";
 import type { PlayerEntry } from "../../lib/fantasy";
 import RatingWarning from "../../components/RatingWarning";
 
@@ -25,8 +26,13 @@ export default async function FantasyPage() {
 
   // The two fantasy cards score over different matches, so each stage gets its
   // own player rows, its own averages and its own map counts.
+  // Each stat is trusted as far as it has been measured to repeat, so a duo
+  // that topped a stat nobody repeats is not ranked as though they will do it
+  // again. See lib/reliability.ts; `/information` deliberately stays raw,
+  // because it reports what happened rather than what to expect.
+  const reliability = await loadReliability();
   const playersByStage = Object.fromEntries(
-    STAGES.map((stage) => [stage, toPlayerEntries(league, stage)])
+    STAGES.map((stage) => [stage, shrinkEntries(toPlayerEntries(league, stage), reliability)])
   ) as Record<Stage, PlayerEntry[]>;
 
   // Series, not maps: a match scores as its two best games however long the

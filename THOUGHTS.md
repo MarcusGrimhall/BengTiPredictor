@@ -88,6 +88,22 @@ no bias today. The code path is still live and silent, though, so a future fetch
 of a less-parsed event would reintroduce the question without announcing it.
 Worth a validator check that fails when the skip rate rises above zero.
 
+## The picks land near the middle of the field
+
+Worth staring at. Across five Internationals, group-stage form picks a playoff
+entry that lands at about the 49th percentile of the field — after the
+reliability correction, and up from the 44th before it. Pre-event form at TI
+2026 does better, the 61st, on five role-events.
+
+That is not nothing: the pick captures 79% of what the best possible pick
+scored, and the top of the field is a narrow band. But it is a long way from
+the confidence the interface projects, and the honest reading is that picking a
+fantasy roster is mostly a coin flip that can be nudged. Two candidates for the
+nudge, neither tried: pick on the ceiling rather than the mean, since a period
+pays a maximum and the risk slider already exposes that; and weight recent
+events above older ones inside the training window, which the pooling currently
+does not.
+
 ## STRATZ could remove the role guess entirely
 
 Roles are now inferred from lane detection, which is a good heuristic and has

@@ -30,6 +30,20 @@ const { buildStructure, simulate } = lib("bracket");
 const { DEFAULT_ELO, mapWinProbability } = lib("elo");
 const { stoppingCurve, applyAction, actionCatalogue } = lib("reroll");
 const { seededRandom } = lib("rng");
+const { shrinkEntries } = lib("reliability");
+
+// Stats are trusted as far as they have been shown to repeat - see
+// lib/reliability.ts. Applied to the PREDICTOR only, never to the truth a
+// prediction is graded against, and at player level before pairs are built.
+// `--no-shrink` turns it off, which is how the two are compared.
+const SHRINK = !process.argv.includes("--no-shrink");
+let RELIABILITY = null;
+try {
+  RELIABILITY = JSON.parse(await readFile(join(ROOT, "data", "generated", "reliability.json"), "utf8"));
+} catch {
+  RELIABILITY = null;
+}
+const predictFrom = (entries) => (SHRINK && RELIABILITY ? shrinkEntries(entries, RELIABILITY) : entries);
 
 // Simulation counts. Raising them tightens every Monte Carlo figure below at a
 // linear cost in time; the defaults are already well past the point where the
@@ -260,7 +274,7 @@ function checkMapsModel(league, eloUsable) {
 
 function checkOutOfSample(league, eloUsable, isPrimary) {
   head(`4. Within-event: group stage form -> playoff scoring — pick from the group stage, score in the playoffs — ${league.leagueName}`);
-  const groupPlayers = lineups(toPlayerEntries(league, "groupStage"));
+  const groupPlayers = lineups(predictFrom(toPlayerEntries(league, "groupStage")));
   const playoffPlayers = lineups(toPlayerEntries(league, "playoffs"));
   if (!playoffPlayers.length) { console.log("  no playoff data"); return; }
 
@@ -368,7 +382,7 @@ function checkPreEventPrediction(league, train) {
     `${new Date(train.cutoff * 1000).toISOString().slice(0, 10)}.`);
   console.log(`  ${train.coverage.withHistory} of ${train.coverage.atTarget} players at the event have prior history.\n`);
 
-  const before = lineups(trainingPlayerEntries(train));
+  const before = lineups(predictFrom(trainingPlayerEntries(train)));
   const groupTruth = lineups(toPlayerEntries(league, "groupStage"));
   const playoffTruth = lineups(toPlayerEntries(league, "playoffs"));
 

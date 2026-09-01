@@ -59,6 +59,16 @@ that 33 as a regression to explain, not a number to update.
 `npm run build` must also pass; both compile `lib/` first, so type errors fail
 fast.
 
+## Predictions are shrunk; the record is not
+
+`lib/reliability.ts` pulls each stat toward the field average by however far it
+has been measured NOT to repeat (`npm run persistence`, weights in
+`data/generated/reliability.json`). It is applied to the predictor only — the
+fantasy ranking, and the training entries in simulate/study/validate — never to
+the truth a prediction is graded against, and never to `/information`, which
+reports what happened. If you add a new prediction path, shrink its input; if
+you add a new descriptive view, do not.
+
 ## The evidence bar
 
 This project's norm is *verified field by field against OpenDota and STRATZ on

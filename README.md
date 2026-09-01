@@ -50,7 +50,7 @@ real world best at TI 2026 was 106,966. That is the right relationship.
 | File | What is in it |
 | --- | --- |
 | **[COMMANDS.md](COMMANDS.md)** | Every command. Starting and stopping the site, fetching data, training the model, and each flag grouped by what it decides. |
-| **[ASSUMPTIONS.md](ASSUMPTIONS.md)** | Every rule the calculator applies and where it came from — including the five things still assumed, and the ones I got wrong and fixed. |
+| **[ASSUMPTIONS.md](ASSUMPTIONS.md)** | Every rule the calculator applies and where it came from — including the six things still assumed, and the ones I got wrong and fixed. |
 | `/method` in the app | The same, in the browser. |
 
 ## Layout
@@ -86,6 +86,13 @@ data/
   snapshot of today's roster and mislabels old events, so roles come from where
   each hero actually stood. It matches the registry wherever the registry is
   contemporaneous, but it is still inference.
+- **Stats are trusted as far as they repeat.** Measured over five
+  Internationals, a support's wards predict the next event at 0.95 and their
+  Tormentor at 0.00. Unreliable stats are pulled toward the field average, so a
+  duo that topped a fluky stat is not ranked as though they will do it again.
+  Run `npm run persistence` to see the table. It is measured within events,
+  which overstates how far a stat carries between them, so the correction is
+  deliberately on the small side.
 - **Ratings are current, not historical.** They are graded per event and the app
   warns when they are worse than a coin flip, which happens for older events.
 - **A period pays a maximum**, and a maximum is largely luck. Prior form picks

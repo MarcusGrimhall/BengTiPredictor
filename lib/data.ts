@@ -5,6 +5,7 @@ import { readFile, readdir } from "node:fs/promises";
 import { join } from "node:path";
 import type { PlayerEntry } from "./fantasy";
 import type { StatKey } from "./scoring";
+import type { Reliability } from "./reliability";
 import { STAGES, type Stage } from "./stages";
 
 const DIR = join(process.cwd(), "data", "generated");
@@ -270,6 +271,20 @@ export type TrainingData = {
 export async function loadTraining(targetLeagueId: number | string): Promise<TrainingData | null> {
   try {
     return JSON.parse(await readFile(join(DIR, `training-${targetLeagueId}.json`), "utf8"));
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * How far each stat has been shown to repeat, written by `npm run persistence`.
+ *
+ * Absent is fine and means no shrinkage: the ranking falls back to trusting
+ * every stat equally, which is what it did before this existed.
+ */
+export async function loadReliability(): Promise<Reliability | null> {
+  try {
+    return JSON.parse(await readFile(join(DIR, "reliability.json"), "utf8"));
   } catch {
     return null;
   }

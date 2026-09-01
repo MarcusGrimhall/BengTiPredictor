@@ -23,6 +23,14 @@ const lib = (name) => require(join(ROOT, ".validate", `${name}.js`));
 const { rankPlayers, matchScores, optimizeEmblems, buildLineups, percentile, riskToPercentile } = lib("fantasy");
 const { BANNER_SLOTS, statsForColor, STAT_LABELS } = lib("scoring");
 const { toPlayerEntries, actualSeriesByStage, trainingPlayerEntries } = lib("data");
+const { shrinkEntries } = lib("reliability");
+
+// Stats are trusted as far as they repeat - see lib/reliability.ts. These
+// entries are the predictor, so they are shrunk; anything graded against them
+// is not.
+let RELIABILITY = null;
+try { RELIABILITY = await readJson("reliability.json"); } catch { RELIABILITY = null; }
+const predictFrom = (entries) => shrinkEntries(entries, RELIABILITY);
 const { STAGE_SLOTS, STAGE_LABELS } = lib("stages");
 const { projectMainEvent } = lib("tiBracket");
 const { seededRandom } = lib("rng");
@@ -148,7 +156,7 @@ let sources = [];
 
 async function loadEntries() {
   if (opts.source === "event") {
-    return { entries: buildLineups(toPlayerEntries(league, activeStage)), sources: ["the target event itself (in-sample)"] };
+    return { entries: buildLineups(predictFrom(toPlayerEntries(league, activeStage))), sources: ["the target event itself (in-sample)"] };
   }
   let training;
   try {
@@ -181,7 +189,7 @@ async function loadEntries() {
       .map((p) => p);
   }
   return {
-    entries: buildLineups(trainingPlayerEntries(filtered)),
+    entries: buildLineups(predictFrom(trainingPlayerEntries(filtered))),
     sources: kept.map((s) => `${s.leagueName} (${new Date(s.firstMatch * 1000).toISOString().slice(0, 10)})`)
   };
 }

@@ -1,0 +1,82 @@
+{
+  "builtAt": "2026-09-01T06:15:04.324Z",
+  "method": "split-half, Spearman-Brown corrected, Fisher-pooled",
+  "events": [
+    {
+      "leagueId": 19719,
+      "leagueName": "The International 2026"
+    },
+    {
+      "leagueId": 18324,
+      "leagueName": "The International 2025"
+    },
+    {
+      "leagueId": 16935,
+      "leagueName": "The International 2024"
+    },
+    {
+      "leagueId": 15728,
+      "leagueName": "The International 2023"
+    },
+    {
+      "leagueId": 14268,
+      "leagueName": "The International 2022"
+    }
+  ],
+  "roles": {
+    "core": {
+      "kills": 0.751,
+      "deaths": 0.583,
+      "creeps": 0.879,
+      "gpm": 0.927,
+      "towers": 0.811,
+      "roshan": 0.701,
+      "tormentor": 0.47,
+      "courier": 0.111,
+      "firstBlood": 0.237,
+      "teamfight": 0.503,
+      "stuns": 0.651,
+      "wards": 0.51,
+      "stacks": 0.674,
+      "runes": 0.741,
+      "smokes": 0.632,
+      "madstones": 0.593
+    },
+    "mid": {
+      "kills": 0.547,
+      "deaths": 0.53,
+      "creeps": 0.568,
+      "gpm": 0.726,
+      "towers": 0.531,
+      "roshan": 0.311,
+      "tormentor": 0.038,
+      "courier": 0.276,
+      "firstBlood": 0.305,
+      "teamfight": 0.51,
+      "stuns": 0.362,
+      "wards": 0.886,
+      "stacks": 0.687,
+      "runes": 0.471,
+      "smokes": 0.576,
+      "madstones": 0.298
+    },
+    "support": {
+      "kills": 0.621,
+      "deaths": 0.679,
+      "creeps": 0.761,
+      "gpm": 0.698,
+      "towers": 0.463,
+      "roshan": 0.331,
+      "tormentor": 0,
+      "courier": 0.624,
+      "firstBlood": 0.109,
+      "teamfight": 0.38,
+      "stuns": 0.77,
+      "wards": 0.946,
+      "stacks": 0.801,
+      "runes": 0.716,
+      "smokes": 0.884,
+      "madstones": 0.481
+    }
+  }
+}

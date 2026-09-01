@@ -1,7 +1,8 @@
 #!/usr/bin/env node
 // Is a stat a lasting property of a player, or is it circumstance?
 //
-//   npm run persistence
+//   npm run persistence            # print the tables
+//   npm run persistence -- --write # also write data/generated/reliability.json
 //
 // The ranking assumes that what a player produced before an event predicts what
 // they will produce at it. That is true of some stats and false of others, and
@@ -27,7 +28,7 @@
 //
 // Correlations are Spearman (ranks, so a single blow-out game cannot carry a
 // stat) and pooled across events through Fisher's z, weighted by sample size.
-import { readFileSync, existsSync } from "node:fs";
+import { readFileSync, writeFileSync, existsSync } from "node:fs";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -187,3 +188,30 @@ for (const role of ROLES) {
   console.log(`  ${role}: ` + rows.map((x) => `${x.stat} ${x.r.toFixed(2)}`).join(", "));
 }
 console.log();
+
+// ---------------------------------------------------------------------------
+// The table the ranking reads, when asked for it.
+//
+// Split-half corrected to full length, because that is the reliability of the
+// whole sample the ranking actually scores - not of half of it. It is measured
+// within an event, so it is an UPPER bound on how much a stat transfers across
+// months and roster changes: the real predictive weight is lower, and the
+// shrinkage built on this is therefore conservative.
+if (process.argv.includes("--write")) {
+  const out = { builtAt: new Date().toISOString(), method: "split-half, Spearman-Brown corrected, Fisher-pooled",
+    events: events.map((e) => ({ leagueId: e.leagueId, leagueName: e.leagueName })), roles: {} };
+  for (const role of ROLES) {
+    const entry = {};
+    for (const stat of STATS) {
+      const rs = [], ns = [];
+      for (const { A, B } of bySplit((i) => i % 2)(role, stat)) {
+        if (A.length >= 5) { rs.push(spearman(A, B)); ns.push(A.length); }
+      }
+      const [r, n] = poolR(rs, ns);
+      if (n >= 20) entry[stat] = Number(spearmanBrown(r).toFixed(3));
+    }
+    out.roles[role] = entry;
+  }
+  writeFileSync(join(DIR, "reliability.json"), JSON.stringify(out, null, 2) + "\n");
+  console.log(`Wrote data/generated/reliability.json\n`);
+}
