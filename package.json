@@ -14,7 +14,8 @@
     "train": "node scripts/build-training.mjs",
     "simulate": "tsc -p tsconfig.validate.json && node scripts/simulate.mjs",
     "study": "tsc -p tsconfig.validate.json && node scripts/study.mjs",
-    "explain": "tsc -p tsconfig.validate.json && node scripts/explain.mjs"
+    "explain": "tsc -p tsconfig.validate.json && node scripts/explain.mjs",
+    "persistence": "node scripts/persistence.mjs"
   },
   "dependencies": {
     "next": "^16.3.3",

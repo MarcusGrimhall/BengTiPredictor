@@ -266,6 +266,22 @@ data that existed before the event; everything on the right is what happened.
 
 ---
 
+## Which stats are worth ranking on
+
+```bash
+npm run persistence
+```
+
+Asks, per stat, whether the player who led beforehand still leads afterwards.
+Three tests: odd games against even games within an event, group stage against
+playoffs, and pre-event against event where a training file exists. A stat near
+zero is one the ranking should not be trusting — the leader on it is not a
+leader, just whoever got the games.
+
+Measurement only; it tunes nothing and the app does not read it.
+
+---
+
 ## Checking the model
 
 ```bash
