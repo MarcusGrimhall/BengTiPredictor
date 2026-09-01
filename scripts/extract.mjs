@@ -140,7 +140,11 @@ export function extractMatch(match) {
       stats: {
         kills: p.kills ?? 0,
         deaths: p.deaths ?? 0,
-        creeps: p.last_hits ?? 0,
+        // Creep Score is last hits OR DENIES, per the in-game stat glossary:
+        // "+3 per last hit or deny". This project counted last hits alone until
+        // the glossary was read directly. Denies are small - 2.3% of a core's
+        // last hits, 2.6% of a support's - but they are in the rule.
+        creeps: (p.last_hits ?? 0) + (p.denies ?? 0),
         gpm: p.gold_per_min ?? 0,
         towers: p.towers_killed ?? 0,
         roshan: p.killed?.npc_dota_roshan ?? 0,

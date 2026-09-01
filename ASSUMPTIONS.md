@@ -8,11 +8,13 @@ wrong, the numbers that depend on it are wrong.
 
 | Rule | Source |
 | --- | --- |
+| **Creep Score is last hits AND denies** — +3 per last hit or deny | In-game stat glossary, read directly. This project counted last hits alone until then; denies are 2.3% of a core's total and 2.6% of a support's |
 | Point value of all 16 extractable stats | In-game rules, cross-checked against a community-compiled table and against my own data (35 of 38 values within a few percent) |
 | Tier bonuses +10 / +30 / +60 / +100 / +150% | In-game rules |
-| Trait effects (Fractal +60%, Benevolent +20% adjacent, Vampiric +50%/−10%, Unique +30%, Friendly +50%) | In-game rules |
+| Trait effects (Fractal +60%, Benevolent +20% adjacent, Vampiric +50%/−10%, Unique +30%, Friendly +50%) | In-game rules. Fractal's condition is **all emblem qualities on the banner different** — not "all five", so it also fires on a 3-emblem Group Stage banner. "Adjacent" is the immediate neighbouring slots only, with **no wrap** from first to last, demonstrated by a captured 3-slot banner where slot 1 does not affect slot 3 |
+| **Bonuses ADD against the base score** — tier V with an active Fractal is 100+150+60 = ×3.10, not 2.50×1.60 | In-game tutorials: Quality is a percentage bonus to the base fantasy score and a Trait is an *"additional percentage bonus to the base fantasy score"*. A captured banner shows a tier II (+30%) with net +70% of trait effects displaying **200%**, which is 100+30+70 rather than 1.30×1.70. The other public calculator multiplies, and is wrong |
 | Slot colours per role | In-game rules |
-| One stat per banner, never repeated | You |
+| One stat per banner, never repeated | In-game Emblem Stats glossary |
 | Core and Support are same-team pairs, Mid is one player | In-game rules |
 | A pair is the **average** of its two players, and it is the **scores** that are averaged, not the stat lines | In-game Fantasy glossary: *"We then average the score of all players for a role and use that to decide the final score for a game."* Corroborated by Valve's TI 2026 announcement on the roster shape. The other public calculator sums, and is wrong |
 | A series is the **sum** of its two best games | In-game Fantasy glossary — the same paragraph as the averaging rule: the top two scoring games within a series decide the role's match score |
@@ -20,11 +22,11 @@ wrong, the numbers that depend on it are wrong.
 | The same three options serve every banner; you choose which to apply one to | In-game rules |
 | A deal is **always exactly three options**, plus the standing option to use none — never more, never fewer | You. Enforced by `OPTIONS_DEALT` in `lib/offers.ts`, which the simulator's UI now also obeys |
 | Using an option **replaces all three** | In-game rules |
-| Titles are free to change and cost no rerolls | In-game rules |
-| Group stage 3 emblems / 40 tokens, playoffs 5 / 30 | You |
-| Tokens are one shared pool across all three banners | You |
-| Three random options per deal, ~40 deals | You |
-| Skip is always available and free | You |
+| Titles are free to change and cost no rerolls | In-game Coaching Titles glossary |
+| Group stage 3 emblems / 40 tokens, playoffs 5 / 30 | In-game roster screen, which awards "+40 Group Stage Crafting Rolls" and "+30 The International Fantasy Crafting Rolls" |
+| Tokens are one shared pool across all three banners | In-game: a single ROLL TOKENS counter sits beneath the roster while one banner is selected |
+| Three options at a time, unique within the set | In-game rolling glossary |
+| Refreshing the options **costs one Roll Token** | In-game crafting tutorial: to replace the options without applying one, you spend a token. There is no free decline that reshuffles — not using an option simply spends nothing and changes nothing. `playOut` in `lib/offers.ts` still models stopping rather than paying to refresh, so it understates a reroll plan |
 | A quality change lands on a **random** available tier, not ±1 | You |
 | A reroll never returns the value it replaced | You |
 | A tier V cannot be raised, a tier I cannot be lowered | You |
@@ -43,17 +45,17 @@ wrong, the numbers that depend on it are wrong.
 | Roshan is the player credited with the kill | Sum of `killed.npc_dota_roshan` equals the count of `CHAT_MESSAGE_ROSHAN_KILL` events exactly, over 12 matches |
 | First Blood | Sum of `firstblood_claimed` equals the count of `CHAT_MESSAGE_FIRSTBLOOD` events exactly |
 | Tormentor is the player the combat log credits with the kill | `killed.npc_dota_miniboss`. Cannot be made exact — the game credits everyone involved in the kill. The chat message was worse and has been dropped, see Retracted. STRATZ has no tormentor data at all |
-| Runes count **power, bounty and bottled runes, but not Wisdom** | You, and `rune_pickups` matches that rule exactly — see below |
+| Runes count **bottled runes as well as taken ones** | In-game glossary: *"bottled or taken"*. It says nothing either way about Wisdom runes; that `rune_pickups` excludes them is a measured property of the data, not a stated rule — see below |
 | A tower goes to whoever landed the **last hit** | You |
 | Teamfight participation is a **0–1 share**, scored per unit and not per percentage point | You |
-| Teamfight participation is **(kills + assists) / the opposing team's total deaths** — the standard share, not OpenDota's teamfight-graph clustering | Reconstructed from the data: reproduces the field exactly in 102 of 120 player-games, and in 13 more with a numerator one assist lower. 95.8% accounted for. Note the denominator is **deaths, not kills** — a hero killed by creeps or a tower raises it without being anyone's kill, which happened in 6 of 24 teams |
+| Teamfight participation is **(kills + assists) / the opposing team's total deaths** — reconstructed, not published; the glossary states only a maximum of 2,124 points and gives no formula — the standard share, not OpenDota's teamfight-graph clustering | Reconstructed from the data: reproduces the field exactly in 102 of 120 player-games, and in 13 more with a numerator one assist lower. 95.8% accounted for. Note the denominator is **deaths, not kills** — a hero killed by creeps or a tower raises it without being anyone's kill, which happened in 6 of 24 teams |
 | `p.stuns` **sums per target hit** — a three-hero, two-second stun counts as six seconds | OpenDota reads `modifier_stunned` from the combat log per affected hero. Means the emblem systematically favours AoE stuns |
 
 ## Assumed — not verified anywhere
 
 | Assumption | Where | What it affects |
 | --- | --- | --- |
-| **Every reroll outcome is equally likely** — a quality reroll on a tier II gives I, III, IV or V at 25% each; a trait reroll gives any of the other five at 20% each | `tierOptions`, `traitOptions` in `lib/reroll.ts` | The value of every quality and trait reroll. Searched for published odds and found none — no guide carries them. |
+| **Every reroll outcome is equally likely** | `tierOptions`, `traitOptions` in `lib/reroll.ts` | The value of every quality and trait reroll. This is now known to be **wrong in shape, not merely unverified**: the glossary says higher qualities are *"more rare when crafting"*, so tiers are explicitly non-uniform. No weights are published. Two further gaps found at the same time — a Quality reroll is nowhere guaranteed to return a different tier (Stat and Trait rerolls are), and there appear to be five traits with no "none" state, so a trait reroll has four alternatives rather than the five this models. |
 | Hero colour/theme groups | `HERO_GROUPS`, empty | Prefix titles — reported as unknown rather than guessed |
 | **Madstones are 2.7 × `item_uses.madstone_bundle`** | `MADSTONES_PER_BUNDLE` in `scripts/extract.mjs` | The Madstones emblem. OpenDota has no madstone field; it counts bundles, and a bundle is not a stone. Three independent sources put the ratio between 2.5 and 3 — see below. At TI 2026 the emblem is worth 663 points a game to a core, level with Kills and still well behind Last hits at 1,512. |
 | **The same option may not be offered twice in a row** | Nowhere — `deal()` in `lib/offers.ts` draws freely | The value of a reroll. This was in the verified table, credited to observation, but the observation was not close enough to rely on and the code never enforced it. As it stands **about 22% of deals repeat at least one option** (3 drawn from 38, twice running). If the rule is real, reshuffling is worth slightly more than the simulator says. Note the rule is also ambiguous as written — it could block only the option you used, all three you were shown, or only the ones you declined, and those are three different implementations. Settle what it means before enforcing it. |

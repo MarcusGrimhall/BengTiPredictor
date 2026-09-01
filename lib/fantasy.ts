@@ -14,7 +14,7 @@ export const TIERS = Object.keys(TIER_BONUSES) as Tier[];
 
 export const TRAIT_DESCRIPTIONS: Record<Trait, string> = {
   none: "No trait",
-  fractal: "+60% to this emblem if all five tiers are different",
+  fractal: "+60% to this emblem if every quality on the banner is different",
   benevolent: "+20% to adjacent emblems",
   vampiric: "+50% to this emblem, -10% to adjacent emblems",
   unique: "+30% to this emblem if it is the only Unique on the banner",

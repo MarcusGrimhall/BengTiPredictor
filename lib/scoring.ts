@@ -40,7 +40,7 @@ export const STAT_COLORS: Record<StatKey, EmblemColor> = {
 };
 
 export const STAT_LABELS: Record<StatKey, string> = {
-  kills: "Kills", deaths: "Deaths", creeps: "Last hits", gpm: "GPM",
+  kills: "Kills", deaths: "Deaths", creeps: "Creep score", gpm: "GPM",
   towers: "Towers", roshan: "Roshan kills", tormentor: "Tormentor kills",
   courier: "Courier kills", firstBlood: "First Blood",
   teamfight: "Teamfight participation", stuns: "Stun duration",
@@ -63,7 +63,7 @@ export const STAT_DEFINITIONS: Record<StatKey, string> = {
   deaths:
     "Starts at 1950 and subtracts 195 a death, with a floor of zero — ten deaths pays nothing rather than a penalty. Scored per game, then averaged.",
   creeps:
-    "Creep last hits. Denies are a separate number and no emblem uses them.",
+    "Last hits AND denies together — the in-game glossary pays +3 per last hit or deny. Denies are about 2.5% of the total.",
   gpm:
     "Gold per minute, already averaged over the match. The only stat that is a rate rather than a count, so a long game does not inflate it.",
   towers:

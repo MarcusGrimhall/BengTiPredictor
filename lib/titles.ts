@@ -32,9 +32,9 @@ export const PREFIXES: Record<PrefixKey, { label: string; bonus: number; conditi
   emerald:      { label: "Emerald",      bonus: 6,  condition: "when playing a green hero" },
   royal:        { label: "Royal",        bonus: 10, condition: "when playing a purple hero" },
   golden:       { label: "Golden",       bonus: 8,  condition: "when playing a yellow or brown hero" },
-  elemental:    { label: "Elemental",    bonus: 8,  condition: "when playing a water, fire or ice hero" },
+  elemental:    { label: "Elemental",    bonus: 8,  condition: "when playing an aquatic, fiery or icy hero" },
   otherworldly: { label: "Otherworldly", bonus: 7,  condition: "when playing an undead, demon or spirit hero" },
-  heroic:       { label: "Heroic",       bonus: 9,  condition: "when playing a masked or cloaked hero" }
+  heroic:       { label: "Heroic",       bonus: 9,  condition: "when playing a caped or masked hero" }
 };
 
 export const SUFFIXES: Record<SuffixKey, {
@@ -46,13 +46,13 @@ export const SUFFIXES: Record<SuffixKey, {
 }> = {
   tormented: {
     label: "the Tormented", bonus: 23,
-    condition: "if any roster player dies to a Tormentor",
+    condition: "if any player dies to a Tormentor",
     measurability: "unavailable",
     why: "deaths are not attributed to the Tormentor in public match data"
   },
   flayedTwins: {
     label: "the Flayed Twins Acolyte", bonus: 9,
-    condition: "if first blood happens before the starting horn",
+    condition: "if any player takes first blood before the starting horn",
     measurability: "unavailable",
     why: "the horn is not a timestamped event; pre-horn kills cannot be separated"
   },

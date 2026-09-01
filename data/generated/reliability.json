@@ -1,5 +1,5 @@
 {
-  "builtAt": "2026-09-01T06:15:04.324Z",
+  "builtAt": "2026-09-01T07:08:29.502Z",
   "method": "split-half, Spearman-Brown corrected, Fisher-pooled",
   "events": [
     {
@@ -27,7 +27,7 @@
     "core": {
       "kills": 0.751,
       "deaths": 0.583,
-      "creeps": 0.879,
+      "creeps": 0.874,
       "gpm": 0.927,
       "towers": 0.811,
       "roshan": 0.701,
@@ -45,7 +45,7 @@
     "mid": {
       "kills": 0.547,
       "deaths": 0.53,
-      "creeps": 0.568,
+      "creeps": 0.574,
       "gpm": 0.726,
       "towers": 0.531,
       "roshan": 0.311,
