@@ -8,6 +8,13 @@ npm install
 npm run dev      # http://localhost:3000
 ```
 
+## GitHub Pages
+
+The workflow in `.github/workflows/deploy-pages.yml` builds a static export and
+publishes it on every push to `main`. Enable **GitHub Actions** under
+**Settings → Pages → Build and deployment** in the repository. The site will be
+available at `https://marcusgrimhall.github.io/BengTiPredictor/`.
+
 Four pages: **Fantasy** (banners, rankings, reroll simulator), **Bracket**,
 **Information** (what stats are worth, and what the patch rewards), **Method**.
 
