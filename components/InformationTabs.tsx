@@ -4,13 +4,14 @@ import { useState } from "react";
 import StatSpreadChart, { type SpreadData } from "./StatSpreadChart";
 import TraitMap from "./TraitMap";
 import type { Emblem, PlayerEntry } from "../lib/fantasy";
+import type { bestTraitArrangement } from "../lib/traitStudy";
 import type { Role } from "../lib/scoring";
 import type { Stage } from "../lib/stages";
 
 type Tab = "stats" | "mechanics";
 
 export default function InformationTabs({
-  spread, leagues, entriesByStage, bannersByRole, leagueName
+  spread, leagues, entriesByStage, bannersByRole, bestTraitsByRole, leagueName
 }: {
   spread: SpreadData;
   leagues: Array<{
@@ -23,6 +24,7 @@ export default function InformationTabs({
   }>;
   entriesByStage: Record<Stage, PlayerEntry[]>;
   bannersByRole: Record<Stage, Record<Role, Emblem[]>>;
+  bestTraitsByRole: Record<Stage, Record<Role, ReturnType<typeof bestTraitArrangement>>>;
   leagueName: string;
 }) {
   const [tab, setTab] = useState<Tab>("stats");
@@ -42,7 +44,12 @@ export default function InformationTabs({
 
       {tab === "stats" && <StatSpreadChart data={spread} leagues={leagues} />}
       {tab === "mechanics" && (
-        <TraitMap entriesByStage={entriesByStage} bannersByRole={bannersByRole} leagueName={leagueName} />
+        <TraitMap
+          entriesByStage={entriesByStage}
+          bannersByRole={bannersByRole}
+          bestTraitsByRole={bestTraitsByRole}
+          leagueName={leagueName}
+        />
       )}
     </div>
   );

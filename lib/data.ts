@@ -1,7 +1,7 @@
 // Reads the generated tournament data. Runs on the server at build time,
 // so the JSON is baked into the page and the site stays fully static.
 
-import { readFile, readdir } from "node:fs/promises";
+import { readFile, readdir, stat } from "node:fs/promises";
 import { join } from "node:path";
 import type { PlayerEntry } from "./fantasy";
 import type { StatKey } from "./scoring";
@@ -9,6 +9,35 @@ import type { Reliability } from "./reliability";
 import { STAGES, type Stage } from "./stages";
 
 const DIR = join(process.cwd(), "data", "generated");
+
+/**
+ * Parsed files, keyed by name and invalidated on mtime or size.
+ *
+ * A page can ask for the same tournament many times over one render -
+ * /information reads the whole timeline twice and then walks each event's
+ * training sources - and re-parsing megabytes of JSON per call dominated the
+ * render. The `stat` keeps a regenerated `data/generated/` from being served
+ * stale, so `npm run fetch` still shows up without restarting `next dev`.
+ *
+ * Callers must treat what comes back as read-only: it is one shared object,
+ * not a copy per call.
+ */
+const parsed = new Map<string, { key: string; value: unknown }>();
+
+async function readJson<T>(file: string): Promise<T | null> {
+  const path = join(DIR, file);
+  try {
+    const info = await stat(path);
+    const key = `${info.mtimeMs}:${info.size}`;
+    const hit = parsed.get(file);
+    if (hit && hit.key === key) return hit.value as T;
+    const value = JSON.parse(await readFile(path, "utf8")) as T;
+    parsed.set(file, { key, value });
+    return value;
+  } catch {
+    return null;
+  }
+}
 
 /** What a team actually played in one stage. */
 export type TeamStageStats = { maps: number; wins: number; series: number };
@@ -108,21 +137,11 @@ export type LeagueSummary = {
 };
 
 export async function listLeagues(): Promise<LeagueSummary[]> {
-  try {
-    const raw = await readFile(join(DIR, "index.json"), "utf8");
-    return JSON.parse(raw);
-  } catch {
-    return [];
-  }
+  return (await readJson<LeagueSummary[]>("index.json")) ?? [];
 }
 
 export async function loadLeague(leagueId: number | string): Promise<LeagueData | null> {
-  try {
-    const raw = await readFile(join(DIR, `league-${leagueId}.json`), "utf8");
-    return JSON.parse(raw);
-  } catch {
-    return null;
-  }
+  return readJson<LeagueData>(`league-${leagueId}.json`);
 }
 
 /**
@@ -293,11 +312,7 @@ export type TrainingData = {
 };
 
 export async function loadTraining(targetLeagueId: number | string): Promise<TrainingData | null> {
-  try {
-    return JSON.parse(await readFile(join(DIR, `training-${targetLeagueId}.json`), "utf8"));
-  } catch {
-    return null;
-  }
+  return readJson<TrainingData>(`training-${targetLeagueId}.json`);
 }
 
 /**
@@ -307,11 +322,7 @@ export async function loadTraining(targetLeagueId: number | string): Promise<Tra
  * every stat equally, which is what it did before this existed.
  */
 export async function loadReliability(): Promise<Reliability | null> {
-  try {
-    return JSON.parse(await readFile(join(DIR, "reliability.json"), "utf8"));
-  } catch {
-    return null;
-  }
+  return readJson<Reliability>("reliability.json");
 }
 
 /** Player rows built purely from pre-event matches. */
@@ -336,6 +347,29 @@ export function trainingPlayerEntries(training: TrainingData): PlayerEntry[] {
       gameReplayTitles: p.sampleReplayTitles
     }))
     .filter((p) => p.gameLines.length > 0);
+}
+
+/**
+ * One string that changes whenever `data/generated/` does.
+ *
+ * For callers that memoise something expensive derived from the whole
+ * directory rather than from one file. Stat-only, so it stays cheap enough to
+ * run per request: it never opens a file, it only asks whether any of them
+ * moved.
+ */
+export async function generatedFingerprint(): Promise<string> {
+  try {
+    const files = (await readdir(DIR)).filter((f) => f.endsWith(".json")).sort();
+    const parts = await Promise.all(
+      files.map(async (file) => {
+        const info = await stat(join(DIR, file));
+        return `${file}:${info.mtimeMs}:${info.size}`;
+      })
+    );
+    return parts.join("|");
+  } catch {
+    return "";
+  }
 }
 
 export async function availableLeagueIds(): Promise<number[]> {

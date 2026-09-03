@@ -4,9 +4,10 @@ import { buildLineups, optimizeEmblems, type Emblem, type PlayerEntry } from "..
 import { BANNER_SLOTS, Role, StatKey, statsForColor } from "../../lib/scoring";
 import { STAGES, STAGE_SLOTS, type Stage } from "../../lib/stages";
 import { statSpread, type RoleSpread } from "../../lib/statSpread";
+import { bestTraitArrangement } from "../../lib/traitStudy";
 import { preEventStrength } from "../../lib/strength";
 import { monthsOf, poolWindow, windowCuts, type WindowSource } from "../../lib/metaWindow";
-import { loadTraining } from "../../lib/data";
+import { generatedFingerprint, loadTraining } from "../../lib/data";
 
 export const metadata = { title: "Information · BengTiPredictor" };
 
@@ -21,22 +22,62 @@ function seedBanner(role: Role, slots: number): Emblem[] {
   });
 }
 
-export default async function InformationPage() {
+type LeagueMeta = {
+  id: string;
+  name: string;
+  stages: Stage[];
+  strongTeams: string[];
+  strongBasis: "form" | "rating" | "placement";
+  meta?: { months: number; events: number; maps: number; from: number; to: number };
+};
+
+type TraitArrangement = ReturnType<typeof bestTraitArrangement>;
+
+type InformationProps = {
+  spread: Record<string, Record<Stage, Record<Role, RoleSpread>>>;
+  leagues: LeagueMeta[];
+  entriesByStage: Record<Stage, PlayerEntry[]>;
+  bannersByRole: Record<Stage, Record<Role, Emblem[]>>;
+  bestTraitsByRole: Record<Stage, Record<Role, TraitArrangement>>;
+  leagueName: string;
+};
+
+/**
+ * The whole page, memoised on the state of `data/generated/`.
+ *
+ * Building it costs seconds - a spread per meta window, and an emblem search
+ * per role and stage - and the inputs are files on disk that only `npm run
+ * fetch` changes. `next dev` re-renders on every request, so without this the
+ * same answer was recomputed for each one, and three overlapping requests
+ * (reload, prefetch, RSC fetch) queued behind each other on the one thread.
+ *
+ * The PROMISE is cached, not the result: concurrent requests then share one
+ * build instead of each starting their own. A failed build is dropped so the
+ * next request retries rather than serving the error forever.
+ *
+ * Production never reaches the second call - `output: "export"` renders this
+ * once at build time - so this buys developer time, not visitor time.
+ */
+let memo: { key: string; props: Promise<InformationProps | null> } | null = null;
+
+async function informationProps(): Promise<InformationProps | null> {
+  const key = await generatedFingerprint();
+  if (memo && memo.key === key) return memo.props;
+  const props = buildProps();
+  memo = { key, props };
+  props.catch(() => {
+    if (memo?.props === props) memo = null;
+  });
+  return props;
+}
+
+async function buildProps(): Promise<InformationProps | null> {
   // Every real tournament, so the spread can be compared across events.
   const summaries = (await listLeagues()).filter((l) => !l.training);
   const leagues = (await Promise.all(summaries.map((s) => loadLeague(s.leagueId))))
     .filter((l): l is NonNullable<typeof l> => Boolean(l));
 
-  if (!leagues.length) {
-    return (
-      <main className="shell">
-        <div className="page-head"><h1>Information</h1></div>
-        <div className="notice">
-          No tournament fetched. Run <code>npm run fetch -- &lt;league-id&gt;</code> first.
-        </div>
-      </main>
-    );
-  }
+  if (!leagues.length) return null;
 
   // Pre-event form, where a training set exists for the event.
   const preEventStrengthFor = new Map<number, Record<string, { rating: number; maps: number; schedule: number }>>();
@@ -55,14 +96,7 @@ export default async function InformationPage() {
   }
 
   const spread: Record<string, Record<Stage, Record<Role, RoleSpread>>> = {};
-  const meta: Array<{
-    id: string;
-    name: string;
-    stages: Stage[];
-    strongTeams: string[];
-    strongBasis: "form" | "rating" | "placement";
-    meta?: { months: number; events: number; maps: number; from: number; to: number };
-  }> = [];
+  const meta: LeagueMeta[] = [];
 
   // Meta windows: every event inside the last N months pooled into one sample,
   // so the Stats view can answer "what is the game like now" rather than only
@@ -90,8 +124,12 @@ export default async function InformationPage() {
     const { entries, events } = poolWindow(sources, cut);
     if (!entries.length || events.length < 2) continue;
 
-    // A pooled window has no group stage or playoffs - it is professional play.
-    spread[id] = { groupStage: {}, playoffs: {} } as Record<Stage, Record<Role, RoleSpread>>;
+    // A pooled window has no group stage or playoffs - it is professional play,
+    // so it declares one stage and only that stage is filled. Writing the same
+    // spread under `playoffs` too shipped a second copy of it to the browser
+    // that nothing ever reads: the window's `stages` is ["groupStage"], and
+    // StatSpreadChart hides the stage toggle for a window.
+    spread[id] = {} as Record<Stage, Record<Role, RoleSpread>>;
     // Strongest four across the window, by pre-event Elo over its own matches.
     const windowResults: Array<{ radiant: number; dire: number; radiantWin: boolean }> = [];
     const windowNames: Record<number, string> = {};
@@ -113,7 +151,6 @@ export default async function InformationPage() {
     })) as Record<Role, RoleSpread>;
 
     spread[id].groupStage = byRole;
-    spread[id].playoffs = byRole;
     meta.push({
       id,
       name: `Last ${months} months`,
@@ -138,6 +175,7 @@ export default async function InformationPage() {
   const primary = leagues[0];
   const entriesByStage = {} as Record<Stage, PlayerEntry[]>;
   const bannersByRole = {} as Record<Stage, Record<Role, Emblem[]>>;
+  const bestTraitsByRole = {} as Record<Stage, Record<Role, TraitArrangement>>;
 
   for (const league of leagues) {
     const id = String(league.leagueId);
@@ -195,6 +233,16 @@ export default async function InformationPage() {
           const pool = entries.filter((e) => e.role === role);
           return [role, pool.length ? optimizeEmblems(pool, role, slotOptions, seed, 50, {}) : seed];
         })) as Record<Role, Emblem[]>;
+
+        // Every trait arrangement, checked rather than searched - 7,776 of them
+        // at five emblems. It depends only on the pool and the banner, both
+        // settled right here, and it was costing the browser a quarter-second
+        // of frozen main thread on every role or stage click. The answer is
+        // three fields, so moving it to the server is free in payload terms.
+        bestTraitsByRole[stage] = Object.fromEntries(ROLES.map((role) => {
+          const pool = entries.filter((e) => e.role === role);
+          return [role, bestTraitArrangement(pool, bannersByRole[stage][role])];
+        })) as Record<Role, TraitArrangement>;
       }
     }
     if (stagesPresent.length) {
@@ -203,6 +251,30 @@ export default async function InformationPage() {
         strongTeams: [...strong], strongBasis
       });
     }
+  }
+
+  return {
+    spread,
+    leagues: meta,
+    entriesByStage,
+    bannersByRole,
+    bestTraitsByRole,
+    leagueName: primary.leagueName
+  };
+}
+
+export default async function InformationPage() {
+  const props = await informationProps();
+
+  if (!props) {
+    return (
+      <main className="shell">
+        <div className="page-head"><h1>Information</h1></div>
+        <div className="notice">
+          No tournament fetched. Run <code>npm run fetch -- &lt;league-id&gt;</code> first.
+        </div>
+      </main>
+    );
   }
 
   return (
@@ -214,13 +286,7 @@ export default async function InformationPage() {
           actually worth — measured against real players rather than read off a tooltip.
         </p>
       </div>
-      <InformationTabs
-        spread={spread}
-        leagues={meta}
-        entriesByStage={entriesByStage}
-        bannersByRole={bannersByRole}
-        leagueName={primary.leagueName}
-      />
+      <InformationTabs {...props} />
     </main>
   );
 }

@@ -4,7 +4,8 @@ import { useMemo, useState } from "react";
 import type { Emblem, PlayerEntry, Trait } from "../lib/fantasy";
 import { TRAIT_DESCRIPTIONS } from "../lib/fantasy";
 import { Role, STAT_LABELS } from "../lib/scoring";
-import { bestTraitArrangement, comboValues, entryRecords, traitValues } from "../lib/traitStudy";
+import { comboValues, entryRecords, traitValues } from "../lib/traitStudy";
+import type { bestTraitArrangement } from "../lib/traitStudy";
 import { STAGE_LABELS, type Stage } from "../lib/stages";
 import Info from "./Info";
 
@@ -23,10 +24,11 @@ function heat(value: number, max: number): string {
 }
 
 export default function TraitMap({
-  entriesByStage, bannersByRole, leagueName
+  entriesByStage, bannersByRole, bestTraitsByRole, leagueName
 }: {
   entriesByStage: Record<Stage, PlayerEntry[]>;
   bannersByRole: Record<Stage, Record<Role, Emblem[]>>;
+  bestTraitsByRole: Record<Stage, Record<Role, ReturnType<typeof bestTraitArrangement>>>;
   leagueName: string;
 }) {
   const [stage, setStage] = useState<Stage>("playoffs");
@@ -38,8 +40,10 @@ export default function TraitMap({
 
   const traits = useMemo(() => traitValues(pool, banner), [pool, banner]);
   const combos = useMemo(() => comboValues(pool, banner), [pool, banner]);
-  // Every arrangement checked, not searched - 7,776 at five emblems.
-  const bestTraits = useMemo(() => bestTraitArrangement(pool, banner), [pool, banner]);
+  // Every arrangement checked, not searched - 7,776 at five emblems, which is
+  // why it is handed down already solved rather than run here: recomputing it
+  // per role or stage click froze the main thread for a quarter of a second.
+  const bestTraits = bestTraitsByRole[stage][role];
   const maxTrait = useMemo(
     () => Math.max(0.01, ...traits.flatMap((t) => t.bySlot.map(Math.abs))),
     [traits]

@@ -42,6 +42,19 @@ The `--training` flag is not cosmetic: training leagues fit the model, the
 target event is graded. Getting the split wrong leaks the answer into the fit.
 `data/generated/index.json` records which is which — match it when regenerating.
 
+## What `lib/data.ts` hands you is shared — treat it as read-only
+
+`loadLeague`, `listLeagues`, `loadTraining` and `loadReliability` memoise the
+parsed JSON, keyed on each file's mtime and size. Two calls for the same league
+return **the same object**, not a copy. Sorting `league.teams` in place, or
+pushing onto `league.results`, therefore corrupts it for every later caller in
+that process. Copy first — `[...league.teams].sort(...)` — as the existing call
+sites do.
+
+`/information` memoises its whole render on top of that, since building it costs
+seconds and `next dev` re-renders per request. Both caches key on the state of
+`data/generated/`, so `npm run fetch` still shows up without a restart.
+
 ## You almost never need the network
 
 `data/cache/` holds every raw match (~680 MB, ~2,540 matches, gitignored). Only

@@ -222,10 +222,30 @@ third button that locks held traits and optimises around them would cover it.
 
 ## Performance
 
-`/information` is ~2.75 MB, down from 5.23 MB once the per-entry fields moved out
-of the per-stat rows. Still ~98% serialised props. Sending only the selected
-league and fetching the rest on demand is the remaining fix and is worth roughly
-another 2 MB.
+`/information` is 2.84 MB of HTML over a 2.37 MB RSC payload, down from 5.23 MB
+once the per-entry fields moved out of the per-stat rows. Still ~98% serialised
+props.
+
+The render itself is no longer the cost. It was rebuilt from scratch on every
+request — 44 `loadLeague` parses, a spread per meta window, an emblem search per
+role and stage — so `next dev` spent 5.8-7.0s on a page whose inputs are files on
+disk, and three overlapping requests (reload, prefetch, RSC fetch) queued behind
+each other at 18s apiece. Parsed files and the whole page are now memoised on the
+state of `data/generated/`: 0.29s warm, 3.1s cold, 0.65-1.70s for the same three
+in parallel.
+
+**Whether the payload is worth splitting is now an open question, not a given.**
+Measured in Chromium: in the production build, clicking to `/information`
+takes 72-78 ms and fetches ZERO bytes, because the layout's nav links have
+already prefetched it; the main thread is never blocked. The whole prefetch set
+is 0.56 MB gzipped, of which `/information` is 0.41 MB. What is slow is `next
+dev`, which refetches the full 2.4 MB payload on every navigation — 833-1442 ms
+per click against 218 ms for `/method`.
+
+So the remaining fix is worth 1.74 MB (the 21 meta windows are 84% of the spread
+and you see one at a time, 85 KB each), but it buys developer-loop time, not
+visitor time, and it costs a build artifact in `data/generated/` that can fall out
+of sync with `lib/`. Deferred deliberately, not forgotten.
 
 `npm run study` takes 30s against validate's 10s and simulate's 5.6s. It is the
 outlier if anyone iterates on it; never profiled.
@@ -268,7 +288,16 @@ Written down so they are not re-investigated:
   every one. Tried, measured, reverted.
 - **React Flight already dedupes the shared spread reference.** The meta windows
   point `groupStage` and `playoffs` at one object; the payload counts confirm it
-  is serialised once. No saving available there.
+  is serialised once. No saving available there. Re-confirmed by deleting the
+  `playoffs` copy outright — a window declares one stage and the chart hides the
+  toggle for it, so nothing read it — which saved 1.6 KB, not the 440 KB it looks
+  like it should. The dead write is gone; the conclusion stands.
+- **The Information page's cost was never hydration or React.** Long-task
+  measurement puts the blocked main thread at 0-122 ms across every navigation
+  and tab switch. It is transfer and parse of the serialised props, nothing else.
+  `bestTraitArrangement` was the one real client-side cost — 7,776 arrangements,
+  240-295 ms per role or stage click — and it now comes down solved from the
+  server for 828 bytes.
 - **Averaging a pair does not halve it against a Mid.** It puts both on the same
   per-player scale — Core sits at 1.41× Mid. A prior suspicion that averaging
   biased the reroll search toward Mid was wrong, and backwards.
