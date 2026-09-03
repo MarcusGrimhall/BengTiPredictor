@@ -86,9 +86,14 @@ export default async function MethodPage() {
           <h2>Team strength</h2>
           <p className="muted">
             Nobody types in strength numbers. OpenDota maintains an Elo rating per team
-            at <code>/api/teams</code>, updated after every professional match, and that
-            is what drives the model. Every paid odds API we checked — The Odds API,
-            PandaScore, Abios — requires a key, and none of them is needed for this.
+            at <code>/api/teams</code>. Fantasy rebuilds that rating chronologically from
+            the stored matches played before the target event, so later results cannot
+            leak into a prediction.
+          </p>
+          <p className="muted">
+            Measured over 2,910 player-games, each 100 Elo of team advantage raises
+            fantasy production by 1.84%. The effect is applied to scoring while every
+            playoff team still receives the same top-four series volume.
           </p>
           <p className="muted">
             Elo ratings are per <strong>map</strong>, so a series has to be derived from them:

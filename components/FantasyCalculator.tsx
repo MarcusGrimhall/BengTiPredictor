@@ -135,15 +135,14 @@ export default function FantasyCalculator({
 
   /**
    * Series each team plays in this stage - the multiplier on a fantasy value.
-   * A bracket the user built wins, then what was actually played, then a
-   * projection, and the label says which.
+   * Group stage uses flat volume. Playoffs use the user's requested neutral
+   * top-four scenario; a saved bracket can still identify the chosen eight but
+   * does not make stronger teams score more series here.
    */
   const { seriesByTeam, mapsSource } = useMemo(() => {
     const actual = actualByStage[stage] ?? {};
     if (stage === "playoffs") {
-      if (playoffProjection.source === "bracket") {
-        return { seriesByTeam: playoffProjection.seriesByTeam, mapsSource: "bracket" as const };
-      }
+      if (playoffProjection.source === "bracket") return { seriesByTeam: playoffProjection.seriesByTeam, mapsSource: "topFour" as const };
       if (Object.keys(actual).length) return { seriesByTeam: actual, mapsSource: "actual" as const };
       return { seriesByTeam: playoffProjection.seriesByTeam, mapsSource: "rating" as const };
     }
@@ -335,7 +334,7 @@ export default function FantasyCalculator({
       {ROLES.map((r) => (
         <section key={r} className="card stack">
           <div className="row-between">
-            <h2>Ranking · {ROLE_LABELS[r]}</h2>
+            <h2>Top 5 · {ROLE_LABELS[r]}</h2>
             <span className="faint">
               {leagueName} · {cards[r].map((e) => STAT_LABELS[e.stat]).join(" · ")}{" "}
               <button className="link-button" onClick={() => optimize(r, true)}>optimise</button>
@@ -346,6 +345,7 @@ export default function FantasyCalculator({
               <thead>
                 <tr>
                   <th>#</th><th>{ROLE_ENTRY[r] === "pair" ? "Pair" : "Player"}</th><th>Team</th>
+                  <th style={{ textAlign: "right" }}>Team effect</th>
                   <th style={{ textAlign: "right" }}>Floor</th>
                   <th style={{ textAlign: "right" }}>At risk</th>
                   <th style={{ textAlign: "right" }}>Ceiling</th>
@@ -354,7 +354,7 @@ export default function FantasyCalculator({
                 </tr>
               </thead>
               <tbody>
-                {rankedByRole[r].slice(0, 10).map((entry, index) => (
+                {rankedByRole[r].slice(0, 5).map((entry, index) => (
                   <tr key={entry.player.id}>
                     <td className="num faint">{index + 1}</td>
                     <td>
@@ -362,6 +362,9 @@ export default function FantasyCalculator({
                       <span className="faint"> · {entry.player.games}g</span>
                     </td>
                     <td className="muted">{entry.player.teamName}</td>
+                    <td className="num muted" style={{ textAlign: "right" }}>
+                      {`${((strengthByTeam[entry.player.teamName] ?? 1) >= 1 ? "+" : "")}${(((strengthByTeam[entry.player.teamName] ?? 1) - 1) * 100).toFixed(1)}%`}
+                    </td>
                     <td className="num faint" style={{ textAlign: "right" }}>{fmt(entry.floor)}</td>
                     <td className="num" style={{ textAlign: "right", fontWeight: 650 }}>{fmt(entry.score)}</td>
                     <td className="num faint" style={{ textAlign: "right" }}>{fmt(entry.ceiling)}</td>
@@ -398,7 +401,7 @@ export default function FantasyCalculator({
             <h2>Series · {STAGE_LABELS[stage]}</h2>
             <span className={`tag ${mapsSource === "actual" ? "tag-solid" : ""}`}>
               {mapsSource === "actual" ? "actually played"
-                : mapsSource === "bracket" ? "your bracket"
+                : mapsSource === "topFour" ? "top-four scenario"
                 : "projected from Elo"}
             </span>
           </div>
@@ -409,14 +412,14 @@ export default function FantasyCalculator({
                 event this beats any projection, so it is what multiplies each
                 entry&rsquo;s per-match score above.</>
             )}
-            {mapsSource === "bracket" && (
-              <>Taken from the bracket you built on the Bracket page, simulated on
-                OpenDota&rsquo;s Elo ratings. Double elimination, Bo3 with a Bo5 grand
-                final — the TI playoff shape.</>
-            )}
             {mapsSource === "rating" && stage === "playoffs" && (
               <>No bracket built and no playoffs played, so this seeds the eight
                 highest-rated teams and simulates that bracket from Elo.</>
+            )}
+            {mapsSource === "topFour" && (
+              <>Every team is given the same 4.25-series top-four path. You choose
+                which team you trust; the calculator ranks fantasy output without
+                making a second guess about who advances.</>
             )}
             {mapsSource === "rating" && stage === "groupStage" && (
               <>Every team gets this event&rsquo;s own group stage average. How many series

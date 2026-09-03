@@ -25,8 +25,9 @@ Four pages: **Fantasy** (banners, rankings, reroll simulator), **Bracket**,
 Fetches a tournament from OpenDota, works out what every player produced, and
 answers three questions:
 
-- **Who should I pick?** Rankings per role, with a risk setting that chooses
-  between a safe floor and a high ceiling.
+- **Who should I pick?** Honest pre-event rankings per role, with a risk setting
+  that chooses between a safe floor and a high ceiling. The Fantasy page never
+  trains on the tournament it is predicting.
 - **What should I reroll?** Given the three options the game just dealt you,
   which — if any — is worth one of your forty rerolls.
 - **How will the bracket go?** Simulated from team ratings, with expected
@@ -104,10 +105,17 @@ data/
   warns when they are worse than a coin flip, which happens for older events.
 - **A period pays a maximum**, and a maximum is largely luck. Prior form picks
   well above average but will not rank the whole field reliably.
+- **Playoff team risk belongs to the user.** Every entry is scored with the same
+  4.25-series top-four path. The calculator ranks fantasy production; it does
+  not replace the user's view of which team advances with Elo.
+- **Recency weighting is recorded but not enabled.** A 180-day window with a
+  60-day half-life regressed on TI 2026. It remains experimental through
+  `npm run train -- <id> --weighted` until older pre-event sets can calibrate it.
 
 ## Where the rules came from
 
 Scoring, emblem colours, tiers and traits are the Compendium's own, from the
 in-game rules text. Point values are cross-checked against a community-compiled
-table as a standing test in `npm run validate` — 35 of 38 values agree within a
-few percent. Everything else is built here from OpenDota match data.
+table as a standing test in `npm run validate` — currently 33 of 38 values are
+within 45%, with three known Tormentor-definition disagreements. Everything
+else is built here from OpenDota match data.

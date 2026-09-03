@@ -68,6 +68,9 @@ Training means: **fit on professional matches played before an event, then see
 how the picks would have done at it.** Nothing that touches the target event
 feeds back into the model — that is the whole point.
 
+The Fantasy page reads this pre-event training file directly. Without it the
+page refuses to show a hindsight ranking from the target event as a prediction.
+
 ### The three steps
 
 ```bash
@@ -82,6 +85,7 @@ npm run fetch -- 19719
 
 # 3. Merge the training events into one pre-event sample
 npm run train -- 19719
+npm run train -- 19719 --weighted  # experimental 180d/60d-half-life weighting; not the default
 ```
 
 `--training` events never appear in the app as "the tournament" — they exist to
@@ -226,6 +230,7 @@ npm run fetch -- 19719               # fetch a tournament
 npm run fetch -- 19719 --min-games 5 # drop players with under 5 games
 npm run fetch -- 19719 --refresh     # ignore the local cache
 npm run fetch -- 19269 --training    # model input only
+npm run fetch -- 19719 --offline     # rebuild entirely from existing generated metadata + raw cache
 ```
 
 ### Import exact replay fantasy counters

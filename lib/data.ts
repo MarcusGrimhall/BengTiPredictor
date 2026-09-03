@@ -115,6 +115,8 @@ export type LeagueData = {
     sampleStages?: number[];
     /** Match, series and hero for each sample row, same order. */
     sampleMatches?: number[];
+    /** Unix time of each sample row. */
+    sampleTimes?: number[];
     sampleSeries?: number[];
     sampleHeroes?: number[];
     /** Bitmask of Suffix conditions that fired, per sample row. */
@@ -282,6 +284,16 @@ export type TrainingData = {
   builtAt: string;
   /** Unix seconds of the target event's first match. Nothing later is included. */
   cutoff: number;
+  weighting?: {
+    applied: boolean;
+    lookbackDays: number;
+    halfLifeDays: number;
+    sameTeamMultiplier: number;
+    sameRoleMultiplier: number;
+    changedRoleMultiplier: number;
+    exactReplayMultiplier: number;
+    method: string;
+  };
   statOrder: StatKey[];
   unavailableStats: string[];
   sources: Array<{
@@ -302,11 +314,16 @@ export type TrainingData = {
     perGame: Record<StatKey, number>;
     samples: number[][];
     sampleMatches?: number[];
+    sampleTimes?: number[];
     sampleSeries?: number[];
     sampleHeroes?: number[];
     sampleTitles?: number[];
     sampleReplayTitles?: boolean[];
     sourceLeagues: number[];
+    /** Source league per sample row, unlike sourceLeagues which is per event. */
+    sampleLeagues?: number[];
+    /** Relative sampling weight applied while building this training set. */
+    sampleWeights?: number[];
   }>;
   coverage: { atTarget: number; withHistory: number; missing: string[] };
 };

@@ -5,7 +5,7 @@ import type { TeamEntry } from "../lib/data";
 
 const BRACKET_KEY = "bengti-bracket-v1";
 
-export type MapsSource = "bracket" | "rating";
+export type MapsSource = "bracket" | "rating" | "topFour";
 
 export type MainEventMaps = {
   mapsByTeam: Record<string, number>;

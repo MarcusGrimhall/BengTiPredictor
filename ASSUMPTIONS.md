@@ -39,6 +39,7 @@ wrong, the numbers that depend on it are wrong.
 | **Every option costs one reroll** — there is no price list | In-game rules, corroborated by community guides |
 | Compendium prediction payout scale | Community guides |
 | Stage boundary, group stage format, series counts | Derived from the match data itself |
+| A neutral top-four playoff path is **4.25 series** | Derived from the four finishing paths in the standard eight-team double-elimination bracket: 4, 5, 4 and 4 series. The user chooses which team reaches that point; ranking applies the same volume to all teams |
 | Player names | OpenDota's pro registry |
 | Roles | OpenDota's per-match lane detection, resolved per team. Agrees with the pro registry on 160 of 160 players and 32 of 32 mids across the two Internationals where the registry is contemporaneous, and no decision anywhere is close — across 88 squads the tightest mid is 69 percentage points clear and the tightest core/support boundary 114 last hits a game. Still a heuristic, not Valve's own assignment |
 | Team strength effect on scoring (1.84% per 100 Elo) | Measured here, n=2910, t=4.05 |
@@ -182,6 +183,19 @@ Two things it deliberately does not do. It does not shrink game-to-game spread,
 only the player's level, so the floor and ceiling the risk slider reads still
 come from real variation. And it does not touch `/information`, which reports
 what entries produced rather than what to expect from them.
+
+## Recency weighting: measured and held back
+
+Every generated player sample now carries its match time. Training also records
+its source league, role/team relationship to the target roster and whether exact
+replay data was available. `npm run train -- <id> --weighted` can apply a
+180-day window, 60-day half-life and modest same-team/same-role/data-quality
+weights.
+
+It is deliberately not the default. On the only complete pre-event test, TI
+2026, it moved the average pick from the 76th to the 68th percentile, picks above
+the field from 4/5 to 3/5, and rank correlation from 0.35 to 0.32. One event is
+not enough to tune those constants without overfitting.
 
 ## How a pair is scored — settled, and the order matters
 

@@ -26,7 +26,7 @@ const { BANNER_SLOTS, statsForColor, statToPoints } = lib("scoring");
 const { toPlayerEntries, actualMapsByStage, actualSeriesByStage, trainingPlayerEntries } = lib("data");
 const { STAGES, STAGE_SLOTS } = lib("stages");
 const { projectGroupStage, groupSeriesPerTeam } = lib("groupStage");
-const { projectMainEvent, seedByRating } = lib("tiBracket");
+const { projectMainEvent, seedByRating, topFourSeriesByTeam, TOP_FOUR_PLAYOFF_SERIES } = lib("tiBracket");
 const { buildStructure, simulate } = lib("bracket");
 const { DEFAULT_ELO, mapWinProbability } = lib("elo");
 const { stoppingCurve, applyAction, actionCatalogue, tierOutcomes, qualityOutcomes, randomBanner } = lib("reroll");
@@ -582,6 +582,15 @@ function checkInvariants(league) {
   pass("stage games sum to the whole event",
     STAGES.reduce((s, st) => s + toPlayerEntries(league, st).reduce((a, p) => a + p.gameLines.length, 0), 0)
       === toPlayerEntries(league).reduce((a, p) => a + p.gameLines.length, 0));
+  pass("no listed match vanished because parsing was incomplete",
+    league.matchesUsed === league.matchesTotal,
+    `${league.matchesUsed}/${league.matchesTotal} maps retained`);
+
+  const topFour = topFourSeriesByTeam(league.teams);
+  pass("top-four fantasy scenario is neutral between teams",
+    Object.keys(topFour).length === league.teams.filter((t) => t.name).length &&
+      Object.values(topFour).every((n) => n === TOP_FOUR_PLAYOFF_SERIES),
+    `${TOP_FOUR_PLAYOFF_SERIES} series per team`);
 
   const role = "core";
   const slotOptions = BANNER_SLOTS[role].map((c) => statsForColor(c));

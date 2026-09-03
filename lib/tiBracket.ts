@@ -12,6 +12,22 @@ import type { TeamEntry } from "./data";
 
 export const TI_MAIN_EVENT_TEAMS = 8;
 
+/**
+ * Neutral fantasy volume when the user, rather than Elo, chooses a team they
+ * trust to finish top four. In the standard eight-team double-elimination TI
+ * bracket the four finishing paths contain 4, 5, 4 and 4 series: 4.25 each on
+ * average. Applying the same number to every team deliberately removes our
+ * opinion about which team advances while preserving the value of four shots
+ * at a best-series score.
+ */
+export const TOP_FOUR_PLAYOFF_SERIES = 4.25;
+
+export function topFourSeriesByTeam(teams: TeamEntry[]): Record<string, number> {
+  return Object.fromEntries(
+    teams.filter((team) => team.name).map((team) => [team.name, TOP_FOUR_PLAYOFF_SERIES])
+  );
+}
+
 export type MapsProjection = {
   mapsByTeam: Record<string, number>;
   seriesByTeam: Record<string, number>;

@@ -32,7 +32,8 @@ let RELIABILITY = null;
 try { RELIABILITY = await readJson("reliability.json"); } catch { RELIABILITY = null; }
 const predictFrom = (entries) => shrinkEntries(entries, RELIABILITY);
 const { STAGE_SLOTS, STAGE_LABELS } = lib("stages");
-const { projectMainEvent } = lib("tiBracket");
+const { topFourSeriesByTeam } = lib("tiBracket");
+const { projectGroupStageSeries } = lib("groupStage");
 const { seededRandom } = lib("rng");
 
 // --------------------------------------------------------------------------
@@ -168,26 +169,26 @@ async function loadEntries() {
     process.exit(1);
   }
   const from = cutoff();
-  const kept = from === null ? training.sources : training.sources.filter((s) => s.firstMatch >= from);
+  const kept = from === null ? training.sources : training.sources.filter((s) => s.lastMatch >= from);
   const keptIds = new Set(kept.map((s) => s.leagueId));
 
-  // Filter the merged samples down to the sources still in range.
+  // Filter sample-by-sample. Older training files lacked these tags and can
+  // only fall back to whole-event filtering; newly built files retain exact
+  // map times and source leagues.
+  const aligned = ["samples", "sampleMatches", "sampleTimes", "sampleSeries", "sampleHeroes", "sampleTitles", "sampleReplayTitles", "sampleLeagues", "sampleWeights"];
   const filtered = {
     ...training,
     players: training.players.map((p) => {
       if (from === null) return p;
-      const keep = p.sourceLeagues
-        ? p.samples.map((_, i) => i).filter(() => true)
-        : p.samples.map((_, i) => i);
-      return { ...p, samples: keep.map((i) => p.samples[i]) };
-    })
+      const indices = p.samples.map((_, i) => i).filter((i) =>
+        p.sampleTimes?.[i] ? p.sampleTimes[i] >= from : keptIds.has(p.sampleLeagues?.[i])
+      );
+      const copy = { ...p };
+      for (const key of aligned) if (Array.isArray(p[key])) copy[key] = indices.map((i) => p[key][i]);
+      copy.games = copy.samples.length;
+      return copy;
+    }).filter((p) => p.samples.length > 0)
   };
-  // Sources are whole events, so drop players whose events all fell out.
-  if (from !== null) {
-    filtered.players = training.players
-      .filter((p) => (p.sourceLeagues ?? []).some((id) => keptIds.has(id)))
-      .map((p) => p);
-  }
   return {
     entries: buildLineups(predictFrom(trainingPlayerEntries(filtered))),
     sources: kept.map((s) => `${s.leagueName} (${new Date(s.firstMatch * 1000).toISOString().slice(0, 10)})`)
@@ -206,15 +207,18 @@ let seriesByTeam = {};
 let seriesSpread = null;
 
 function loadSeries() {
-  const actual = actualSeriesByStage(league, activeStage);
-  if (Object.keys(actual).length) {
-    seriesByTeam = actual;
-    seriesSpread = null;
-    return;
+  if (opts.source === "event") {
+    const actual = actualSeriesByStage(league, activeStage);
+    if (Object.keys(actual).length) {
+      seriesByTeam = actual;
+      seriesSpread = null;
+      return;
+    }
   }
-  const projection = projectMainEvent(league.teams, opts.runs);
-  seriesByTeam = projection.seriesByTeam;
-  seriesSpread = projection.seriesDistribution ?? null;
+  seriesByTeam = activeStage === "playoffs"
+    ? topFourSeriesByTeam(league.teams)
+    : projectGroupStageSeries(league.teams);
+  seriesSpread = null;
 }
 
 // --------------------------------------------------------------------------

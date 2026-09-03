@@ -92,6 +92,11 @@ weights are an upper bound and the correction is smaller than it should be —
 wrong in the safe direction, but wrong. Calibrating on pre-event → event needs
 training sets for the older four Internationals, which do not exist here.
 
+**The web calculator now uses pre-event form.** It previously passed the target
+event's own stage rows into the Fantasy page, making it descriptive rather than
+predictive. The page now requires `training-<id>.json`; only `/information`
+continues to show what actually happened.
+
 **The picks land near the middle of the field.** Across five Internationals,
 group-stage form picks a playoff entry at about the 49th percentile — up from the
 44th before shrinkage. Pre-event form at TI 2026 reaches the 61st on five
@@ -213,9 +218,10 @@ third button that locks held traits and optimises around them would cover it.
 - **Pick on the ceiling rather than the mean.** A period pays a maximum, and the
   risk slider already exposes the distribution, but the ranking optimises a
   percentile rather than the shape.
-- **Weight recent events above older ones** inside the training window. The
-  pooling in `build-training.mjs` treats a match from eight months ago the same
-  as one from last week.
+- **Calibrate recency on several pre-event tests.** Per-map timestamps and an
+  experimental 180-day/60-day-half-life mode now exist. TI 2026 regressed on
+  all three summary measures, so enabling or tuning it from that one target
+  would be overfitting. Build comparable training sets for TI 2023–2025 first.
 - **Add madstones to the persistence table's calibration.** It is the least
   reliable red stat measured and the most assumed in extraction; those two facts
   have never been looked at together.

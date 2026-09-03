@@ -64,8 +64,8 @@ the cache and re-fetches everything.
 
 ## `npm run validate` is the gate
 
-37 checks across five Internationals, plus a cross-check against an independent
-community table (currently **35 of 38** values within 45%). It exits non-zero on
+39 checks across five Internationals, plus a cross-check against an independent
+community table (currently **33 of 38** values within 45%). It exits non-zero on
 failure. Run it after any change to `lib/` or `scripts/`, and treat a drop in
 that 33 as a regression to explain, not a number to update.
 

@@ -23,6 +23,7 @@ const OUT_DIR = join(ROOT, "data", "generated");
 const args = process.argv.slice(2);
 const leagueId = args.find((a) => /^\d+$/.test(a));
 const refresh = args.includes("--refresh");
+const offline = args.includes("--offline");
 // Training events feed the model but are never shown as "the tournament".
 const training = args.includes("--training");
 const minGamesIndex = args.indexOf("--min-games");
@@ -65,16 +66,21 @@ async function main() {
   await mkdir(CACHE_DIR, { recursive: true });
   await mkdir(OUT_DIR, { recursive: true });
 
-  console.log(`Fetching league ${leagueId}...`);
+  console.log(`${offline ? "Rebuilding" : "Fetching"} league ${leagueId}${offline ? " offline" : ""}...`);
+  let previous = null;
+  if (offline) {
+    try { previous = JSON.parse(await readFile(join(OUT_DIR, `league-${leagueId}.json`), "utf8")); }
+    catch { throw new Error(`Offline rebuild needs existing data/generated/league-${leagueId}.json`); }
+  }
   const [leagueInfo, matchList, allTeams, proPlayers] = await Promise.all([
-    odFetch(`/leagues/${leagueId}`).catch(() => null),
-    odFetch(`/leagues/${leagueId}/matches`),
+    offline ? { name: previous.leagueName } : odFetch(`/leagues/${leagueId}`).catch(() => null),
+    offline ? [...new Set(previous.players.flatMap((p) => p.sampleMatches ?? []))].map((match_id) => ({ match_id })) : odFetch(`/leagues/${leagueId}/matches`),
     // OpenDota maintains an Elo rating per team. This is what drives the
     // bracket model, so nobody has to invent strength numbers by hand.
-    odFetch(`/teams`).catch(() => []),
+    offline ? previous.teams.map((t) => ({ team_id: t.id, rating: t.elo, wins: t.careerWins, losses: t.careerLosses })) : odFetch(`/teams`).catch(() => []),
     // The pro registry: real names rather than whatever Steam handle a player
     // happened to be using, plus the official fantasy role.
-    odFetch(`/proPlayers`).catch(() => [])
+    offline ? previous.players.map((p) => ({ account_id: p.accountId, name: p.name, fantasy_role: ({ core: 1, support: 2, mid: 4 })[p.role] })) : odFetch(`/proPlayers`).catch(() => [])
   ]);
   const eloById = new Map((allTeams ?? []).map((t) => [t.team_id, t]));
   const proById = new Map((proPlayers ?? []).map((p) => [p.account_id, p]));
@@ -99,6 +105,7 @@ async function main() {
    * back to games played.
    */
   async function rosterFor(teamId) {
+    if (offline) return previous.teams.find((t) => t.id === teamId)?.roster ?? null;
     const rows = await odFetch(`/teams/${teamId}/players`).catch(() => null);
     if (!Array.isArray(rows)) return null;
     return rows.filter((r) => r.is_current_team_member).map((r) => r.account_id);
@@ -193,6 +200,10 @@ async function main() {
           // by match; series are scored as their two best games; heroes drive
           // the Prefix trigger rates.
           sampleMatches: [],
+          // Unix time per sample. Training needs this to weight recent maps
+          // without treating a whole tournament as if every map were played
+          // on its opening day.
+          sampleTimes: [],
           sampleSeries: [],
           sampleHeroes: [],
           sampleTitles: [],
@@ -215,6 +226,7 @@ async function main() {
       agg.samples.push(RAW_STATS.map((stat) => Number(row.stats[stat].toFixed(3))));
       agg.sampleStages.push(stage);
       agg.sampleMatches.push(row.matchId);
+      agg.sampleTimes.push(match.start_time ?? 0);
       agg.sampleSeries.push(row.seriesId);
       agg.sampleHeroes.push(row.heroId);
       agg.sampleTitles.push(suffixFlags(match, row.won, {
@@ -363,6 +375,7 @@ async function main() {
         samples: p.samples,
         sampleStages: p.sampleStages,
         sampleMatches: p.sampleMatches,
+        sampleTimes: p.sampleTimes,
         sampleSeries: p.sampleSeries,
         sampleHeroes: p.sampleHeroes,
         sampleTitles: p.sampleTitles,

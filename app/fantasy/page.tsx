@@ -1,8 +1,8 @@
 import FantasyCalculator from "../../components/FantasyCalculator";
-import { actualSeriesByStage, loadDefaultLeague, loadReliability, toPlayerEntries } from "../../lib/data";
+import { loadDefaultLeague, loadLeague, loadReliability, loadTraining, trainingPlayerEntries } from "../../lib/data";
 import { projectGroupStageSeries } from "../../lib/groupStage";
-import { strengthByTeam } from "../../lib/strength";
-import { projectMainEvent } from "../../lib/tiBracket";
+import { preEventStrength, strengthByTeam } from "../../lib/strength";
+import { projectMainEvent, topFourSeriesByTeam } from "../../lib/tiBracket";
 import { STAGES, type Stage } from "../../lib/stages";
 import { shrinkEntries } from "../../lib/reliability";
 import type { PlayerEntry } from "../../lib/fantasy";
@@ -24,22 +24,44 @@ export default async function FantasyPage() {
     );
   }
 
-  // The two fantasy cards score over different matches, so each stage gets its
-  // own player rows, its own averages and its own map counts.
-  // Each stat is trusted as far as it has been measured to repeat, so a duo
-  // that topped a stat nobody repeats is not ranked as though they will do it
-  // again. See lib/reliability.ts; `/information` deliberately stays raw,
-  // because it reports what happened rather than what to expect.
+  const training = await loadTraining(league.leagueId);
+  if (!training) {
+    return (
+      <main className="shell">
+        <div className="page-head"><h1>Fantasy calculator</h1></div>
+        <div className="notice">
+          No pre-event training set. Run <code>npm run train -- {league.leagueId}</code>.
+        </div>
+      </main>
+    );
+  }
+
+  // Prediction uses only matches before the target event. `/information`
+  // deliberately keeps the target's raw games because it reports history.
   const reliability = await loadReliability();
+  const predicted = shrinkEntries(trainingPlayerEntries(training), reliability);
   const playersByStage = Object.fromEntries(
-    STAGES.map((stage) => [stage, shrinkEntries(toPlayerEntries(league, stage), reliability)])
+    STAGES.map((stage) => [stage, predicted])
   ) as Record<Stage, PlayerEntry[]>;
 
-  // Series, not maps: a match scores as its two best games however long the
-  // series runs, so series is what a fantasy value is multiplied by.
-  const actualByStage = Object.fromEntries(
-    STAGES.map((stage) => [stage, actualSeriesByStage(league, stage)])
-  ) as Record<Stage, Record<string, number>>;
+  // The user chooses which teams to trust. Group volume is flat; every playoff
+  // team is evaluated as a top-four finisher instead of inheriting Elo risk.
+  const actualByStage = { groupStage: {}, playoffs: {} } as Record<Stage, Record<string, number>>;
+  const groupProjection = projectGroupStageSeries(league.teams);
+  const topFourProjection = topFourSeriesByTeam(league.teams);
+
+  // Build strength chronologically from the same pre-event sources as player
+  // form. The ratings stored on the target league are current and can include
+  // matches played after fantasy locked.
+  const sourceLeagues = (await Promise.all(training.sources.map((source) => loadLeague(source.leagueId))))
+    .filter((source): source is NonNullable<typeof source> => Boolean(source))
+    .sort((a, b) => (a.firstMatch ?? 0) - (b.firstMatch ?? 0));
+  const teamNames = Object.fromEntries(league.teams.map((team) => [team.id, team.name]));
+  const preEvent = preEventStrength(sourceLeagues.flatMap((source) => source.results ?? []), teamNames, 4);
+  const preEventTeams = league.teams.map((team) => ({
+    ...team,
+    elo: preEvent[team.name]?.rating ?? null
+  }));
 
   // The TI playoff bracket is the same shape every year, so it can be projected
   // before it is played. Done at build time.
@@ -51,27 +73,27 @@ export default async function FantasyPage() {
         <span className="eyebrow">{league.leagueName}</span>
         <h1>Fantasy calculator</h1>
         <p className="muted" style={{ maxWidth: 660 }}>
-          Every score below is drawn from the {league.matchesUsed} matches actually
-          played, split into the two fantasy periods the way the event was.
+          Prediction from {training.sources.length} earlier tournaments and {training.players.reduce((n, p) => n + p.samples.length, 0)}
+          weighted map samples. Choose the teams you trust; every playoff entry is evaluated as a top-four finish.
         </p>
         <RatingWarning check={league.ratingCheck} />
       </div>
       <FantasyCalculator
         playersByStage={playersByStage}
         actualByStage={actualByStage}
-        groupProjection={projectGroupStageSeries(league.teams)}
-        strengthByTeam={strengthByTeam(league.teams)}
+        groupProjection={groupProjection}
+        strengthByTeam={strengthByTeam(preEventTeams)}
         leagueName={league.leagueName}
         teams={league.teams}
         stageSplit={league.stages?.split ?? false}
         projection={{
           mapsByTeam: projection.mapsByTeam,
-          seriesByTeam: projection.seriesByTeam,
+          seriesByTeam: topFourProjection,
           outlookByTeam: projection.outlookByTeam,
           atLeastByTeam: projection.atLeastByTeam,
           championByTeam: projection.championByTeam,
           seeds: projection.seeds,
-          source: "rating"
+          source: "topFour"
         }}
       />
     </main>

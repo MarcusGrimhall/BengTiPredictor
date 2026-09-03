@@ -20,6 +20,7 @@ const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
 const OUT_DIR = join(ROOT, "data", "generated");
 
 const targetId = process.argv.slice(2).find((a) => /^\d+$/.test(a));
+const applyWeighting = process.argv.includes("--weighted");
 if (!targetId) {
   console.error("Usage: npm run train -- <targetLeagueId>");
   console.error("Fetch the training events first: npm run fetch -- <id> --training");
@@ -37,6 +38,14 @@ if (target.firstMatch == null) {
 }
 
 const cutoff = target.firstMatch;
+// Automatic form window. Six months retains enough games for rare stats while
+// a 60-day half-life makes the last two months dominate. Same-team and same-role
+// samples get small evidence-backed priors; exact replay rows get a modest
+// quality preference for the five counters ordinary APIs approximate.
+const LOOKBACK_DAYS = 180;
+const HALF_LIFE_DAYS = 60;
+const RESAMPLE_SCALE = 3;
+const oldest = cutoff - LOOKBACK_DAYS * 86400;
 console.log(`Target : ${target.leagueName} (${targetId})`);
 console.log(`Cutoff : ${new Date(cutoff * 1000).toISOString()} - only earlier matches may be used\n`);
 
@@ -91,27 +100,47 @@ for (const league of sources) {
         wins: 0,
         samples: [],
         sampleMatches: [],
+        sampleTimes: [],
         sampleSeries: [],
         sampleHeroes: [],
         sampleTitles: [],
         sampleReplayTitles: [],
+        sampleLeagues: [],
+        sampleWeights: [],
         sourceLeagues: []
       });
     }
     const agg = merged.get(p.accountId);
+    const beforeSamples = agg.samples.length;
     p.samples.forEach((row, i) => {
-      agg.samples.push(remap.map((k) => (k === -1 ? 0 : row[k] ?? 0)));
-      agg.sampleMatches.push(p.sampleMatches?.[i] ?? 0);
+      const when = p.sampleTimes?.[i] ?? league.lastMatch;
+      if (!when || when >= cutoff || (applyWeighting && when < oldest)) return;
+      const ageDays = (cutoff - when) / 86400;
+      const freshness = Math.pow(0.5, ageDays / HALF_LIFE_DAYS);
+      const sameTeam = p.teamId != null && who.teamId != null && p.teamId === who.teamId ? 1.15 : 1;
+      const sameRole = p.role === who.role ? 1.1 : 0.7;
+      const replayQuality = p.sampleReplayTitles?.[i] ? 1.05 : 1;
+      const weight = freshness * sameTeam * sameRole * replayQuality;
+      // Deterministic frequency weighting keeps all existing fantasy maths on
+      // a plain empirical distribution, including best-two-games per series.
+      const copies = applyWeighting ? Math.max(1, Math.round(weight * RESAMPLE_SCALE)) : 1;
+      for (let copy = 0; copy < copies; copy += 1) {
+        agg.samples.push(remap.map((k) => (k === -1 ? 0 : row[k] ?? 0)));
+        agg.sampleMatches.push((p.sampleMatches?.[i] ?? 0) + copy * 1e10);
+        agg.sampleTimes.push(when);
       // Series ids are only unique within a league; namespace them so two
-      // events cannot collide and merge two unrelated series into one.
-      const sid = p.sampleSeries?.[i] ?? 0;
-      agg.sampleSeries.push(sid ? league.leagueId * 1e7 + sid : -(p.sampleMatches?.[i] ?? i));
-      agg.sampleHeroes.push(p.sampleHeroes?.[i] ?? 0);
-      agg.sampleTitles.push(p.sampleTitles?.[i] ?? 0);
-      agg.sampleReplayTitles.push(Boolean(p.sampleReplayTitles?.[i]));
+        // events or resampled copies cannot collide.
+        const sid = p.sampleSeries?.[i] ?? 0;
+        agg.sampleSeries.push(sid ? copy * 1e12 + league.leagueId * 1e7 + sid : -(p.sampleMatches?.[i] ?? i) - copy * 1e10);
+        agg.sampleHeroes.push(p.sampleHeroes?.[i] ?? 0);
+        agg.sampleTitles.push(p.sampleTitles?.[i] ?? 0);
+        agg.sampleReplayTitles.push(Boolean(p.sampleReplayTitles?.[i]));
+        agg.sampleLeagues.push(league.leagueId);
+        agg.sampleWeights.push(weight);
+      }
     });
-    agg.games += p.games;
-    agg.wins += Math.round((p.winRate ?? 0) * p.games);
+    agg.games = agg.samples.length;
+    agg.wins += (p.winRate ?? 0) * (agg.samples.length - beforeSamples);
     agg.sourceLeagues.push(league.leagueId);
   }
 }
@@ -137,6 +166,18 @@ const payload = {
   targetLeagueName: target.leagueName,
   builtAt: new Date().toISOString(),
   cutoff,
+  weighting: {
+    applied: applyWeighting,
+    lookbackDays: LOOKBACK_DAYS,
+    halfLifeDays: HALF_LIFE_DAYS,
+    sameTeamMultiplier: 1.15,
+    sameRoleMultiplier: 1.1,
+    changedRoleMultiplier: 0.7,
+    exactReplayMultiplier: 1.05,
+    method: applyWeighting
+      ? `deterministic frequency resampling at scale ${RESAMPLE_SCALE}`
+      : "recorded only; not applied (weighted TI 2026 backtest regressed)"
+  },
   statOrder,
   unavailableStats: target.unavailableStats,
   sources: sources.map((l) => ({
