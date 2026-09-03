@@ -17,6 +17,7 @@ import { splitStages, STAGES } from "./stages.mjs";
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
 const CACHE_DIR = join(ROOT, "data", "cache", "matches");
+const REPLAY_FANTASY_DIR = join(ROOT, "data", "cache", "replay-fantasy", "matches");
 const OUT_DIR = join(ROOT, "data", "generated");
 
 const args = process.argv.slice(2);
@@ -48,6 +49,12 @@ async function getMatch(id) {
   const match = await odFetch(`/matches/${id}`);
   await writeFile(cached, JSON.stringify(match));
   return match;
+}
+
+async function getReplayFantasy(id) {
+  const cached = join(REPLAY_FANTASY_DIR, `${id}.json`);
+  if (!(await exists(cached))) return null;
+  return JSON.parse(await readFile(cached, "utf8"));
 }
 
 function emptyTotals() {
@@ -155,7 +162,8 @@ async function main() {
 
   for (const [index, match] of loaded.entries()) {
     const label = `[${index + 1}/${loaded.length}] ${match.match_id}`;
-    const rows = extractMatch(match);
+    const replayFantasy = await getReplayFantasy(match.match_id);
+    const rows = extractMatch(match, replayFantasy);
     if (!rows) {
       process.stdout.write(`${label} - not parsed, skipping\n`);
       skipped += 1;
@@ -188,6 +196,7 @@ async function main() {
           sampleSeries: [],
           sampleHeroes: [],
           sampleTitles: [],
+          sampleReplayTitles: [],
           // Games and wins per stage, so a stage's win rate is its own.
           stageGames: [0, 0],
           stageWins: [0, 0]
@@ -210,8 +219,10 @@ async function main() {
       agg.sampleHeroes.push(row.heroId);
       agg.sampleTitles.push(suffixFlags(match, row.won, {
         gameNumber: gameNumberOf.get(match.match_id),
-        lastPossible: lastPossibleOf.get(match.match_id)
+        lastPossible: lastPossibleOf.get(match.match_id),
+        replayTitles: replayFantasy?.match?.titleConditions
       }));
+      agg.sampleReplayTitles.push(Boolean(replayFantasy));
       agg.stageGames[stage] += 1;
       if (row.won) agg.stageWins[stage] += 1;
 
@@ -355,6 +366,7 @@ async function main() {
         sampleSeries: p.sampleSeries,
         sampleHeroes: p.sampleHeroes,
         sampleTitles: p.sampleTitles,
+        sampleReplayTitles: p.sampleReplayTitles,
         stages: Object.fromEntries(STAGES.map((name, i) => [name, {
           games: p.stageGames[i],
           winRate: p.stageGames[i] ? Number((p.stageWins[i] / p.stageGames[i]).toFixed(3)) : 0

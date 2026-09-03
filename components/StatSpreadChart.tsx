@@ -221,15 +221,12 @@ export default function StatSpreadChart({
                   out.{" "}
                 </>
               )}
-              <strong>Lotuses</strong> (176 pts) and <strong>Watchers</strong> (147 pts) are
-              missing from every role: both are grabbed through the same interaction, and
-              OpenDota counts the presses without saying which was which.
-              <Info title="Why lotuses and watchers are absent">
-                A lotus pickup and a watcher capture both fire{" "}
-                <code>ability_lamp_use</code>, and that is the only trace either leaves in
-                public match data — 9.35 a game for a support at TI 2026. Splitting one
-                counter into two emblems would be a guess, and at 176 and 147 points each
-                it would be a large one, so they are reported as absent instead.
+              <strong>Lotuses</strong> and <strong>Watchers</strong> come from separate Dota
+              replay counters where exact replay data is available.
+              <Info title="Replay-only fantasy counters">
+                The extractor reads <code>m_iLotusesTaken</code> and{" "}
+                <code>m_iWatchersTaken</code>. Older events without an overlay use
+                separately calibrated OpenDota fallbacks and are therefore less certain.
               </Info>
             </p>
           </div>

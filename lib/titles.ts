@@ -47,14 +47,12 @@ export const SUFFIXES: Record<SuffixKey, {
   tormented: {
     label: "the Tormented", bonus: 23,
     condition: "if any player dies to a Tormentor",
-    measurability: "unavailable",
-    why: "deaths are not attributed to the Tormentor in public match data"
+    measurability: "measured"
   },
   flayedTwins: {
     label: "the Flayed Twins Acolyte", bonus: 9,
     condition: "if any player takes first blood before the starting horn",
-    measurability: "unavailable",
-    why: "the horn is not a timestamped event; pre-horn kills cannot be separated"
+    measurability: "measured"
   },
   patient: {
     label: "the Patient", bonus: 23,
@@ -84,8 +82,7 @@ export const SUFFIXES: Record<SuffixKey, {
   cruel: {
     label: "the Cruel", bonus: 13,
     condition: "if a player is killed at their own fountain",
-    measurability: "unavailable",
-    why: "kill locations are not exposed, so fountain kills cannot be identified"
+    measurability: "measured"
   }
 };
 
@@ -98,7 +95,10 @@ export const SUFFIX_BITS: Partial<Record<SuffixKey, number>> = {
   decisive: 2,
   patient: 4,
   underdog: 8,
-  clutch: 16
+  clutch: 16,
+  tormented: 32,
+  flayedTwins: 64,
+  cruel: 128
 };
 
 export const MEASURABLE_SUFFIXES = Object.keys(SUFFIX_BITS) as SuffixKey[];
@@ -113,8 +113,13 @@ export function suffixTriggerRate(player: PlayerEntry, suffix: SuffixKey): numbe
   const bit = SUFFIX_BITS[suffix];
   const flags = player.gameTitles;
   if (bit === undefined || !flags?.length) return null;
-  const hits = flags.reduce((n, mask) => n + ((mask & bit) ? 1 : 0), 0);
-  return hits / flags.length;
+  const replayOnly = suffix === "tormented" || suffix === "flayedTwins" || suffix === "cruel";
+  const eligible = flags
+    .map((mask, index) => ({ mask, index }))
+    .filter(({ index }) => !replayOnly || player.gameReplayTitles?.[index]);
+  if (!eligible.length) return null;
+  const hits = eligible.reduce((n, { mask }) => n + ((mask & bit) ? 1 : 0), 0);
+  return hits / eligible.length;
 }
 
 /**

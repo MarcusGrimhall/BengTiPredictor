@@ -13,11 +13,8 @@
 // option spends one. So "can I afford this" is never the question; "is this
 // worth one of my forty" always is.
 //
-// IMPORTANT - what is assumed rather than known:
-//   * The odds of landing on each quality or trait. No guide publishes them and
-//     no search turns them up, so every possible outcome is treated as equally
-//     likely. If the real distribution is skewed, every reroll valuation moves
-//     with it.
+// Quality odds use the measured 5:4:3:2:1 tier weights from 195 client rolls
+// (163 informative draws). Trait odds are still assumed uniform.
 // Everything else - banner rules, scoring, the uniqueness constraint, and the
 // rule that a reroll never returns what it replaced - is exact.
 
@@ -30,15 +27,63 @@ import { STAGE_TOKENS } from "./stages";
  * A reroll never gives back what it replaced.
  *
  * Rerolling the quality of a tier II lands on I, III, IV or V - four outcomes,
- * not five. Rerolling a trait lands on any of the other five. Nothing publishes
- * how those outcomes are weighted, so they are treated as equally likely; that
- * is the one thing here still assumed rather than known.
+ * not five. The measured base weights are renormalised over those four tiers.
+ * Trait weights remain unpublished and are treated as uniform.
  */
 export const TIERS_ALL: Tier[] = ["I", "II", "III", "IV", "V"];
 
-/** Uniform over every tier except the one held. */
+/**
+ * Measured crafting weights, Tier I through V: 5:4:3:2:1.
+ *
+ * The free fit over 163 informative client rolls was
+ * 32.8 / 28.5 / 22.1 / 11.7 / 5.0 percent. The small-integer rule below fits
+ * that sample (likelihood-ratio p=0.75), while uniform odds are rejected at
+ * p<1e-8. See ASSUMPTIONS.md for provenance and uncertainty.
+ */
+export const QUALITY_WEIGHTS: Record<Tier, number> = {
+  I: 5,
+  II: 4,
+  III: 3,
+  IV: 2,
+  V: 1
+};
+
+/** Every tier except the one held; probabilities come from QUALITY_WEIGHTS. */
 export function tierOptions(current: Tier): Tier[] {
   return TIERS_ALL.filter((t) => t !== current);
+}
+
+/** Normalised weighted outcomes over any allowed set of tiers. */
+export function weightedTierOutcomes(allowed: Tier[]): Array<{ tier: Tier; probability: number }> {
+  const total = allowed.reduce((sum, tier) => sum + QUALITY_WEIGHTS[tier], 0);
+  if (total <= 0) return [];
+  return allowed.map((tier) => ({ tier, probability: QUALITY_WEIGHTS[tier] / total }));
+}
+
+/** Conditional quality distribution for a reroll from one specific tier. */
+export function tierOutcomes(current: Tier): Array<{ tier: Tier; probability: number }> {
+  return qualityOutcomes(current, "reroll");
+}
+
+export type QualityDirection = "reroll" | "increase" | "decrease";
+
+/**
+ * Quality odds are conditional on both the current tier and the operation:
+ * reroll excludes the current tier, increase keeps only higher tiers, and
+ * decrease keeps only lower tiers. The same measured weights are renormalised
+ * inside the resulting legal set.
+ */
+export function qualityOutcomes(
+  current: Tier,
+  direction: QualityDirection
+): Array<{ tier: Tier; probability: number }> {
+  const rank = TIERS_ALL.indexOf(current);
+  const allowed = direction === "increase"
+    ? TIERS_ALL.slice(rank + 1)
+    : direction === "decrease"
+      ? TIERS_ALL.slice(0, rank)
+      : tierOptions(current);
+  return weightedTierOutcomes(allowed);
 }
 
 /** Uniform over every trait except the one held. */
@@ -65,44 +110,44 @@ export type RerollAction = {
  */
 export const REROLL_COST = 1;
 
-const TIERS_ORDER: Tier[] = TIERS_ALL;
-const ALL_TRAITS: Trait[] = ["none", "fractal", "benevolent", "vampiric", "unique", "friendly"];
+const ROLLABLE_TRAITS: Trait[] = ["fractal", "benevolent", "vampiric", "unique", "friendly"];
 
 /** Uniform pick. */
 function pick<T>(options: T[], roll: number): T {
   return options[Math.min(options.length - 1, Math.floor(roll * options.length))];
 }
 
+/** Pick a tier from the measured weights, renormalised over the allowed tiers. */
+function pickWeightedTier(allowed: Tier[], roll: number): Tier {
+  const outcomes = weightedTierOutcomes(allowed);
+  let remaining = roll;
+  for (const { tier, probability } of outcomes) {
+    if (remaining < probability) return tier;
+    remaining -= probability;
+  }
+  return outcomes[outcomes.length - 1]?.tier ?? allowed[allowed.length - 1];
+}
+
 /** Every action offered for a role, given how many slots the stage has. */
 export function actionCatalogue(role: Role, slots: number): RerollAction[] {
   const colors = Array.from(new Set(BANNER_SLOTS[role].slice(0, slots)));
+  const granular: Record<EmblemColor, RerollTarget> = {
+    red: "tier", blue: "trait", green: "stat"
+  };
   const actions: RerollAction[] = [];
-
-  const targets: Array<{ key: RerollTarget; word: string }> = [
-    { key: "stat", word: "stat" },
-    { key: "tier", word: "quality" },
-    { key: "trait", word: "trait" }
-  ];
-  const scopes: Array<{ key: RerollScope; word: string }> = [
-    { key: "random", word: "a random" },
-    { key: "first", word: "the first" },
-    { key: "last", word: "the last" },
-    { key: "all", word: "all" }
-  ];
-
   for (const color of colors) {
-    const count = BANNER_SLOTS[role].slice(0, slots).filter((c) => c === color).length;
-    for (const target of targets) {
+    const detailed = granular[color];
+    for (const target of ["stat", "tier", "trait"] as RerollTarget[]) {
+      const scopes: RerollScope[] = target === detailed
+        ? ["all", "first", "last", "random"]
+        : ["all"];
       for (const scope of scopes) {
-        // "first" and "last" are the same emblem when a colour has only one.
-        if (count < 2 && (scope.key === "last" || scope.key === "all")) continue;
+        const word = target === "tier" ? "quality" : target;
+        const scopeWord = scope === "random" ? "one random" : scope === "all" ? "all" : `the ${scope}`;
         actions.push({
-          id: `${target.key}-${scope.key}-${color}`,
-          label: `Reroll ${target.word} · ${scope.word} ${color} emblem${scope.key === "all" && count > 1 ? "s" : ""}`,
-          target: target.key,
-          scope: scope.key,
-          color,
-          cost: REROLL_COST
+          id: `${target}-${scope}-${color}`,
+          label: `Reroll ${word} · ${scopeWord} ${color} emblem${scope === "all" ? "s" : ""}`,
+          target, scope, color, cost: REROLL_COST
         });
       }
     }
@@ -157,8 +202,7 @@ export function applyAction(
     //
     // A tier V cannot be raised and a tier I cannot be lowered, so the wildcard
     // works out which emblems it CAN act on - from the tiers as they are, before
-    // anything moves - and does that. Raises go to the lowest, the reduction to
-    // the highest, and where fewer are possible than asked for, fewer happen.
+    // anything moves - and chooses uniformly among those eligible targets.
     //
     //   I  III  V      raise 2, lower 1  ->  raise the I and the III, lower the V
     //   III III  V     raise 2, lower 1  ->  raise both IIIs, lower the V
@@ -168,41 +212,41 @@ export function applyAction(
     // Where the new tier lands is then random among the ones still open: a
     // raised II can become III, IV or V; a lowered IV can become I, II or III.
     const upCount = action.target === "qualityUp" ? 1 : 2;
-    const rank = (i: number) => TIERS_ORDER.indexOf(next[i].tier);
     const order = next.map((_, i) => i);
+    const takeRandom = (pool: number[], count: number): number[] => {
+      const remaining = [...pool];
+      const chosen: number[] = [];
+      while (chosen.length < count && remaining.length) {
+        chosen.push(remaining.splice(Math.floor(random() * remaining.length), 1)[0]);
+      }
+      return chosen;
+    };
 
     // Decided on the original banner, so a raise cannot change what gets lowered.
-    const raiseTargets = order
-      .filter((i) => next[i].tier !== "V")
-      .sort((a, b) => rank(a) - rank(b) || (random() < 0.5 ? -1 : 1))
-      .slice(0, upCount);
+    const raiseTargets = takeRandom(order.filter((i) => next[i].tier !== "V"), upCount);
     const lowerTarget = action.target === "qualityUpTwoDownOne"
-      ? order
-          .filter((i) => next[i].tier !== "I" && !raiseTargets.includes(i))
-          .sort((a, b) => rank(b) - rank(a) || (random() < 0.5 ? -1 : 1))[0]
+      ? takeRandom(order.filter((i) => next[i].tier !== "I" && !raiseTargets.includes(i)), 1)[0]
         // If every lowerable emblem is already being raised, the reduction has
-        // to fall on one of them; take the highest.
-        ?? order
-          .filter((i) => next[i].tier !== "I")
-          .sort((a, b) => rank(b) - rank(a))[0]
+        // to fall on one of them.
+        ?? takeRandom(order.filter((i) => next[i].tier !== "I"), 1)[0]
       : undefined;
 
     for (const i of raiseTargets) {
-      const above = TIERS_ORDER.slice(rank(i) + 1);
-      next[i].tier = above[Math.floor(random() * above.length)];
+      const above = qualityOutcomes(next[i].tier, "increase").map(({ tier }) => tier);
+      next[i].tier = pickWeightedTier(above, random());
     }
     if (lowerTarget !== undefined) {
-      const below = TIERS_ORDER.slice(0, rank(lowerTarget));
-      if (below.length) next[lowerTarget].tier = below[Math.floor(random() * below.length)];
+      const below = qualityOutcomes(next[lowerTarget].tier, "decrease").map(({ tier }) => tier);
+      if (below.length) next[lowerTarget].tier = pickWeightedTier(below, random());
     }
     return next;
   }
 
   for (const slot of slots) {
     if (action.target === "tier") {
-      next[slot].tier = pick(tierOptions(next[slot].tier), random());
+      next[slot].tier = pickWeightedTier(tierOptions(next[slot].tier), random());
     } else if (action.target === "trait") {
-      next[slot].trait = pick(traitOptions(next[slot].trait, ALL_TRAITS), random());
+      next[slot].trait = pick(traitOptions(next[slot].trait, ROLLABLE_TRAITS), random());
     } else {
       // A stat already on the banner cannot be rolled again.
       const taken = new Set(next.filter((_, i) => i !== slot).map((e) => e.stat));
@@ -251,11 +295,11 @@ export function enumerateOutcomes(
   /** Possible values for one slot, with probabilities. */
   const optionsFor = (slot: number, sofar: Emblem[]): Array<[Emblem, number]> => {
     if (action.target === "tier") {
-      const options = tierOptions(sofar[slot].tier);
-      return options.map((tier) => [{ ...sofar[slot], tier }, 1 / options.length]);
+      return tierOutcomes(sofar[slot].tier)
+        .map(({ tier, probability }) => [{ ...sofar[slot], tier }, probability]);
     }
     if (action.target === "trait") {
-      const options = traitOptions(sofar[slot].trait, ALL_TRAITS);
+      const options = traitOptions(sofar[slot].trait, ROLLABLE_TRAITS);
       return options.map((trait) => [{ ...sofar[slot], trait }, 1 / options.length]);
     }
     const taken = new Set(sofar.filter((_, i) => i !== slot).map((e) => e.stat));
@@ -562,8 +606,10 @@ export function randomBanner(role: Role, slots: number, random: () => number): E
     used.add(stat);
     return {
       stat,
+      // Fresh emblems are a separate draw from quality rerolls. Until measured
+      // otherwise, all five initial qualities are modelled 1:1:1:1:1.
       tier: pick(TIERS_ALL, random()),
-      trait: pick(ALL_TRAITS, random())
+      trait: pick(ROLLABLE_TRAITS, random())
     };
   });
 }

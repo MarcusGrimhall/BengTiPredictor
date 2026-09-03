@@ -8,6 +8,7 @@
     "start": "next start",
     "lint": "next lint",
     "fetch": "node scripts/fetch-league.mjs",
+    "import-replays": "node scripts/import-replay-fantasy.mjs",
     "leagues": "node scripts/list-leagues.mjs",
     "discover": "node scripts/discover.mjs",
     "validate": "tsc -p tsconfig.validate.json && node scripts/validate.mjs",

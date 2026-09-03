@@ -94,6 +94,7 @@ for (const league of sources) {
         sampleSeries: [],
         sampleHeroes: [],
         sampleTitles: [],
+        sampleReplayTitles: [],
         sourceLeagues: []
       });
     }
@@ -107,6 +108,7 @@ for (const league of sources) {
       agg.sampleSeries.push(sid ? league.leagueId * 1e7 + sid : -(p.sampleMatches?.[i] ?? i));
       agg.sampleHeroes.push(p.sampleHeroes?.[i] ?? 0);
       agg.sampleTitles.push(p.sampleTitles?.[i] ?? 0);
+      agg.sampleReplayTitles.push(Boolean(p.sampleReplayTitles?.[i]));
     });
     agg.games += p.games;
     agg.wins += Math.round((p.winRate ?? 0) * p.games);

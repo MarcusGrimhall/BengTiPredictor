@@ -12,7 +12,7 @@ wrong, the numbers that depend on it are wrong.
 | Point value of all 16 extractable stats | In-game rules, cross-checked against a community-compiled table and against my own data (35 of 38 values within a few percent) |
 | Tier bonuses +10 / +30 / +60 / +100 / +150% | In-game rules |
 | Trait effects (Fractal +60%, Benevolent +20% adjacent, Vampiric +50%/−10%, Unique +30%, Friendly +50%) | In-game rules. Fractal's condition is **all emblem qualities on the banner different** — not "all five", so it also fires on a 3-emblem Group Stage banner. "Adjacent" is the immediate neighbouring slots only, with **no wrap** from first to last, demonstrated by a captured 3-slot banner where slot 1 does not affect slot 3 |
-| **Bonuses ADD against the base score** — tier V with an active Fractal is 100+150+60 = ×3.10, not 2.50×1.60 | In-game tutorials: Quality is a percentage bonus to the base fantasy score and a Trait is an *"additional percentage bonus to the base fantasy score"*. A captured banner shows a tier II (+30%) with net +70% of trait effects displaying **200%**, which is 100+30+70 rather than 1.30×1.70. The other public calculator multiplies, and is wrong |
+| **Quality and traits ADD inside the emblem multiplier** — tier V with an active Fractal is 100+150+60 = ×3.10, not 2.50×1.60 | In-game tutorials and captured banner. Playoff results then verify that Coaching Titles form a separate layer: four Royal +10% stat contributions for Noticed/Satanic reproduce the client to the cent only as `base × (1 + quality + trait) × (1 + active titles)` |
 | Slot colours per role | In-game rules |
 | One stat per banner, never repeated | In-game Emblem Stats glossary |
 | Core and Support are same-team pairs, Mid is one player | In-game rules |
@@ -25,21 +25,24 @@ wrong, the numbers that depend on it are wrong.
 | Titles are free to change and cost no rerolls | In-game Coaching Titles glossary |
 | Group stage 3 emblems / 40 tokens, playoffs 5 / 30 | In-game roster screen, which awards "+40 Group Stage Crafting Rolls" and "+30 The International Fantasy Crafting Rolls" |
 | Tokens are one shared pool across all three banners | In-game: a single ROLL TOKENS counter sits beneath the roster while one banner is selected |
+| Unused Group Stage tokens expire before playoffs | You, confirmed 2026-09-03; the separate 40- and 30-token grants do not carry over |
 | Three options at a time, unique within the set | In-game rolling glossary |
 | Refreshing the options **costs one Roll Token** | In-game crafting tutorial: to replace the options without applying one, you spend a token. There is no free decline that reshuffles — not using an option simply spends nothing and changes nothing. `playOut` in `lib/offers.ts` still models stopping rather than paying to refresh, so it understates a reroll plan |
 | A quality change lands on a **random** available tier, not ±1 | You |
 | A reroll never returns the value it replaced | You |
+| Quality outcomes use Tier I–V weights **5:4:3:2:1**: reroll excludes the current tier, increase permits only higher tiers and decrease only lower tiers, with the weights renormalised inside each legal set | Measured from 195 client rolls (163 informative) containing all three operation types. Free fit 32.8/28.5/22.1/11.7/5.0%; the integer rule fits at LR p=0.75 and uniform odds are rejected at p<1e-8. Fitting the three operation types separately does not improve the fit significantly (p=0.20). Valve confirms only the decreasing shape, not the numbers |
+| Every emblem always has one of the five traits and starts with a random trait; there is no `none` state | You, confirmed 2026-09-03 |
+| Fresh emblems begin with uniformly random qualities (1:1:1:1:1), separately from measured reroll odds | User instruction 2026-09-03; deliberately assumed rather than inferred from reroll data |
 | A tier V cannot be raised, a tier I cannot be lowered | You |
-| The wildcard does what is possible, decided before anything moves | You, from four worked examples |
+| The wildcard chooses only directionally eligible emblems, decided before anything moves: with II/II/V both IIs rise and V must fall; with I/V/V the I rises and one random V falls | You, from worked examples |
+| The operation catalogue has 20 entries: Red is granular on Quality, Blue on Trait, Green on Stat; the other two properties are all-only, plus two quality wildcards | Complete community-captured list; corroborated by Valve's operation-bucket schema |
 | **Every option costs one reroll** — there is no price list | In-game rules, corroborated by community guides |
-| Reroll scopes: stat / quality / trait × all / first / last / random of a colour | Community guides |
 | Compendium prediction payout scale | Community guides |
 | Stage boundary, group stage format, series counts | Derived from the match data itself |
 | Player names | OpenDota's pro registry |
 | Roles | OpenDota's per-match lane detection, resolved per team. Agrees with the pro registry on 160 of 160 players and 32 of 32 mids across the two Internationals where the registry is contemporaneous, and no decision anywhere is close — across 88 squads the tightest mid is 69 percentage points clear and the tightest core/support boundary 114 last hits a game. Still a heuristic, not Valve's own assignment |
 | Team strength effect on scoring (1.84% per 100 Elo) | Measured here, n=2910, t=4.05 |
 | Suffix trigger rates | Measured from the matches themselves |
-| **No stat pays negative points** — the scale floors at zero, so ten-plus deaths pay 0 rather than a penalty | You |
 | Smokes are **smokes used**, `item_uses.smoke_of_deceit` | Verified against STRATZ `itemUsed` item 188, 10/10 players on a checked match |
 | Kills, deaths, last hits, GPM, courier kills, observer wards, camps stacked | Verified field by field against STRATZ on the same match, 10/10 players each |
 | Roshan is the player credited with the kill | Sum of `killed.npc_dota_roshan` equals the count of `CHAT_MESSAGE_ROSHAN_KILL` events exactly, over 12 matches |
@@ -48,21 +51,23 @@ wrong, the numbers that depend on it are wrong.
 | Runes count **bottled runes as well as taken ones** | In-game glossary: *"bottled or taken"*. It says nothing either way about Wisdom runes; that `rune_pickups` excludes them is a measured property of the data, not a stated rule — see below |
 | A tower goes to whoever landed the **last hit** | You |
 | Teamfight participation is a **0–1 share**, scored per unit and not per percentage point | You |
-| Teamfight participation is **(kills + assists) / the opposing team's total deaths** — reconstructed, not published; the glossary states only a maximum of 2,124 points and gives no formula — the standard share, not OpenDota's teamfight-graph clustering | Reconstructed from the data: reproduces the field exactly in 102 of 120 player-games, and in 13 more with a numerator one assist lower. 95.8% accounted for. Note the denominator is **deaths, not kills** — a hero killed by creeps or a tower raises it without being anyone's kill, which happened in 6 of 24 teams |
+| Teamfight participation is the game's `CDOTA_PlayerResource … m_flTeamFightParticipation` end-of-game counter | Valve replay schema plus an open Clarity extractor. Against 1,470 TI 2026 player-games, OpenDota's field is identical within 1e-5 in 1,450 (98.6%) and its total differs by only 0.007%; the remaining 20 rows show why reconstructing it from K/A/deaths is not exact |
 | `p.stuns` **sums per target hit** — a three-hero, two-second stun counts as six seconds | OpenDota reads `modifier_stunned` from the combat log per affected hero. Means the emblem systematically favours AoE stuns |
 
 ## Assumed — not verified anywhere
 
 | Assumption | Where | What it affects |
 | --- | --- | --- |
-| **Every reroll outcome is equally likely** | `tierOptions`, `traitOptions` in `lib/reroll.ts` | The value of every quality and trait reroll. This is now known to be **wrong in shape, not merely unverified**: the glossary says higher qualities are *"more rare when crafting"*, so tiers are explicitly non-uniform. No weights are published. Two further gaps found at the same time — a Quality reroll is nowhere guaranteed to return a different tier (Stat and Trait rerolls are), and there appear to be five traits with no "none" state, so a trait reroll has four alternatives rather than the five this models. |
+| **Every trait outcome is equally likely** | `traitOptions` in `lib/reroll.ts` | The value of every trait reroll. Trait weights are unpublished. Every emblem always having one of five traits is user-confirmed, so a trait reroll has four alternatives rather than the five the current `none` state models. Quality is no longer part of this assumption: it uses the measured 5:4:3:2:1 weights. |
+| **Prefix and Suffix add inside one separate Coaching Title layer** | `FantasyCalculator.tsx` | Playoff data proves the layer is applied after the emblem multiplier and per player/game. No captured game has both parts active simultaneously, so `1 + prefix + suffix` rather than multiplying the two title factors remains an explicit user-approved assumption. |
+| **Deaths floor at zero rather than becoming negative after ten deaths** | `statToPoints` in `lib/scoring.ts` | This was the agreed working assumption, but external evidence now points the other way: the client only states `1950 - 195 per death`, while battlepass.ru's replay-based verifier explicitly says the game allows a negative result. Keep the current behaviour only provisionally until an actual 11+ death client result settles it. |
 | Hero colour/theme groups | `HERO_GROUPS`, empty | Prefix titles — reported as unknown rather than guessed |
-| **Madstones are 2.7 × `item_uses.madstone_bundle`** | `MADSTONES_PER_BUNDLE` in `scripts/extract.mjs` | The Madstones emblem. OpenDota has no madstone field; it counts bundles, and a bundle is not a stone. Three independent sources put the ratio between 2.5 and 3 — see below. At TI 2026 the emblem is worth 663 points a game to a core, level with Kills and still well behind Last hits at 1,512. |
-| **The same option may not be offered twice in a row** | Nowhere — `deal()` in `lib/offers.ts` draws freely | The value of a reroll. This was in the verified table, credited to observation, but the observation was not close enough to rely on and the code never enforced it. As it stands **about 22% of deals repeat at least one option** (3 drawn from 38, twice running). If the rule is real, reshuffling is worth slightly more than the simulator says. Note the rule is also ambiguous as written — it could block only the option you used, all three you were shown, or only the ones you declined, and those are three different implementations. Settle what it means before enforcing it. |
+| **Older matches approximate Madstones as 3.17 × `item_uses.madstone_bundle`** | `MADSTONES_PER_BUNDLE` in `scripts/extract.mjs` | Replay-covered matches use the exact `m_iNeutralTokensFound` counter. The fallback factor is calibrated from exact/bundle totals: 3.177× at TI and EWC 2026 and 3.164× at 1win Essence II. |
+| **None of the three shown options may be offered again in the immediately following deal** | User instruction 2026-09-03; `deal()` in `lib/offers.ts` draws freely | The value of a reroll. Public sources confirm only three unique options within one deal. Valve stores operations in buckets with a requested count, but the live bucket contents are not public and no consecutive-deal dataset was found. |
 | **A stat is trusted as far as it repeats** | `lib/reliability.ts`, weights from `data/generated/reliability.json` | Every ranking. Each stat's estimate is pulled toward the field average by however unreliable the stat was measured to be — the standard regression-to-the-mean correction, with the weight measured rather than chosen. What is assumed is that split-half reliability WITHIN an event is a fair stand-in for how well a stat carries ACROSS months and roster changes. It is not: measured inside one event it is an upper bound, so the correction is smaller than it should be. Backtested rather than argued — see below. |
 | **A role heuristic is a role** | `scripts/fetch-league.mjs` | Every ranking. Lane detection is OpenDota's reading of where a hero stood, not Valve's fantasy assignment. It has never disagreed where it can be checked and is never close, but it is inference. STRATZ exposes a real per-match `Position` (POSITION_1…POSITION_5) behind a free API token, which would remove the inference entirely. |
 
-That is the whole list, and it is six. Runes, Towers and Teamfight were on it
+That is the whole list, and it is seven. Runes, Towers and Teamfight were on it
 briefly: they were never new guesses, they were old guesses that had never been
 written down, and you settled all three. Two came back the other way. Madstones,
 because the bundle count is measured but the stones-per-bundle factor that turns
@@ -88,27 +93,24 @@ equals OpenDota's rune map on 10 of 10 players.
 That is the rule you gave, so the field needs no adjustment. Had it excluded
 bottled runes we would have been understating the emblem by about a fifth.
 
-## Not in any public API
+## Not in ordinary APIs, but recoverable from replays
 
-Four things TI fantasy scores that **no public API reports directly**. Checked in
-both OpenDota and STRATZ field by field, not assumed. Two of the four are
-genuinely absent and are reported as missing; two are approximated from a
-related field, and those approximations are on the assumed list above:
+Four things TI fantasy scores that OpenDota and STRATZ do not report correctly.
+They are nevertheless present as end-of-game network properties in Valve
+replays and an open Clarity extractor now exposes them directly:
 
-| Missing | What exists instead | How far off |
+| Stat | Exact replay field | Ordinary-API error at TI 2026 |
 | --- | --- | --- |
-| **Watchers Taken** (147 pts) | `ability_uses.ability_lamp_use` — 9.35 a game for a support | Merged with lotuses; a naive read runs ~1.5× high |
-| **Lotuses Gained** (176 pts) | the same counter | Merged with watchers |
-| **Madstones Collected** (13 pts) | `item_uses.madstone_bundle` | Bundles, not stones — about 2.7× low, corrected in the extractor |
-| **Tormentor participation** (879 pts) | `killed.npc_dota_miniboss` | The game credits everyone involved. Every field that names one player carries exactly 1.00; the one field that names several is the wrong several. The reference is no help either — see below |
+| **Watchers Taken** (147 pts) | `m_iWatchersTaken` | OpenDota lamp uses are 1.48× the exact TI count |
+| **Lotuses Gained** (176 pts) | `m_iLotusesTaken` | OpenDota Famango uses are only 41% of the exact TI count |
+| **Madstones Collected** (13 pts) | `m_iNeutralTokensFound` | OpenDota bundles are 3.177× below the exact TI total |
+| **Tormentor participation** (879 pts) | `m_iTormentorKills` | OpenDota last-hit credit is 3.169× below the exact TI participation total |
 
-Neither a lotus nor a watcher is named anywhere. Both are taken through the same
-generic interaction, and that interaction is the only trace either leaves.
+Neither a lotus nor a watcher is named in the ordinary OpenDota/STRATZ payloads;
+the exact counters come from the replay's replicated team-player array instead.
 STRATZ's schema was read directly rather than assumed — all 513 types were
-introspected, and `lotus`, `watcher` and `madstone` return zero hits apiece;
-`MatchPlayerType`, `MatchPlayerStatsType` and every `MatchPlaybackData*Event`
-type carry no such field; its playback events cover only buildings, couriers,
-Roshan, runes, towers and wards. Two other Tormentor fields exist and both were tested against all 2,540 cached
+introspected, and `lotus`, `watcher` and `madstone` return zero hits apiece.
+Two other Tormentor fields exist in OpenDota and both were tested against all 2,540 cached
 matches rather than a sample. `damage.npc_dota_miniboss` is a kill counter under
 a different name: across 3,826 credited player-games there are **zero** where a
 player dealt damage without also being credited the kill, so it carries no extra
@@ -124,7 +126,7 @@ that do have them are doing.
 For a support, watchers plus lotuses are worth more than Observer Wards. That is
 the largest known gap in this model.
 
-### Where 2.7 madstones per bundle comes from
+### Why the old 2.7 Madstone factor was replaced
 
 Three independent lines, and they converge:
 
@@ -147,8 +149,9 @@ Three independent lines, and they converge:
    a pair where this project averages. Dividing it out, their implied madstone
    correction is 2.69 for Core and 3.05 for Mid.
 
-2.7 is the measured middle. It multiplies a real observation rather than
-replacing it, so it still scales with how much a player farmed.
+The direct replay comparison supersedes those indirect estimates. Exact totals
+over 3,630 player-games give a stable 3.16–3.18 stones per recorded bundle, so
+the uncovered-match fallback is now 3.17. Covered matches use no factor.
 
 ## What shrinking unreliable stats did
 

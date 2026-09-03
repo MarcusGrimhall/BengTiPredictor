@@ -228,6 +228,25 @@ npm run fetch -- 19719 --refresh     # ignore the local cache
 npm run fetch -- 19269 --training    # model input only
 ```
 
+### Import exact replay fantasy counters
+
+Watchers, Lotuses, Madstones, Tormentor participation and exact Teamfight are
+game-state counters that ordinary OpenDota responses do not expose reliably.
+Import the open Clarity-parser output, then regenerate the affected leagues:
+
+```bash
+git clone https://github.com/TinyKiecoo/Calculator-for-DOTA2-TI-Fantasy.git /tmp/ti-fantasy-replays
+npm run import-replays -- /tmp/ti-fantasy-replays
+npm run fetch -- 20009 --training
+npm run fetch -- 19785 --training
+npm run fetch -- 19719
+npm run train -- 19719
+```
+
+The import writes only to `data/cache/replay-fantasy/`. The extractor overlays
+the exact fields by match and account id, and retains the documented OpenDota
+fallback for older matches that have no replay overlay.
+
 Raw responses are cached in `data/cache/` (gitignored), so re-running is free and
 instant. Set `OPENDOTA_API_KEY` to raise the rate limit; the client speeds up on
 its own.

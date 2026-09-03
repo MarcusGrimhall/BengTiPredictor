@@ -76,19 +76,19 @@ data/
 
 ## Limitations
 
-- **Reroll odds are assumed uniform.** No source publishes the chance of landing
-  on each quality or trait. It is the one assumption left in the reroll model.
+- **Quality odds are measured, trait odds are assumed uniform.** Quality uses
+  tier weights 5:4:3:2:1, fitted from 195 client rolls (163 informative), then
+  renormalised after removing the tier already held. Valve publishes only that
+  higher qualities are rarer, not the exact weights. Fresh emblem qualities are
+  separately assumed uniform 1:1:1:1:1. Trait odds remain unknown and are
+  modelled uniformly over the five real traits (or the other four on a reroll).
 - **Prefix titles cannot be valued.** They fire on the hero's colour group, and
-  that classification is in no public API.
-- **Two stats are unavailable** — lotuses (176 pts) and watchers (147 pts).
-  OpenDota counts the interaction that grabs either one, but not which of the
-  two it was, so they are marked missing rather than split on a guess. For a
-  support that is a bigger blue emblem than wards, which is the largest known
-  gap in the model.
-- **Madstones are inferred, not counted.** OpenDota counts bundles, not stones,
-  and a bundle only drops on a contested camp. The extractor corrects for that
-  with a measured factor of 2.7, so the emblem is no longer understated — but
-  the factor itself is an estimate, not a published number. See ASSUMPTIONS.md.
+  that classification is not yet imported into this project.
+- **Five stats prefer replay counters.** Exact overlays are currently imported
+  for TI 2026, EWC 2026 and 1win Essence II: Teamfight, Madstones, Watchers,
+  Lotuses and Tormentor participation. Older events use documented OpenDota
+  fallbacks; Watchers and Lotuses use ratios calibrated on all 3,630 exact
+  player-games rather than being silently zero.
 - **Roles are read from lane play, not from Valve.** The pro registry is a
   snapshot of today's roster and mislabels old events, so roles come from where
   each hero actually stood. It matches the registry wherever the registry is

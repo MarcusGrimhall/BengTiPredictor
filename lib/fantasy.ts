@@ -42,6 +42,8 @@ export type PlayerEntry = {
   gameHeroes?: number[];
   /** Bitmask of the Suffix conditions that fired in each game, same order. */
   gameTitles?: number[];
+  /** Whether replay-only title triggers were observable for each game. */
+  gameReplayTitles?: boolean[];
   /**
    * On the team's roster as the event itself reports it.
    *
@@ -600,6 +602,7 @@ function pairUp(a: PlayerEntry, b: PlayerEntry, teamName: string, role: Role): P
   const gameMatches: number[] = [];
   const gameHeroes: number[] = [];
   const gameTitles: number[] = [];
+  const gameReplayTitles: boolean[] = [];
 
   keys.forEach((matchId, i) => {
     const j = indexOf.get(matchId);
@@ -631,6 +634,7 @@ function pairUp(a: PlayerEntry, b: PlayerEntry, teamName: string, role: Role): P
     if (b.gameHeroes?.[j] != null) gameHeroes.push(b.gameHeroes[j]);
     // Suffix conditions are game-level and identical for team-mates.
     if (a.gameTitles?.[i] != null) gameTitles.push(a.gameTitles[i]);
+    gameReplayTitles.push(Boolean(a.gameReplayTitles?.[i] && b.gameReplayTitles?.[j]));
   });
 
   // Same ordering as the game lines above, so perGame and gameLines agree.
@@ -653,6 +657,7 @@ function pairUp(a: PlayerEntry, b: PlayerEntry, teamName: string, role: Role): P
     gameMatches,
     gameHeroes: gameHeroes.length ? gameHeroes : undefined,
     gameTitles: gameTitles.length ? gameTitles : undefined,
+    gameReplayTitles: gameReplayTitles.length ? gameReplayTitles : undefined,
     members: [a.name, b.name]
   };
 }
@@ -821,4 +826,3 @@ function subsetsOfAtLeast(n: number, min: number): number[][] {
   }
   return out;
 }
-

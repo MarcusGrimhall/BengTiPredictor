@@ -90,6 +90,8 @@ export type LeagueData = {
     sampleHeroes?: number[];
     /** Bitmask of Suffix conditions that fired, per sample row. */
     sampleTitles?: number[];
+    /** Whether replay-only Suffix conditions were observable for each row. */
+    sampleReplayTitles?: boolean[];
     /** Games and win rate within each stage. */
     stages?: Record<Stage, { games: number; winRate: number }>;
   }>;
@@ -176,6 +178,9 @@ export function toPlayerEntries(league: LeagueData, stage?: Stage): PlayerEntry[
       const gameSeries = p.sampleSeries ? keep.map((i) => p.sampleSeries![i]) : undefined;
       const gameHeroes = p.sampleHeroes ? keep.map((i) => p.sampleHeroes![i]) : undefined;
       const gameTitles = p.sampleTitles ? keep.map((i) => p.sampleTitles![i]) : undefined;
+      const gameReplayTitles = p.sampleReplayTitles
+        ? keep.map((i) => p.sampleReplayTitles![i])
+        : undefined;
 
       // Averages must come from the kept games, not the whole event.
       const perGame = wanted === -1 || !tags
@@ -201,7 +206,8 @@ export function toPlayerEntries(league: LeagueData, stage?: Stage): PlayerEntry[
         gameSeries,
         gameMatches,
         gameHeroes,
-        gameTitles
+        gameTitles,
+        gameReplayTitles
       };
     })
     .filter((p) => p.games > 0);
@@ -280,6 +286,7 @@ export type TrainingData = {
     sampleSeries?: number[];
     sampleHeroes?: number[];
     sampleTitles?: number[];
+    sampleReplayTitles?: boolean[];
     sourceLeagues: number[];
   }>;
   coverage: { atTarget: number; withHistory: number; missing: string[] };
@@ -325,7 +332,8 @@ export function trainingPlayerEntries(training: TrainingData): PlayerEntry[] {
       gameSeries: p.sampleSeries,
       gameMatches: p.sampleMatches,
       gameHeroes: p.sampleHeroes,
-      gameTitles: p.sampleTitles
+      gameTitles: p.sampleTitles,
+      gameReplayTitles: p.sampleReplayTitles
     }))
     .filter((p) => p.gameLines.length > 0);
 }

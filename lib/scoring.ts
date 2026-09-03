@@ -7,7 +7,7 @@
 export type StatKey =
   | "kills" | "deaths" | "creeps" | "gpm" | "towers" | "roshan" | "tormentor"
   | "courier" | "firstBlood" | "teamfight" | "stuns" | "wards" | "stacks"
-  | "runes" | "smokes" | "madstones";
+  | "runes" | "smokes" | "madstones" | "lotuses" | "watchers";
 
 export type EmblemColor = "red" | "blue" | "green";
 export type Role = "core" | "mid" | "support";
@@ -28,13 +28,16 @@ export const POINT_VALUES: Record<StatKey, { per: number; base?: number }> = {
   stacks: { per: 234 },
   runes: { per: 141 },
   smokes: { per: 293 },
-  madstones: { per: 13 }
+  madstones: { per: 13 },
+  lotuses: { per: 176 },
+  watchers: { per: 147 }
 };
 
 export const STAT_COLORS: Record<StatKey, EmblemColor> = {
   gpm: "red", deaths: "red", creeps: "red", kills: "red", towers: "red",
   madstones: "red",
   wards: "blue", stacks: "blue", runes: "blue", smokes: "blue",
+  lotuses: "blue", watchers: "blue",
   teamfight: "green", stuns: "green", tormentor: "green", roshan: "green",
   firstBlood: "green", courier: "green"
 };
@@ -45,7 +48,8 @@ export const STAT_LABELS: Record<StatKey, string> = {
   courier: "Courier kills", firstBlood: "First Blood",
   teamfight: "Teamfight participation", stuns: "Stun duration",
   wards: "Observer wards", stacks: "Camps stacked", runes: "Runes",
-  smokes: "Smokes used", madstones: "Madstones collected"
+  smokes: "Smokes used", madstones: "Madstones collected",
+  lotuses: "Lotuses grabbed", watchers: "Watchers taken"
 };
 
 /**
@@ -89,7 +93,11 @@ export const STAT_DEFINITIONS: Record<StatKey, string> = {
   smokes:
     "Smokes used, whoever paid for them. A smoke bought and never used is worth nothing.",
   madstones:
-    "Estimated, not counted: OpenDota records dropped bundles, and a bundle is not a stone — stones from an uncontested camp fly straight to the player and leave no event. Scaled by 2.7, the measured middle of three independent estimates."
+    "The game's end-of-match Madstone fantasy counter, read from the replay when available. Older events fall back to a bundle-based estimate.",
+  lotuses:
+    "Lotuses taken by the player, from the game's m_iLotusesTaken replay counter.",
+  watchers:
+    "Watchers captured by the player, from the game's m_iWatchersTaken replay counter."
 };
 
 export const STAT_KEYS = Object.keys(POINT_VALUES) as StatKey[];
@@ -97,7 +105,7 @@ export const STAT_KEYS = Object.keys(POINT_VALUES) as StatKey[];
 // Stats TI fantasy scores but neither OpenDota nor STRATZ exposes at all.
 // We mark them unavailable rather than guessing. Madstones used to be on this
 // list; it is now derived from madstone_bundle events - see ASSUMPTIONS.md.
-export const UNAVAILABLE_STATS = ["Lotuses", "Watchers"];
+export const UNAVAILABLE_STATS: string[] = [];
 
 // The colour of each banner slot, following the TI 2026 layout: five
 // emblems per banner, colour decides which stats may be placed there.

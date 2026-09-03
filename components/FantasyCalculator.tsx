@@ -6,7 +6,7 @@ import {
   Tier, Trait, availableStats, buildLineups, matchScores, optimizeEmblems, rankPlayers
 } from "../lib/fantasy";
 import {
-  BANNER_SLOTS, Role, STAT_COLORS, STAT_DEFINITIONS, STAT_LABELS, StatKey, UNAVAILABLE_STATS,
+  BANNER_SLOTS, Role, STAT_COLORS, STAT_DEFINITIONS, STAT_LABELS, StatKey,
   statsForColor
 } from "../lib/scoring";
 import { useMainEventMaps, type MainEventMaps } from "./useMainEventMaps";
@@ -176,7 +176,9 @@ export default function FantasyCalculator({
             .map((entry) => {
               const pf = prefix ? prefixValue(entry.player, prefix).multiplier : 1;
               const sf = suffix ? effectiveSuffixValue(entry.player, suffix, titleOutlook).multiplier : 1;
-              const factor = pf * sf;
+              // Prefix and suffix bonuses add within one title layer. Their
+              // expected multipliers already include their trigger rates.
+              const factor = pf + sf - 1;
               return {
                 ...entry,
                 score: entry.score * factor, total: entry.total * factor,
@@ -481,8 +483,8 @@ export default function FantasyCalculator({
         games, so a third game only counts if it displaces one of the first two. Core and
         Support are ranked as same-team pairs and valued as the
         <strong> average</strong> of the two players, so all three roles are on one scale.
-        OpenDota does not expose {UNAVAILABLE_STATS.join(", ")} reliably, so those emblems
-        are missing.
+        Replay-only counters are used for Teamfight, Watchers, Lotuses, Madstones and
+        Tormentor participation where exact replay data is available.
       </p>
     </div>
   );

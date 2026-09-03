@@ -1,5 +1,5 @@
 import { loadDefaultLeague } from "../../lib/data";
-import { POINT_VALUES, STAT_DEFINITIONS, STAT_LABELS, STAT_KEYS, UNAVAILABLE_STATS } from "../../lib/scoring";
+import { POINT_VALUES, STAT_DEFINITIONS, STAT_LABELS, STAT_KEYS } from "../../lib/scoring";
 import { TIER_BONUSES, TRAIT_DESCRIPTIONS, TRAITS } from "../../lib/fantasy";
 
 export const metadata = { title: "Method · BengTiPredictor" };
@@ -13,8 +13,8 @@ export default async function MethodPage() {
         <span className="eyebrow">Open maths</span>
         <h1>How the numbers are calculated</h1>
         <p className="muted" style={{ maxWidth: 640 }}>
-          Everything comes from OpenDota. Nothing is typed in by hand, and every
-          step can be re-run yourself.
+          Match structure comes from OpenDota, with exact game-state counters
+          overlaid from Dota replays where available. Every step can be re-run.
         </p>
       </div>
 
@@ -182,20 +182,16 @@ export default async function MethodPage() {
         </section>
 
         <section className="card stack">
-          <h2>What cannot be calculated</h2>
+          <h2>Replay-only counters</h2>
           <p className="muted">
-            OpenDota does not expose <strong>{UNAVAILABLE_STATS.join(" or ")}</strong> at all,
-            and neither does STRATZ — all 147 player fields, the whole match object and every
-            objective type were searched on one side, and all 513 types of the STRATZ schema
-            on the other. Both return zero hits. Those two emblems are not in the calculator;
-            better to show fewer stats than guessed ones.
+            Teamfight, Watchers, Lotuses, Madstones and Tormentor participation are read from
+            Dota&apos;s end-of-game replay counters where a replay overlay is available. This
+            recovers stats that ordinary OpenDota and STRATZ responses omit or misattribute.
           </p>
           <p className="faint">
-            <strong>Madstones</strong> are in, but derived rather than labelled. OpenDota has no
-            madstone field; it does count <code>madstone_bundle</code> events, which track
-            neutral camps at r=0.87 over 1,793 player-games. That is an inference, not a
-            documented field. It changes nothing in practice — Madstones pay a core 246 points
-            a game against 1,512 for last hits, so no optimal banner picks them.
+            Older tournaments without an imported replay retain documented fallbacks:
+            OpenDota&apos;s Teamfight value, last-hit Tormentor credit and the Madstone bundle
+            estimate. Watchers and Lotuses remain zero only in those older, uncovered events.
           </p>
           <p className="faint">
             Role assignment is a heuristic. A position 4 who farms heavily can land as a core

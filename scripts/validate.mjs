@@ -29,7 +29,7 @@ const { projectGroupStage, groupSeriesPerTeam } = lib("groupStage");
 const { projectMainEvent, seedByRating } = lib("tiBracket");
 const { buildStructure, simulate } = lib("bracket");
 const { DEFAULT_ELO, mapWinProbability } = lib("elo");
-const { stoppingCurve, applyAction, actionCatalogue } = lib("reroll");
+const { stoppingCurve, applyAction, actionCatalogue, tierOutcomes, qualityOutcomes, randomBanner } = lib("reroll");
 const { seededRandom } = lib("rng");
 const { shrinkEntries } = lib("reliability");
 
@@ -177,6 +177,68 @@ function checkStoppingCurve() {
   const flat = stoppingCurve([50, 50, 50], 5);
   pass("a distribution with no spread never improves", flat.every((v) => Math.abs(v - 50) < 1e-9));
   pass("more rolls is never worth less", curve.every((v, i) => i === 0 || v >= curve[i - 1] - 1e-9));
+
+  const expectedByTier = {
+    I:   { II: 0.4, III: 0.3, IV: 0.2, V: 0.1 },
+    II:  { I: 5 / 11, III: 3 / 11, IV: 2 / 11, V: 1 / 11 },
+    III: { I: 5 / 12, II: 4 / 12, IV: 2 / 12, V: 1 / 12 },
+    IV:  { I: 5 / 13, II: 4 / 13, III: 3 / 13, V: 1 / 13 },
+    V:   { I: 5 / 14, II: 4 / 14, III: 3 / 14, IV: 2 / 14 }
+  };
+  const qualityOddsCorrect = Object.entries(expectedByTier).every(([current, expected]) => {
+    const actual = Object.fromEntries(tierOutcomes(current).map(({ tier, probability }) => [tier, probability]));
+    return Object.entries(expected).every(([tier, probability]) =>
+      Math.abs(actual[tier] - probability) < 1e-12
+    ) && actual[current] === undefined;
+  });
+  pass("quality odds use 5:4:3:2:1, conditioned on the current tier", qualityOddsCorrect);
+
+  const directionalOddsCorrect = ["I", "II", "III", "IV", "V"].every((current, index, tiers) => {
+    const up = qualityOutcomes(current, "increase");
+    const down = qualityOutcomes(current, "decrease");
+    const sumsToOneOrEmpty = (xs) => xs.length === 0 ||
+      Math.abs(xs.reduce((sum, x) => sum + x.probability, 0) - 1) < 1e-12;
+    return up.every(({ tier }) => tiers.indexOf(tier) > index) &&
+      down.every(({ tier }) => tiers.indexOf(tier) < index) &&
+      sumsToOneOrEmpty(up) && sumsToOneOrEmpty(down);
+  });
+  pass("increase only goes up and decrease only goes down", directionalOddsCorrect);
+
+  const increaseFromIII = Object.fromEntries(
+    qualityOutcomes("III", "increase").map(({ tier, probability }) => [tier, probability])
+  );
+  const decreaseFromIV = Object.fromEntries(
+    qualityOutcomes("IV", "decrease").map(({ tier, probability }) => [tier, probability])
+  );
+  pass("directional quality weights are renormalised over their legal tiers",
+    Math.abs(increaseFromIII.IV - 2 / 3) < 1e-12 &&
+    Math.abs(increaseFromIII.V - 1 / 3) < 1e-12 &&
+    Math.abs(decreaseFromIV.I - 5 / 12) < 1e-12 &&
+    Math.abs(decreaseFromIV.II - 4 / 12) < 1e-12 &&
+    Math.abs(decreaseFromIV.III - 3 / 12) < 1e-12);
+
+  const catalogue = actionCatalogue("mid", 5);
+  pass("the complete offer catalogue has the observed 20 operations",
+    catalogue.length === 20 &&
+    catalogue.filter((a) => a.color === "red" && a.target === "tier").length === 4 &&
+    catalogue.filter((a) => a.color === "blue" && a.target === "trait").length === 4 &&
+    catalogue.filter((a) => a.color === "green" && a.target === "stat").length === 4);
+
+  const freshRolls = [0.01, 0.01, 0.01, 0.21, 0.21, 0.41, 0.41, 0.61, 0.61, 0.81, 0.81];
+  let freshIndex = 0;
+  const fresh = randomBanner("mid", 5, () => freshRolls[freshIndex++ % freshRolls.length]);
+  pass("fresh emblems use five uniform qualities and never the internal none trait",
+    fresh.every((e) => e.trait !== "none") && new Set(fresh.map((e) => e.tier)).size > 1);
+
+  const wildcard = catalogue.find((a) => a.target === "qualityUpTwoDownOne");
+  const testBanner = [
+    { stat: "kills", tier: "II", trait: "fractal" },
+    { stat: "runes", tier: "II", trait: "unique" },
+    { stat: "teamfight", tier: "V", trait: "friendly" }
+  ];
+  const moved = applyAction(testBanner, "mid", wildcard, () => 0);
+  pass("two tier II rise and the only eligible tier V is reduced",
+    moved[0].tier !== "II" && moved[1].tier !== "II" && moved[2].tier !== "V");
 }
 
 // ---------------------------------------------------------------------------
@@ -640,19 +702,15 @@ function checkAgainstReference(league) {
       console.log(`    ${o.role}/${o.stat} ${o.ratio.toFixed(2)}x (ours ${n(o.ours)}, theirs ${n(o.theirs)})`);
     }
   }
-  console.log("\n  Tormentor is the known disagreement, and it cannot be closed.");
-  console.log("  All four public fields were tested over 2,540 matches: the chat");
-  console.log("  message names a support 5x too often, `damage` is the kill count");
-  console.log("  under another name (0 player-games damage without credit), and");
-  console.log("  `damage_taken` is participation of the wrong kind - supports get");
-  console.log("  hit and walk away, so it scores them 9.18x. The kill credit we");
-  console.log("  use is the least wrong of the four.");
+  console.log("\n  Tormentor is a known disagreement with this older reference table.");
+  console.log("  Replay-covered matches now use Dota's m_iTormentorKills counter,");
+  console.log("  which credits every participant rather than only the last hitter.");
   console.log("  The reference cannot settle it either: its own companion table");
   console.log("  disagrees with it on Tormentor by 2.0x, 3.5x and 17.1x, while");
   console.log("  every other stat moves by a flat factor. See ASSUMPTIONS.md.");
 
-  // Tormentor cannot be attributed to one player at all, so it does not count
-  // against the check. Everything else has to line up.
+  // The independent table used a different Tormentor approximation, so it does
+  // not count against the check. The replay counter is authoritative here.
   const unexplained = offenders.filter((o) => o.stat !== "tormentor");
   pass("emblem values agree with an independent source", unexplained.length <= 2,
     `${within}/${total} within 45%, ${unexplained.length} unexplained disagreement(s)`);

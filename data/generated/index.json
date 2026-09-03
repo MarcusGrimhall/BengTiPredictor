@@ -2,7 +2,7 @@
   {
     "leagueId": 20009,
     "leagueName": "1win Essence II",
-    "fetchedAt": "2026-09-01T07:21:29.560Z",
+    "fetchedAt": "2026-09-03T09:25:32.456Z",
     "matchesUsed": 60,
     "teams": 10,
     "players": 50,
@@ -65,7 +65,7 @@
   {
     "leagueId": 19785,
     "leagueName": "Esports World Cup 2026",
-    "fetchedAt": "2026-09-01T07:34:08.244Z",
+    "fetchedAt": "2026-09-03T09:26:10.633Z",
     "matchesUsed": 157,
     "teams": 24,
     "players": 120,
@@ -74,7 +74,7 @@
   {
     "leagueId": 19719,
     "leagueName": "The International 2026",
-    "fetchedAt": "2026-09-01T07:39:20.749Z",
+    "fetchedAt": "2026-09-03T09:26:42.189Z",
     "matchesUsed": 147,
     "teams": 16,
     "players": 80,

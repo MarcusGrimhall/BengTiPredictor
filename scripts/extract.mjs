@@ -8,7 +8,7 @@
 export const RAW_STATS = [
   "kills", "deaths", "creeps", "gpm", "towers", "roshan", "tormentor",
   "courier", "firstBlood", "teamfight", "stuns", "wards", "stacks",
-  "runes", "smokes", "madstones"
+  "runes", "smokes", "madstones", "lotuses", "watchers"
 ];
 
 // Stats TI fantasy scores that we do not extract. Neither is named in the API:
@@ -20,7 +20,7 @@ export const RAW_STATS = [
 // which at 176 and 147 points apiece is a bigger blue emblem than wards. What
 // the counter cannot do is say which of the two a given press was, so it is
 // left out rather than split on a guess. See ASSUMPTIONS.md.
-export const UNAVAILABLE_STATS = ["lotuses", "watchers"];
+export const UNAVAILABLE_STATS = [];
 
 /**
  * Madstones per `madstone_bundle` event.
@@ -43,12 +43,12 @@ export const UNAVAILABLE_STATS = ["lotuses", "watchers"];
  *      the same correction applied internally: every other stat moves by the
  *      series factor of ~2.0 between their two tables, madstones by 5.37.
  *
- * 2.7 is the measured middle. It is a multiplier on a real observation rather
- * than a guess at an absolute, so it scales with how much a player actually
- * farmed. If the true figure is 3.0 the emblem is understated by 11%, which at
- * 664 points a game for a core is 73 points - it does not change a banner.
+ * Exact replay totals across TI 2026, EWC 2026 and 1win Essence II put the
+ * fallback ratio at 3.16-3.18. Replay-covered matches do not use this estimate.
  */
-export const MADSTONES_PER_BUNDLE = 2.7;
+export const MADSTONES_PER_BUNDLE = 3.17;
+export const WATCHERS_PER_LAMP_USE = 0.66;
+export const LOTUSES_PER_FAMANGO_USE = 2.2;
 
 
 // OpenDota gives no reliable position. Heuristic per team:
@@ -82,13 +82,16 @@ export const SUFFIX_DECISIVE = 2;  // game ends before 25:00
 export const SUFFIX_PATIENT = 4;   // no first blood before 10:00
 export const SUFFIX_UNDERDOG = 8;  // this player's team lost
 export const SUFFIX_CLUTCH = 16;   // the last possible game of the series
+export const SUFFIX_TORMENTED = 32;
+export const SUFFIX_FLAYED_TWINS = 64;
+export const SUFFIX_CRUEL = 128;
 
 /**
  * `gameNumber` and `seriesGames` describe where this map sits in its series;
  * pass them when the whole event is known. Without them the Clutch bit is left
  * off rather than guessed.
  */
-export function suffixFlags(match, won, { gameNumber, lastPossible } = {}) {
+export function suffixFlags(match, won, { gameNumber, lastPossible, replayTitles } = {}) {
   let flags = 0;
   const duration = match.duration ?? 0;
   if (duration % 10 === 8) flags |= SUFFIX_LUCKY;
@@ -99,12 +102,15 @@ export function suffixFlags(match, won, { gameNumber, lastPossible } = {}) {
 
   if (!won) flags |= SUFFIX_UNDERDOG;
   if (gameNumber != null && lastPossible != null && gameNumber === lastPossible) flags |= SUFFIX_CLUTCH;
+  if (replayTitles?.anyPlayerDiedToTormentor) flags |= SUFFIX_TORMENTED;
+  if (replayTitles?.firstBloodBeforeHorn) flags |= SUFFIX_FLAYED_TWINS;
+  if (replayTitles?.anyPlayerDiedInOwnFountain) flags |= SUFFIX_CRUEL;
 
   return flags;
 }
 
 // Returns null if the match has no parsed data (half the stats would be empty).
-export function extractMatch(match) {
+export function extractMatch(match, replayFantasy = null) {
   const players = match.players ?? [];
   if (players.length < 10) return null;
 
@@ -116,6 +122,9 @@ export function extractMatch(match) {
   const radiant = players.filter((p) => p.player_slot < 128);
   const dire = players.filter((p) => p.player_slot >= 128);
   const roles = new Map([...assignRoles(radiant), ...assignRoles(dire)]);
+  const exactPlayers = new Map(
+    (replayFantasy?.match?.players ?? []).map((player) => [player.accountId, player.stats])
+  );
 
   const teamOf = (p) =>
     p.player_slot < 128
@@ -124,6 +133,7 @@ export function extractMatch(match) {
 
   return players.map((p) => {
     const team = teamOf(p);
+    const exact = exactPlayers.get(p.account_id);
     return {
       accountId: p.account_id ?? null,
       name: p.personaname ?? `slot ${p.player_slot}`,
@@ -161,10 +171,10 @@ export function extractMatch(match) {
         // to everyone involved in it, which no single-player field reproduces.
         // The chat message additionally drops ~4% of kills with no player_slot
         // at all. This is the closest public data gets.
-        tormentor: p.killed?.npc_dota_miniboss ?? 0,
+        tormentor: exact?.tormentors_killed ?? p.killed?.npc_dota_miniboss ?? 0,
         courier: p.courier_kills ?? 0,
         firstBlood: p.firstblood_claimed ?? 0,
-        teamfight: p.teamfight_participation ?? 0,
+        teamfight: exact?.teamfight_participation ?? p.teamfight_participation ?? 0,
         stuns: p.stuns ?? 0,
         wards: p.obs_placed ?? 0,
         stacks: p.camps_stacked ?? 0,
@@ -187,7 +197,9 @@ export function extractMatch(match) {
         // the contested subset, not the total. The bundle count itself is
         // sound: it correlates r=0.87 with neutral_kills over 1,793
         // player-games, and is present in ~90% of parsed matches.
-        madstones: MADSTONES_PER_BUNDLE * (p.item_uses?.madstone_bundle ?? 0)
+        madstones: exact?.madstones_collected ?? MADSTONES_PER_BUNDLE * (p.item_uses?.madstone_bundle ?? 0),
+        lotuses: exact?.lotuses_collected ?? LOTUSES_PER_FAMANGO_USE * (p.item_uses?.famango ?? 0),
+        watchers: exact?.watchers_captured ?? WATCHERS_PER_LAMP_USE * (p.ability_uses?.ability_lamp_use ?? 0)
       }
     };
   });

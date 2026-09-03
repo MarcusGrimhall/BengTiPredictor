@@ -15,52 +15,61 @@ places this disagreed with the other public calculator came back in our favour.
 These are what it left open. Each is a real gap, not a wording quibble.
 
 **Deaths: does the score floor at zero?** The single most consequential one. The
-glossary gives 1,950 − 195 a death and says nothing about clamping, so eleven
-deaths is arithmetically −195. This project floors at zero; the other calculator
-explicitly does not. Only 1.0–1.7% of TI player-games go past ten deaths so the
-aggregate effect is ~0.3%, but the floor is what makes the pair-scoring order
-matter at all, and it is currently an unsourced coin-flip in the model. **A
-screenshot of a fantasy card where a player had 11+ deaths settles it.**
+client wording gives the linear scale but does not mention a floor. A 2026
+replay-based calculator at battlepass.ru explicitly reports that the game lets
+the result become negative, so the current zero floor is now a disputed working
+assumption rather than positive evidence. One actual in-client 11+ death result
+would settle it cleanly. Eleven deaths is arithmetically −195. Only 1.0–1.7% of
+TI player-games go past ten deaths, so the aggregate effect is ~0.3%, but this
+is still the rule that makes pair-scoring order matter. **A screenshot of a
+fantasy card where a player had 11+ deaths settles it.**
 
-**Reroll odds are known to be non-uniform, and we model them as uniform.** This
-is worse than an unverified assumption — it is an assumption now known to be
-wrong in shape. The glossary says higher qualities are "more rare when crafting".
-No weights are published. Every quality-reroll valuation in the project inherits
-this.
+**Quality odds are measured rather than published.** Valve says only that higher
+qualities are "more rare when crafting". A public log of 195 client rolls (163
+informative) fits Tier I–V weights 5:4:3:2:1; its free fit is
+32.8/28.5/22.1/11.7/5.0%, and uniform odds are rejected at p<1e-8. The model now
+uses those weights, renormalised over the legal outcomes from the current tier.
+There are no ordinary rerolls from Tier IV or V in the sample, so this remains
+measured evidence rather than a published Valve rule.
 
-**A quality reroll may be able to return the tier it replaced.** Stat and Trait
-rerolls are explicitly guaranteed to return something different; Quality carries
-no such promise. `tierOptions` excludes the current tier, which may be wrong.
+**Trait rerolls have four alternatives, not five.** You confirmed on 2026-09-03
+that every emblem always has one of the five traits and starts with a random
+trait. `ROLLABLE_TRAITS` now excludes the internal analysis-only `"none"` state.
+The five starting traits and four reroll alternatives are assumed uniform; no
+public measurements of trait odds were found.
 
-**Trait rerolls may have four options, not five.** `ALL_TRAITS` in `lib/reroll.ts`
-includes `"none"`, so the model lets a reroll land on no trait at all. The
-glossary names five traits and no null state. If every emblem always carries a
-trait, rerolling one is a choice among the other four and this systematically
-undervalues trait rerolls.
+**Tier boundary handling.** Tier V is ineligible for an increase and Tier I for
+a decrease. Wildcards choose only among directionally eligible targets before
+anything moves; II/II/V therefore raises both IIs and must lower V.
 
-**Tier boundary handling.** What an increase does to a tier V, or a decrease to a
-tier I, is not stated anywhere. The project assumes both are refused.
+**The complete reroll operation catalogue.** A complete captured list has 20:
+Red is granular on Quality, Blue on Trait and Green on Stat; the other two
+properties per colour are all-only, plus two colourless quality wildcards.
+Valve's schema independently confirms that operations are delivered in buckets.
 
-**The complete reroll operation catalogue.** Captured screens prove examples —
-"Reroll Quality for Red Emblems", "Reroll Trait for the Last Blue Emblem" — but
-nothing establishes the full stat/quality/trait × all/first/last/random product
-this project enumerates. Community guides publish an asymmetric list, which is
-not a source.
+**Immediate deal repeats are assumed not to occur.** You instructed the model
+on 2026-09-03 to proceed on that basis, but it is not directly captured and the
+scope still matters: block all three previously shown options, only the option
+used, or only declined options. `deal` currently has no memory and permits all
+three interpretations' forbidden repeats.
 
 **Wildcard semantics.** "Randomly increase one Quality", "increase two and reduce
 one" appear in community material only. Whether the outcome resolves before or
 after you apply it is unknown, and the project assumes before.
 
-**Prefix × Suffix stacking.** Both are percentages. Whether two active titles add
-or multiply is not stated.
+**Prefix + Suffix stacking.** Playoff result rows settle where the title layer
+lands: Royal +10% on Noticed's purple heroes reproduces four client stat values
+to the cent only when it multiplies the already quality/trait-adjusted emblem
+score, per player and game. We proceed with Prefix and Suffix additive inside
+that separate layer (`1 + prefix + suffix`); simultaneous activation has not
+been captured, so that final plus sign remains an explicit assumption.
 
-**Stat definitions the glossary leaves vague.** Wisdom runes: it says "bottled or
-taken" and never mentions Wisdom, so our exclusion is a measured property of
-`rune_pickups`, not a rule. Teamfight participation: only a 2,124 maximum is
-published, no formula — ours is reconstructed and reproduces the field in 95.8%
-of player-games, with the remaining 4.2% unexplained. Tormentor: "per Tormentor
-kill" with no crediting rule. Madstones: "per Madstone collected", with no
-statement about bundles, which is the whole basis of the ×2.7 correction.
+**Replay counters settle the vague stat definitions.** Teamfight is
+`m_flTeamFightParticipation`; Tormentor participation is `m_iTormentorKills`;
+Madstones score from `m_iNeutralTokensFound`; Watchers and Lotuses are separate
+`m_iWatchersTaken` and `m_iLotusesTaken` counters. Exact overlays are present for
+TI 2026, EWC 2026 and 1win Essence II. Older matches retain calibrated API
+fallbacks, so their values remain less certain.
 
 ## The one mechanic we know about and do not model
 
