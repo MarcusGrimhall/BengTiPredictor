@@ -250,7 +250,7 @@ export default function FantasySimulator({
         <div className="stat-tile">
           <small>Options recorded</small>
           <b>{chosenCount} / {OPTIONS_DEALT}</b>
-          <span className="faint">take none is always compared too</span>
+          <span className="faint">Skip is always compared too</span>
         </div>
 
       </div>
@@ -273,8 +273,8 @@ export default function FantasySimulator({
         <p className="faint">
           Record the <strong>three options the game is showing you</strong>, one per slot.
           They are the same three for every banner, so the answer is a pair: which option,
-          and which banner to spend it on. Using one replaces all three. Taking none costs
-          nothing and leaves the same three options on the table.
+          and which banner to spend it on. Using one replaces all three. Skip also costs
+          one reroll, keeps the banners unchanged and replaces all three options.
         </p>
         <div className="offer-slots">
           {[0, 1, 2].map((i) => {
@@ -421,10 +421,17 @@ function Results({
   // before: this was plan.decisions[0], ordered by evidence, while the table
   // was ordered by mean.
   const best = bestPerOption[0];
-  // Every option is already scored against refreshing, so "worth taking" is
-  // simply beating that - and refreshing wins by default when none of them do.
-  const worthTaking = Boolean(best && best.edge > 0);
-  const refreshBest = rerolls > 0 && !worthTaking && plan.refreshEdge > 0;
+  // Every option is already scored against skipping this deal (which spends a
+  // token and refreshes all three). Do not recommend a guaranteed loss on the
+  // strength of simulation noise that the table itself rounds to +0. That was
+  // the confusing all-tier-V case: the remaining budget usually repaired the
+  // damage, leaving a tiny positive mean while the action was strictly worse
+  // right away.
+  const hiddenByRounding = Boolean(
+    best && Math.round(best.edge) === 0 && best.immediateDelta < 0
+  );
+  const worthTaking = Boolean(best && best.edge > 0 && !hiddenByRounding);
+  const skipBest = rerolls > 0 && !worthTaking;
 
   /**
    * How many pairs the model cannot separate from the leader.
@@ -442,7 +449,7 @@ function Results({
 
   return (
     <div className="stack">
-      <h3>Take one, refresh, or take none</h3>
+      <h3>Take one or skip</h3>
 
       <div className="stat-tiles">
         <div className="stat-tile">
@@ -452,28 +459,31 @@ function Results({
         </div>
         <div className="stat-tile">
           <small>
-            If you take none{" "}
-            <Info title="If you take none">
-              What the roster is worth if you use none of these. It costs nothing and the
-              same three options remain available. This is simply what you already hold.
+            If you skip{" "}
+            <Info title="If you skip">
+              Skipping spends one token, keeps every banner unchanged and replaces all
+              three options. This is where the roster is expected to end up after you
+              continue using the remaining tokens.
             </Info>
           </small>
-          <b>{fmt(plan.skipValue)}</b>
-          <span className="faint">{plan.rounds} rerolls unspent</span>
+          <b>{fmt(plan.refreshValue)}</b>
+          <span className="faint">{Math.max(0, plan.rounds - 1)} rerolls after the skip</span>
         </div>
         <div className="stat-tile">
           <small>Verdict</small>
-          <b style={{ color: worthTaking || refreshBest ? "var(--accent)" : "var(--muted)" }}>
-            {refreshBest ? "Refresh" : !worthTaking ? "Take none" : tiedCount ? "Take any" : "Take one"}
+          <b style={{ color: worthTaking || skipBest ? "var(--accent)" : "var(--muted)" }}>
+            {skipBest ? "Skip" : !worthTaking ? "Stop here" : tiedCount ? "Take any" : "Take one"}
           </b>
           <span className="faint">
-            {refreshBest
-              ? `${signed(plan.refreshEdge)} over taking none`
+            {skipBest
+              ? hiddenByRounding
+                ? "the apparent +0 take is worse right away"
+                : "none of the three beats a new deal"
               : !worthTaking
-              ? "none of them beat what you hold"
+              ? "no rerolls left"
               : tiedCount
                 ? `${tiedCount + 1} pairs too close to separate`
-                : `${signed(best.edge)} over taking none`}
+                : `${signed(best.edge)} over skipping`}
           </span>
         </div>
       </div>
@@ -516,10 +526,10 @@ function Results({
             {bestPerOption.map((d, index) => (
               <tr key={`${d.role}:${d.action.id}`}>
                 <td>
-                  {index === 0 && d.edge > 0 && !tiedCount && (
+                  {index === 0 && worthTaking && !tiedCount && (
                     <span className="tag" style={{ marginRight: 6 }}>best</span>
                   )}
-                  {(d.tied || (index === 0 && tiedCount > 0)) && d.edge > 0 && (
+                  {worthTaking && (d.tied || (index === 0 && tiedCount > 0)) && d.edge > 0 && (
                     <span className="tag tag-tied" style={{ marginRight: 6 }}>tied</span>
                   )}
                   {d.action.label}
@@ -568,7 +578,7 @@ function Results({
               </tr>
             ))}
             <tr className="row-skip">
-              <td>Refresh all three</td>
+              <td>Skip — refresh all three</td>
               <td className="muted">no banner changes</td>
               <td className="num muted" style={{ textAlign: "right" }}>±0</td>
               <td className="num" style={{ textAlign: "right" }}>{fmt(plan.refreshValue)}</td>
@@ -578,23 +588,8 @@ function Results({
               <td style={{ textAlign: "right" }}>
                 <button onClick={onRefresh} disabled={rerolls <= 0}
                   title="Spend one token to replace all three options">
-                  Refresh
+                  Skip
                 </button>
-              </td>
-            </tr>
-            <tr className="row-skip">
-              <td>Take none — stop here</td>
-              <td className="muted">unspent tokens expire</td>
-              <td className="num muted" style={{ textAlign: "right" }}>±0</td>
-              <td className="num" style={{ textAlign: "right" }}>{fmt(plan.skipValue)}</td>
-              <td className="num" style={{
-                textAlign: "right", fontWeight: 650,
-                color: plan.skipValue - plan.baseline < 0 ? "var(--red)" : "var(--muted)"
-              }}>
-                {signed(plan.skipValue - plan.baseline)}
-              </td>
-              <td style={{ textAlign: "right" }}>
-                <span className="faint">costs nothing</span>
               </td>
             </tr>
           </tbody>
@@ -602,11 +597,14 @@ function Results({
       </div>
 
       <div className="verdict">
-        {refreshBest ? (
+        {skipBest ? (
           <>
-            <strong>Refresh all three.</strong> None of these three beats spending the
-            same token on a new deal, which is worth {signed(plan.refreshEdge)} over
-            stopping and changes no banner.
+            <strong>Skip.</strong>{hiddenByRounding && best ? (
+              <> The leading take option rounds to +0 against skipping but costs you{" "}
+                <strong>{signed(best.immediateDelta)}</strong> right away.</>
+            ) : (
+              <> None of these three beats spending the same token on a new deal.</>
+            )}{" "}Skipping preserves every banner and replaces all three options.
           </>
         ) : worthTaking ? (
           <>
@@ -623,8 +621,8 @@ function Results({
           </>
         ) : (
           <>
-            <strong>Take none.</strong> Nothing on the table, and no refresh, is worth a
-            token. They remain available and nothing is spent.
+            <strong>Stop here.</strong> You have no rerolls left to take an option or skip
+            to a new deal.
           </>
         )}
       </div>
@@ -635,8 +633,9 @@ function Results({
         futures — what the reshuffles turn up is genuinely random, so there is nothing to
         enumerate. They are averages, and an average repairs mistakes it should not always
         get to repair, so read <strong>Right away</strong> and <strong>bad case</strong>
-        {" "}beside them. Refresh spends one token, preserves every banner and replaces all
-        three options.
+        {" "}beside them. Skip spends one token, preserves every banner and replaces all
+        three options. The table therefore has the game&apos;s four choices: three offers
+        and Skip.
       </p>
     </div>
   );

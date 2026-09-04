@@ -20,7 +20,7 @@ wrong, the numbers that depend on it are wrong.
 | A series is the **sum** of its two best games | In-game Fantasy glossary — the same paragraph as the averaging rule: the top two scoring games within a series decide the role's match score |
 | A period pays only the **best single series** | In-game Fantasy glossary — same paragraph: where a role plays several series in a period, the best-scoring series is used |
 | The same three options serve every banner; you choose which to apply one to | In-game rules |
-| A deal is **always exactly three options**, plus the standing option to use none — never more, never fewer | You. Enforced by `OPTIONS_DEALT` in `lib/offers.ts`, which the simulator's UI now also obeys |
+| A deal is **always exactly three options**, plus the fourth in-game choice **Skip**, which spends one token to refresh all three — never more, never fewer | You. Enforced by `OPTIONS_DEALT` in `lib/offers.ts`; the simulator shows the three offers and Skip, while merely stopping is not presented as a fifth choice |
 | Using an option **replaces all three** | In-game rules |
 | Titles are free to change and cost no rerolls | In-game Coaching Titles glossary |
 | Group stage 3 emblems / 40 tokens, playoffs 5 / 30 | In-game roster screen, which awards "+40 Group Stage Crafting Rolls" and "+30 The International Fantasy Crafting Rolls" |

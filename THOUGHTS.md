@@ -241,9 +241,12 @@ page says *cannot improve — every outcome is worse*) and `downside` (p10 of th
 play-outs). The same banner now reads: immediate −2,736, edge +0, cannot
 improve. Both numbers are true; only one of them was being shown.
 
-Open: `skipValue` is still a static `current` in its own tile and row. That is
-the right number for "what do I hold", but it means the take-none row is the one
-place on the page not measured over a play-out.
+The UI now follows the four choices actually presented in the game: three
+offers and **Skip**, where Skip spends one token to refresh all three. Merely
+stopping remains possible but is not rendered as a fifth choice. A take whose
+edge rounds to `+0` is not recommended over Skip when it is also worse right
+away; that is simulation repair/noise, not a useful reason to damage a finished
+banner.
 
 ### Shared futures have to consume the stream at the same rate
 
