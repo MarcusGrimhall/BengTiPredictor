@@ -388,10 +388,18 @@ function Results({
   onSpend: () => void;
   onRefresh: () => void;
 }) {
-  const best = plan.decisions[0];
-  const worthTaking = best && best.edge > 0;
-  const refreshBest = rerolls > 0 &&
-    plan.refreshValue > Math.max(plan.current, best?.takeValue ?? -Infinity);
+  /**
+   * Depth of evidence first, then the mean.
+   *
+   * The same rule `lib/offers.ts` sorts its decisions by, and it has to be the
+   * same rule or the page contradicts itself. Sequential halving leaves the
+   * survivors with several times the play-outs of the pairs it dropped early,
+   * so their averages are not measured to the same precision: a pair eliminated
+   * on 66 runs can post a flattering mean that one measured over 343 would
+   * never sustain. Ranking those two by mean alone rewards the noisier estimate.
+   */
+  const byEvidence = (a: OfferDecision, b: OfferDecision) =>
+    b.runsUsed - a.runsUsed || b.edge - a.edge;
 
   /**
    * One row per option, not one per option-and-banner.
@@ -403,10 +411,20 @@ function Results({
    */
   const bestPerOption = Object.values(
     plan.decisions.reduce<Record<string, OfferDecision>>((acc, d) => {
-      if (!acc[d.action.id] || d.edge > acc[d.action.id].edge) acc[d.action.id] = d;
+      if (!acc[d.action.id] || byEvidence(d, acc[d.action.id]) < 0) acc[d.action.id] = d;
       return acc;
     }, {})
-  ).sort((a, b) => b.edge - a.edge);
+  ).sort(byEvidence);
+
+  // Taken from the same ordered list the table renders, so the sentence below
+  // and the "best" tag in the table cannot name different options. They could
+  // before: this was plan.decisions[0], ordered by evidence, while the table
+  // was ordered by mean.
+  const best = bestPerOption[0];
+  // Every option is already scored against refreshing, so "worth taking" is
+  // simply beating that - and refreshing wins by default when none of them do.
+  const worthTaking = Boolean(best && best.edge > 0);
+  const refreshBest = rerolls > 0 && !worthTaking && plan.refreshEdge > 0;
 
   /**
    * How many pairs the model cannot separate from the leader.
@@ -420,7 +438,7 @@ function Results({
   const alternatives = (d: OfferDecision) =>
     plan.decisions
       .filter((x) => x.action.id === d.action.id && x.role !== d.role)
-      .sort((a, b) => b.edge - a.edge);
+      .sort(byEvidence);
 
   return (
     <div className="stack">
@@ -466,16 +484,29 @@ function Results({
             <tr>
               <th>Option</th><th>Apply to</th>
               <th style={{ textAlign: "right" }}>
-                If you take it <Info title="If you take it" align="right">
-                  Where the roster ends up if you spend a reroll on this pair and then keep
-                  going with the {plan.rounds - 1} you have left, taking whatever the
-                  reshuffles offer while it still helps.
+                Right away <Info title="Right away" align="right">
+                  What applying it does to the roster this instant, before any further
+                  rolls. This is the damage you actually take on. A long budget repairs
+                  most mistakes, so the column on the right can read as a wash while this
+                  one is deeply negative — at all tier V every quality reroll is a certain
+                  loss now, because a reroll never returns the tier it replaced.
                 </Info>
               </th>
               <th style={{ textAlign: "right" }}>
-                Against taking none <Info title="Against taking none" align="right">
-                  Taking it minus keeping what you hold. Applying it also produces the
-                  next deal, so the result includes the value of continuing afterwards.
+                If you take it <Info title="If you take it" align="right">
+                  Where the roster ends up if you spend a reroll on this pair and then keep
+                  going with the {plan.rounds - 1} you have left, taking whatever the
+                  reshuffles offer while it still helps. The smaller figure beneath is the
+                  10th percentile — the future where the repair never turns up.
+                </Info>
+              </th>
+              <th style={{ textAlign: "right" }}>
+                Against refreshing <Info title="Against refreshing" align="right">
+                  Taking it minus spending the same token on a refresh, which changes no
+                  banner and deals three new options. Refreshing is the fair comparison
+                  because it costs exactly the same and leaves you equally free
+                  afterwards; measuring against standing pat instead made every option
+                  score the value of playing at all, which is the same for all of them.
                 </Info>
               </th>
               <th></th>
@@ -492,6 +523,11 @@ function Results({
                     <span className="tag tag-tied" style={{ marginRight: 6 }}>tied</span>
                   )}
                   {d.action.label}
+                  {d.improveChance === 0 && (
+                    <span className="faint" style={{ display: "block", fontSize: "0.72rem" }}>
+                      cannot improve — every outcome is worse
+                    </span>
+                  )}
                 </td>
                 <td className="muted">
                   {ROLE_LABELS[d.role]}
@@ -504,7 +540,19 @@ function Results({
                     </span>
                   )}
                 </td>
-                <td className="num" style={{ textAlign: "right" }}>{fmt(d.takeValue)}</td>
+                <td className="num" style={{
+                  textAlign: "right", fontWeight: 650,
+                  color: d.immediateDelta > 0 ? "var(--accent)"
+                    : d.immediateDelta < 0 ? "var(--red)" : "var(--muted)"
+                }}>
+                  {signed(d.immediateDelta)}
+                </td>
+                <td className="num" style={{ textAlign: "right" }}>
+                  {fmt(d.takeValue)}
+                  <span className="faint" style={{ display: "block", fontSize: "0.72rem" }}>
+                    bad case {fmt(d.downside)}
+                  </span>
+                </td>
                 <td className="num" style={{
                   textAlign: "right", fontWeight: 650,
                   color: d.edge > 0 ? "var(--accent)" : "var(--red)"
@@ -522,12 +570,10 @@ function Results({
             <tr className="row-skip">
               <td>Refresh all three</td>
               <td className="muted">no banner changes</td>
+              <td className="num muted" style={{ textAlign: "right" }}>±0</td>
               <td className="num" style={{ textAlign: "right" }}>{fmt(plan.refreshValue)}</td>
-              <td className="num" style={{
-                textAlign: "right", fontWeight: 650,
-                color: plan.refreshEdge > 0 ? "var(--accent)" : "var(--muted)"
-              }}>
-                {signed(plan.refreshEdge)}
+              <td className="num muted" style={{ textAlign: "right" }} title="Every option above is measured against this row">
+                baseline
               </td>
               <td style={{ textAlign: "right" }}>
                 <button onClick={onRefresh} disabled={rerolls <= 0}
@@ -537,10 +583,16 @@ function Results({
               </td>
             </tr>
             <tr className="row-skip">
-              <td>Take none — keep what you have</td>
-              <td className="muted">—</td>
+              <td>Take none — stop here</td>
+              <td className="muted">unspent tokens expire</td>
+              <td className="num muted" style={{ textAlign: "right" }}>±0</td>
               <td className="num" style={{ textAlign: "right" }}>{fmt(plan.skipValue)}</td>
-              <td className="num muted" style={{ textAlign: "right" }}>—</td>
+              <td className="num" style={{
+                textAlign: "right", fontWeight: 650,
+                color: plan.skipValue - plan.baseline < 0 ? "var(--red)" : "var(--muted)"
+              }}>
+                {signed(plan.skipValue - plan.baseline)}
+              </td>
               <td style={{ textAlign: "right" }}>
                 <span className="faint">costs nothing</span>
               </td>
@@ -552,29 +604,39 @@ function Results({
       <div className="verdict">
         {refreshBest ? (
           <>
-            <strong>Refresh all three.</strong> Spending one token without changing a
-            banner is worth {signed(plan.refreshEdge)} against taking none, and beats
-            applying any option currently shown.
+            <strong>Refresh all three.</strong> None of these three beats spending the
+            same token on a new deal, which is worth {signed(plan.refreshEdge)} over
+            stopping and changes no banner.
           </>
         ) : worthTaking ? (
           <>
             <strong>Take &ldquo;{best.action.label}&rdquo;</strong> and apply it to{" "}
-            <strong>{ROLE_LABELS[best.role]}</strong> — worth {signed(best.edge)} against
-            taking none.
+            <strong>{ROLE_LABELS[best.role]}</strong> — worth {signed(best.edge)} over
+            refreshing instead.
+            {best.immediateDelta < 0 && (
+              <>
+                {" "}It still costs you <strong>{signed(best.immediateDelta)}</strong> the
+                moment you apply it; it comes out ahead only because you have{" "}
+                {plan.rounds - 1} rerolls left to repair it.
+              </>
+            )}
           </>
         ) : (
           <>
-            <strong>Take none.</strong> None of the three improves any banner enough to be
-            worth applying. They remain on the table and no token is spent.
+            <strong>Take none.</strong> Nothing on the table, and no refresh, is worth a
+            token. They remain available and nothing is spent.
           </>
         )}
       </div>
 
       <p className="faint" style={{ maxWidth: 740 }}>
-        Each figure assumes you keep rerolling afterwards while it still helps, over{" "}
-        {plan.runs} simulated futures — what the reshuffles turn up is genuinely random,
-        so there is nothing to enumerate. Refresh spends one token, preserves every
-        banner and replaces all three options.
+        <strong>If you take it</strong> and <strong>Against refreshing</strong> both assume
+        you keep rerolling afterwards while it still helps, over {plan.runs} simulated
+        futures — what the reshuffles turn up is genuinely random, so there is nothing to
+        enumerate. They are averages, and an average repairs mistakes it should not always
+        get to repair, so read <strong>Right away</strong> and <strong>bad case</strong>
+        {" "}beside them. Refresh spends one token, preserves every banner and replaces all
+        three options.
       </p>
     </div>
   );

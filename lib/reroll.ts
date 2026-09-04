@@ -211,33 +211,60 @@ export function applyAction(
     //
     // Where the new tier lands is then random among the ones still open: a
     // raised II can become III, IV or V; a lowered IV can become I, II or III.
+    //
+    // Every draw below is taken unconditionally, even when it cannot be used.
+    //
+    // `planOffers` gives competing candidates the SAME random stream for the
+    // future they play into, so their outcomes can be differenced run for run
+    // instead of compared as two noisy averages. That only holds while every
+    // candidate pulls the same number of values out of that stream. Drawing
+    // "only if there is something to pick" made the count depend on the banner
+    // - an all-tier-V banner has nothing to raise and drew nothing, a mixed one
+    // drew twice - so the two candidates fell out of step and every deal after
+    // that point was a different deal. The pairing silently stopped pairing.
+    //
+    // So the count is fixed per action: qualityUp always takes two values,
+    // qualityUpTwoDownOne always six. Spending a value on an empty pool is the
+    // cheap half of that bargain.
     const upCount = action.target === "qualityUp" ? 1 : 2;
     const order = next.map((_, i) => i);
     const takeRandom = (pool: number[], count: number): number[] => {
       const remaining = [...pool];
       const chosen: number[] = [];
-      while (chosen.length < count && remaining.length) {
-        chosen.push(remaining.splice(Math.floor(random() * remaining.length), 1)[0]);
+      for (let i = 0; i < count; i += 1) {
+        const roll = random();
+        if (!remaining.length) continue;
+        chosen.push(remaining.splice(Math.floor(roll * remaining.length), 1)[0]);
       }
       return chosen;
     };
 
     // Decided on the original banner, so a raise cannot change what gets lowered.
     const raiseTargets = takeRandom(order.filter((i) => next[i].tier !== "V"), upCount);
-    const lowerTarget = action.target === "qualityUpTwoDownOne"
-      ? takeRandom(order.filter((i) => next[i].tier !== "I" && !raiseTargets.includes(i)), 1)[0]
-        // If every lowerable emblem is already being raised, the reduction has
-        // to fall on one of them.
-        ?? takeRandom(order.filter((i) => next[i].tier !== "I"), 1)[0]
-      : undefined;
 
-    for (const i of raiseTargets) {
-      const above = qualityOutcomes(next[i].tier, "increase").map(({ tier }) => tier);
-      next[i].tier = pickWeightedTier(above, random());
+    // One draw, whichever pool it falls in. If every lowerable emblem is already
+    // being raised, the reduction has to land on one of them.
+    let lowerTarget: number | undefined;
+    if (action.target === "qualityUpTwoDownOne") {
+      const spared = order.filter((i) => next[i].tier !== "I" && !raiseTargets.includes(i));
+      const pool = spared.length ? spared : order.filter((i) => next[i].tier !== "I");
+      const roll = random();
+      lowerTarget = pool.length ? pool[Math.floor(roll * pool.length)] : undefined;
     }
-    if (lowerTarget !== undefined) {
-      const below = qualityOutcomes(next[lowerTarget].tier, "decrease").map(({ tier }) => tier);
-      if (below.length) next[lowerTarget].tier = pickWeightedTier(below, random());
+
+    for (let k = 0; k < upCount; k += 1) {
+      const roll = random();
+      const i = raiseTargets[k];
+      if (i === undefined) continue;
+      const above = qualityOutcomes(next[i].tier, "increase").map(({ tier }) => tier);
+      next[i].tier = pickWeightedTier(above, roll);
+    }
+    if (action.target === "qualityUpTwoDownOne") {
+      const roll = random();
+      if (lowerTarget !== undefined) {
+        const below = qualityOutcomes(next[lowerTarget].tier, "decrease").map(({ tier }) => tier);
+        if (below.length) next[lowerTarget].tier = pickWeightedTier(below, roll);
+      }
     }
     return next;
   }
@@ -248,10 +275,14 @@ export function applyAction(
     } else if (action.target === "trait") {
       next[slot].trait = pick(traitOptions(next[slot].trait, ROLLABLE_TRAITS), random());
     } else {
-      // A stat already on the banner cannot be rolled again.
+      // A stat already on the banner cannot be rolled again. The draw is taken
+      // whether or not the pool has anything in it, for the reason spelled out
+      // in the wildcard branch above: a candidate that skips a draw walks off
+      // the shared random stream and stops being comparable.
       const taken = new Set(next.filter((_, i) => i !== slot).map((e) => e.stat));
       const pool = statsForColor(BANNER_SLOTS[role][slot]).filter((s) => !taken.has(s));
-      if (pool.length) next[slot].stat = pool[Math.floor(random() * pool.length)];
+      const roll = random();
+      if (pool.length) next[slot].stat = pool[Math.floor(roll * pool.length)];
     }
   }
   return next;

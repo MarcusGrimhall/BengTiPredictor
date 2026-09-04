@@ -29,12 +29,39 @@ export type OfferDecision = {
   action: RerollAction;
   /** Expected value if you take this now and play the rest out. */
   takeValue: number;
-  /** Expected value if you decline everything this round and play on. */
+  /** What the roster is worth if you stop here. Unspent tokens expire. */
   skipValue: number;
-  /** takeValue - skipValue. Positive means take it. */
+  /**
+   * The best thing you could do INSTEAD of taking this, on the same budget.
+   *
+   * Refreshing also costs one token and also ends in a fresh deal, so it is the
+   * fair comparison; stopping is only the baseline when no tokens remain.
+   */
+  baseline: number;
+  /** takeValue - baseline. Positive means this option beats the alternative. */
   edge: number;
   /** Value right now, before anything. */
   current: number;
+  /**
+   * Roster value the instant the option is applied, before any further rolls.
+   *
+   * This is the damage - or the gain - you actually take on. `takeValue` can
+   * hide it completely, because a long budget repairs most mistakes: at the
+   * top of the tier ladder every quality reroll is a certain loss now and a
+   * wash by the end, and only this field says so.
+   */
+  immediate: number;
+  /** immediate - current. Negative means the option costs you points on the spot. */
+  immediateDelta: number;
+  /** Share of rolls that improve the roster at once. Zero means it cannot help. */
+  improveChance: number;
+  /**
+   * 10th percentile of where you end up, over the simulated futures.
+   *
+   * The world where the repair does not come. A mean alone cannot show it,
+   * which is what made a guaranteed loss read as neutral.
+   */
+  downside: number;
   /** Play-outs this pair actually got. Contenders get more than also-rans. */
   runsUsed: number;
   /**
@@ -50,6 +77,8 @@ export type OfferDecision = {
 export type OfferPlan = {
   decisions: OfferDecision[];
   skipValue: number;
+  /** The alternative every option is scored against. See OfferDecision.baseline. */
+  baseline: number;
   /** Expected final value after paying one token for three new options. */
   refreshValue: number;
   /** refreshValue - current. */
@@ -163,10 +192,23 @@ function playOut(
 }
 
 /**
- * Values every (option, banner) pair against taking none.
+ * Values every (option, banner) pair against the best alternative use of the
+ * same token.
  *
- * Taking none costs nothing and leaves the same options in place. Paid refresh
- * is valued separately, since it changes no banner before the next deal.
+ * The comparison used to be against standing pat, and that made the numbers
+ * unreadable. `takeValue` plays the whole remaining budget forward; `current`
+ * spends nothing. Subtracting one from the other therefore measured "is it
+ * worth playing at all" and buried the option's own contribution inside it.
+ * Measured on an all-tier-I roster worth 32,826, every option scored about
+ * +47,000 - and so did a refresh, which by construction changes no banner. The
+ * differences that actually decide the pick were 300 points inside a 47,000
+ * point number.
+ *
+ * Refreshing costs one token, ends in a fresh deal and leaves the banners
+ * alone, which makes it exactly what taking an option has to beat. Scoring
+ * against it puts both sides on the same budget and leaves only the part that
+ * depends on the option. Stopping is the baseline only when no tokens remain,
+ * since unused tokens expire and are worth nothing kept.
  */
 export function planOffers(
   banners: Record<Role, Emblem[]>,
@@ -198,20 +240,26 @@ export function planOffers(
   const refreshValue = rerolls > 0 ? refreshTotal / runs : current;
   const refreshEdge = refreshValue - current;
 
+  // With tokens in hand you can always refresh instead, so that is what an
+  // option competes with. With none left there is nothing to do but stop.
+  const baseline = rerolls > 0 ? Math.max(refreshValue, current) : current;
+
   type Candidate = {
     role: Role; action: RerollAction; total: number; runsUsed: number;
     /** Result per run index, so pairs can be compared run for run. */
     byRun: Map<number, number>;
+    /** Roster value straight after the roll, before the budget is played on. */
+    immediates: number[];
   };
   const candidates: Candidate[] = [];
   for (const action of options) {
     for (const role of applicable(action, catalogues)) {
-      candidates.push({ role, action, total: 0, runsUsed: 0, byRun: new Map() });
+      candidates.push({ role, action, total: 0, runsUsed: 0, byRun: new Map(), immediates: [] });
     }
   }
   if (!candidates.length) {
     return {
-      decisions: [], skipValue, refreshValue, refreshEdge,
+      decisions: [], skipValue, baseline, refreshValue, refreshEdge,
       current, rounds: rerolls, runs
     };
   }
@@ -227,15 +275,20 @@ export function planOffers(
    * quantity being ranked. Without it a candidate can win on a kind future
    * rather than on its merits.
    */
-  function playCandidate(c: Candidate, run: number): number {
+  function playCandidate(c: Candidate, run: number): { immediate: number; final: number } {
     const rollRandom = seededRandom(`${seed}:roll:${c.role}:${c.action.id}:${run}`);
     const futureRandom = seededRandom(`${seed}:future:${run}`);
     const rolled = applyAction(banners[c.role], c.role, c.action, rollRandom);
     const after = hasDuplicateStats(rolled) ? banners[c.role] : rolled;
-    return playOut(
-      { ...banners, [c.role]: after }, catalogue, catalogues, valueOf,
-      Math.max(0, rerolls - 1), futureRandom
-    );
+    // Only this role's banner moved, so the rest of the roster carries over.
+    const immediate = current - valueOf(c.role, banners[c.role]) + valueOf(c.role, after);
+    return {
+      immediate,
+      final: playOut(
+        { ...banners, [c.role]: after }, catalogue, catalogues, valueOf,
+        Math.max(0, rerolls - 1), futureRandom
+      )
+    };
   }
 
   /**
@@ -257,9 +310,10 @@ export function planOffers(
     const each = Math.max(1, Math.floor(budget / (phases * alive.length)));
     for (const c of alive) {
       for (let i = 0; i < each; i += 1) {
-        const value = playCandidate(c, runOffset + i);
-        c.total += value;
-        c.byRun.set(runOffset + i, value);
+        const { immediate, final } = playCandidate(c, runOffset + i);
+        c.total += final;
+        c.byRun.set(runOffset + i, final);
+        c.immediates.push(immediate);
       }
       c.runsUsed += each;
     }
@@ -300,11 +354,26 @@ export function planOffers(
     return Math.abs(mean) < 2 * standardError;
   }
 
+  /** 10th percentile of a candidate's play-outs: the world the mean hides. */
+  function downsideOf(c: Candidate): number {
+    const finals = [...c.byRun.values()].sort((a, b) => a - b);
+    if (!finals.length) return current;
+    return finals[Math.min(finals.length - 1, Math.floor(0.1 * finals.length))];
+  }
+
   const decisions: OfferDecision[] = candidates.map((c) => {
     const takeValue = c.total / Math.max(1, c.runsUsed);
+    const immediate = c.immediates.length
+      ? c.immediates.reduce((a, b) => a + b, 0) / c.immediates.length
+      : current;
+    const improved = c.immediates.filter((v) => v > current).length;
     return {
-      role: c.role, action: c.action, takeValue, skipValue,
-      edge: takeValue - skipValue, current, runsUsed: c.runsUsed,
+      role: c.role, action: c.action, takeValue, skipValue, baseline,
+      edge: takeValue - baseline, current,
+      immediate, immediateDelta: immediate - current,
+      improveChance: c.immediates.length ? improved / c.immediates.length : 0,
+      downside: downsideOf(c),
+      runsUsed: c.runsUsed,
       tied: tiedWithLeader(c)
     };
   });
@@ -318,7 +387,7 @@ export function planOffers(
   // pairs the search examined equally hard.
   decisions.sort((a, b) => b.runsUsed - a.runsUsed || b.edge - a.edge);
   return {
-    decisions, skipValue, refreshValue, refreshEdge,
+    decisions, skipValue, baseline, refreshValue, refreshEdge,
     current, rounds: rerolls, runs
   };
 }

@@ -4,7 +4,7 @@ What is not settled, written down so it is not rediscovered from scratch. Rules
 that *are* settled live in ASSUMPTIONS.md; this file is what is still open, the
 reasoning behind calls that were close, and ideas that have not been tried.
 
-Last updated 2026-09-01, after reading the in-game Fantasy glossary directly.
+Last updated 2026-09-04, after auditing the reroll offer search.
 
 ---
 
@@ -195,7 +195,76 @@ Three ways to sharpen it, none tried, in the order I would try them:
 **Results are ordered by depth of evidence, not by value.** `decisions.sort` puts
 `runsUsed` before `edge`, so a candidate eliminated early can never outrank a
 survivor even when its mean is genuinely higher. Defensible, but the displayed
-order is not a value order and nothing says so.
+order is not a value order and nothing says so. The page now applies that same
+rule (`byEvidence` in `FantasySimulator.tsx`); it used to sort the table by mean
+alone while the verdict sentence read `decisions[0]`, so with one pair on 343
+play-outs and another on 66 the sentence and the table's "best" tag could name
+different options.
+
+### An option was scored against the wrong alternative
+
+Fixed, and worth recording because the symptom was so easy to misread.
+
+`edge` was `takeValue − skipValue`, where `takeValue` plays the whole remaining
+budget forward and `skipValue` is a static `current` that spends nothing.
+Subtracting one from the other therefore measured *"is it worth playing at
+all"*, which is identical for every option, and buried the option's own
+contribution inside it. On an all-tier-I roster worth 32,826 with 40 tokens:
+
+    tier-last-red   +47412      tier-last-red    +258   (immediate +2437)
+    trait-all-blue  +47276  ->  trait-all-blue   +121   (immediate  +934)
+    refresh         +47154      refresh          baseline
+    stat-all-green  +47095      stat-all-green    −59   (immediate −2647)
+
+The tell is the refresh row: it changes no banner by construction, and it scored
+among the options. The differences that decide the pick were 300 points inside a
+47,000 point number. Scoring against `max(refreshValue, current)` fixes it —
+refreshing costs the same one token, ends in the same fresh deal and leaves the
+banners alone, so both sides carry the play-out and only the option is left.
+Stopping is the baseline only when no tokens remain, since unused tokens expire.
+`stat-all-green` turning negative is the point: it was always worse than
+refreshing and the old number could not say so.
+
+### A mean repairs mistakes it should not always get to repair
+
+Also fixed. `OfferDecision` kept only the average of its play-outs, so a
+guaranteed immediate loss read as neutral whenever the budget was long enough to
+undo it. At all tier V every quality reroll is a certain downgrade — a reroll
+never returns the tier it replaced, so from V the only outcomes are I–IV — and
+`tier-last-red` still showed +0, because 39 remaining tokens repair it in
+essentially every simulated future.
+
+That is a true statement about where you end up and a useless one about what you
+are being offered. The decision now also carries `immediate` / `immediateDelta`
+(the roster the instant the option lands), `improveChance` (zero here, and the
+page says *cannot improve — every outcome is worse*) and `downside` (p10 of the
+play-outs). The same banner now reads: immediate −2,736, edge +0, cannot
+improve. Both numbers are true; only one of them was being shown.
+
+Open: `skipValue` is still a static `current` in its own tile and row. That is
+the right number for "what do I hold", but it means the take-none row is the one
+place on the page not measured over a play-out.
+
+### Shared futures have to consume the stream at the same rate
+
+`planOffers` gives competing candidates the same `futureRandom` per run index so
+their outcomes can be differenced run for run — that pairing is what makes the
+`tied` test tighter than two means subtracted. It only holds while every
+candidate draws the same number of values.
+
+Three places drew conditionally: `takeRandom`'s `while` loop stopped early on a
+short pool, the raise loop iterated over however many targets it found, and the
+stat branch skipped its draw when every stat of that colour was taken. All three
+depend on the banner, which is exactly what differs between candidates, so an
+all-tier-V candidate and a mixed one walked off the stream at the first wildcard
+and every deal after that point was a different deal. Draws are now
+unconditional and the count is fixed per action — two values for `qualityUp`,
+six for `qualityUpTwoDownOne`. Spending a value on an empty pool is the cheap
+half of that bargain.
+
+Not measured: how much this was actually costing the `tied` test. It affected
+only the two wildcards, so probably little, but "probably little" is a guess and
+the six-seed spread above was measured before the fix.
 
 ## `Best possible` ignores where you already are
 
