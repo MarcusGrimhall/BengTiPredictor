@@ -1,7 +1,7 @@
 // The emblem, tier and trait engine.
 //
 // A banner holds five emblems. Each emblem points at a stat, has a tier
-// (a percentage bonus) and may carry a trait affecting itself or its
+// (a percentage bonus) and carries a trait affecting itself or its
 // neighbours. The final score is the sum of all five contributions.
 
 import { Role, StatKey, pointsToStat, statToPoints } from "./scoring";
@@ -20,7 +20,8 @@ export const TRAIT_DESCRIPTIONS: Record<Trait, string> = {
   unique: "+30% to this emblem if it is the only Unique on the banner",
   friendly: "+50% to this emblem if the banner has at least three Friendly"
 };
-export const TRAITS = Object.keys(TRAIT_DESCRIPTIONS) as Trait[];
+/** The five traits an emblem can actually carry. `none` is internal-only. */
+export const TRAITS: Trait[] = ["fractal", "benevolent", "vampiric", "unique", "friendly"];
 
 export type Emblem = { stat: StatKey; tier: Tier; trait: Trait };
 
@@ -150,7 +151,7 @@ export function emblemMultipliers(emblems: Emblem[]): number[] {
  * Average points an emblem pays per game.
  *
  * Scoring happens per game, so the average has to be taken over scored games -
- * not by scoring the average stat line. For fifteen of the sixteen stats those
+ * not by scoring the average stat line. For every stat except Deaths those
  * are the same number, because points are linear in the raw value. Deaths are
  * the exception: they are floored at zero, and flooring an average is not the
  * same as averaging floors. A player who goes 18, 8, 6, 6, 15, 3 averages 9.3
@@ -399,12 +400,13 @@ export function percentile(sorted: number[], p: number): number {
 /**
  * The risk slider maps to a percentile of the player's own game distribution.
  *
- *   risk 0   -> 10th percentile: the floor. Who is reliable on a bad day.
+ *   risk 0   -> 10th percentile: the low end of the recorded sample.
  *   risk 50  -> median: the typical game.
- *   risk 100 -> 95th percentile: the ceiling. Who can actually highroll.
+ *   risk 100 -> 95th percentile: the high end of the recorded sample.
  *
  * This is why the ranking changes as you drag: a consistent support wins at
- * low risk, a swingy carry wins at high risk.
+ * low risk, a swingy carry wins at high risk. These are descriptive historical
+ * percentiles, not calibrated probabilities for the next event.
  */
 export function riskToPercentile(risk: number): number {
   return 10 + (Math.min(100, Math.max(0, risk)) / 100) * 85;

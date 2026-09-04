@@ -146,7 +146,12 @@ async function buildProps(): Promise<InformationProps | null> {
 
     const byRole = Object.fromEntries(ROLES.map((role) => {
       const colours = [...new Set(BANNER_SLOTS[role])];
-      const stats = colours.flatMap((c) => statsForColor(c)) as StatKey[];
+      const eventOrders = events
+        .map((event) => timeline.find((t) => t.leagueId === event.leagueId))
+        .filter((event): event is NonNullable<typeof event> => Boolean(event))
+        .map((event) => new Set(event.statOrder));
+      const stats = colours.flatMap((c) => statsForColor(c))
+        .filter((stat) => eventOrders.every((order) => order.has(stat))) as StatKey[];
       return [role, statSpread(entries, role, stats, strongWindow)];
     })) as Record<Role, RoleSpread>;
 
@@ -220,7 +225,9 @@ async function buildProps(): Promise<InformationProps | null> {
       spread[id][stage] = Object.fromEntries(ROLES.map((role) => {
         // Only stats a role's banner can actually hold.
         const colours = [...new Set(BANNER_SLOTS[role])];
-        const stats = colours.flatMap((c) => statsForColor(c)) as StatKey[];
+        const available = new Set(league.statOrder);
+        const stats = colours.flatMap((c) => statsForColor(c))
+          .filter((stat) => available.has(stat)) as StatKey[];
         return [role, statSpread(entries, role, stats, strong)];
       })) as Record<Role, RoleSpread>;
 

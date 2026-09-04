@@ -8,11 +8,9 @@
 //   * using one costs a single reroll, changes only the banner you picked, and
 //     REPLACES ALL THREE OPTIONS.
 //
-// The last point is what shapes the decision. The options do not refresh on
-// their own: spending is the only way to see different ones. So declining is
-// not "wait for a better deal", it is "stop rerolling" - and conversely, taking
-// a mildly bad option is sometimes right, because it is the price of a reshuffle
-// when you still have rerolls to spend.
+// The options do not refresh on their own. Taking none costs nothing and leaves
+// them in place; spending a token can either apply one option or refresh all
+// three. Both ways of spending are valued here against keeping the current hand.
 //
 // That trade has no closed form, so it is simulated forward: deal random
 // options, play the rest out, average. The future is genuinely random and there
@@ -52,6 +50,10 @@ export type OfferDecision = {
 export type OfferPlan = {
   decisions: OfferDecision[];
   skipValue: number;
+  /** Expected final value after paying one token for three new options. */
+  refreshValue: number;
+  /** refreshValue - current. */
+  refreshEdge: number;
   current: number;
   /** Rounds the plan looked ahead. */
   rounds: number;
@@ -114,12 +116,9 @@ function applicable(
  * Plays the remaining rerolls out against random deals.
  *
  * The policy: apply the best (option, banner) pair on the table if it gains
- * anything, and otherwise stop. Stopping is right more often than it looks,
- * because a banner that is already good has more to lose than to win.
- *
- * It is greedy in one specific way - it never pays a small loss to reshuffle -
- * so the figures it produces are a floor. A perfect player would occasionally
- * burn a reroll on the least-bad option to see three new ones.
+ * anything, and otherwise spends one token to refresh all three. A refresh
+ * cannot hurt the banner, so with tokens left it dominates abandoning the
+ * remaining budget.
  */
 function playOut(
   banners: Record<Role, Emblem[]>,
@@ -150,9 +149,11 @@ function playOut(
       }
     }
 
-    // Nothing on the table helps, and the only way to see new options is to
-    // spend one making a banner worse. Stop.
-    if (!best) break;
+    // Pay one token to replace all three without changing a banner.
+    if (!best) {
+      left -= 1;
+      continue;
+    }
     hand[best.role] = best.banner;
     value[best.role] = best.value;
     left -= 1;
@@ -162,11 +163,10 @@ function playOut(
 }
 
 /**
- * Values every (option, banner) pair against stopping.
+ * Values every (option, banner) pair against taking none.
  *
- * Declining here means declining for good: the options only change when one is
- * used, so there is no waiting them out. That makes the comparison a clean one
- * - this pair, or the banner you already hold.
+ * Taking none costs nothing and leaves the same options in place. Paid refresh
+ * is valued separately, since it changes no banner before the next deal.
  */
 export function planOffers(
   banners: Record<Role, Emblem[]>,
@@ -180,8 +180,23 @@ export function planOffers(
 ): OfferPlan {
   const current = ROLES.reduce((sum, role) => sum + valueOf(role, banners[role]), 0);
 
-  // Stopping now: the banners are what they are.
+  // Taking none: no token is spent and the current three stay on the table.
   const skipValue = current;
+
+  // Refreshing consumes one token, changes no banner and starts from a fresh
+  // deal. Use the same future streams candidates meet so the comparison does
+  // not depend on one alternative receiving kinder random deals.
+  let refreshTotal = 0;
+  if (rerolls > 0) {
+    for (let run = 0; run < runs; run += 1) {
+      refreshTotal += playOut(
+        banners, catalogue, catalogues, valueOf, rerolls - 1,
+        seededRandom(`${seed}:future:${run}`)
+      );
+    }
+  }
+  const refreshValue = rerolls > 0 ? refreshTotal / runs : current;
+  const refreshEdge = refreshValue - current;
 
   type Candidate = {
     role: Role; action: RerollAction; total: number; runsUsed: number;
@@ -195,7 +210,10 @@ export function planOffers(
     }
   }
   if (!candidates.length) {
-    return { decisions: [], skipValue, current, rounds: rerolls, runs };
+    return {
+      decisions: [], skipValue, refreshValue, refreshEdge,
+      current, rounds: rerolls, runs
+    };
   }
 
   /**
@@ -299,5 +317,8 @@ export function planOffers(
   // never sustain. Depth of evidence comes first, and the mean only separates
   // pairs the search examined equally hard.
   decisions.sort((a, b) => b.runsUsed - a.runsUsed || b.edge - a.edge);
-  return { decisions, skipValue, current, rounds: rerolls, runs };
+  return {
+    decisions, skipValue, refreshValue, refreshEdge,
+    current, rounds: rerolls, runs
+  };
 }

@@ -252,6 +252,24 @@ The import writes only to `data/cache/replay-fantasy/`. The extractor overlays
 the exact fields by match and account id, and retains the documented OpenDota
 fallback for older matches that have no replay overlay.
 
+The project can also create an overlay for Lotuses, Watchers, Madstones and
+Tormentor participation directly from Valve's replay:
+
+```bash
+npm run replay -- 8892829232       # one cached OpenDota match
+npm run replays -- 19719           # every missing replay in a league
+npm run replays -- 19719 --limit 2 # test at most two missing replays
+```
+
+This requires Java 17, Maven, `curl`, `bunzip2` and `zstd`. The batch is
+resumable, uses three workers and validates all ten Steam IDs before accepting
+a checkpoint. Compressed and decompressed replay files live only in the system
+temporary directory and are deleted after success or failure; the small JSON
+overlay remains in `data/cache/replay-fantasy/matches/`. Run `npm run fetch`
+after coverage is complete to regenerate the league data. Teamfight continues
+to use OpenDota on this direct path; the external import above additionally
+supplies its replay counter and the replay-only Suffix conditions.
+
 Raw responses are cached in `data/cache/` (gitignored), so re-running is free and
 instant. Set `OPENDOTA_API_KEY` to raise the rate limit; the client speeds up on
 its own.

@@ -76,7 +76,12 @@ for (const p of target.players) {
   if (p.accountId) roster.set(p.accountId, p);
 }
 
-const statOrder = target.statOrder;
+// A training column is usable only when every source measured it. Filling a
+// replay-only counter with zero would turn "not observed" into "the player did
+// none" and silently bias the optimiser.
+const sourceOrders = sources.map((league) => new Set(league.statOrder ?? league.availableStats));
+const statOrder = target.statOrder.filter((stat) => sourceOrders.every((order) => order.has(stat)));
+const unavailableStats = target.statOrder.filter((stat) => !statOrder.includes(stat));
 const merged = new Map();
 
 for (const league of sources) {
@@ -179,7 +184,7 @@ const payload = {
       : "recorded only; not applied (weighted TI 2026 backtest regressed)"
   },
   statOrder,
-  unavailableStats: target.unavailableStats,
+  unavailableStats: [...new Set([...(target.unavailableStats ?? []), ...unavailableStats])],
   sources: sources.map((l) => ({
     leagueId: l.leagueId,
     leagueName: l.leagueName,

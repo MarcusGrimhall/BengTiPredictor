@@ -45,6 +45,8 @@ const RUNS = runsIndex === -1 || Number.isNaN(Number(argv[runsIndex + 1]))
 const readJson = async (f) => JSON.parse(await readFile(join(ROOT, "data", "generated", f), "utf8"));
 const league = await readJson("league-19719.json");
 const train = await readJson("training-19719.json");
+const trainingStats = new Set(train.statOrder);
+const trainingStatsForColor = (color) => statsForColor(color).filter((stat) => trainingStats.has(stat));
 
 const ROLES = ["core", "mid", "support"];
 const n = (x) => Math.round(x).toLocaleString("en-US");
@@ -79,7 +81,7 @@ const banked = (entry, banner) => {
 function bannerOf(role, slots, order = 0) {
   const used = new Set();
   return BANNER_SLOTS[role].slice(0, slots).map((c) => {
-    const pool = statsForColor(c).filter((x) => !used.has(x));
+    const pool = trainingStatsForColor(c).filter((x) => !used.has(x));
     const st = pool[order % pool.length] ?? pool[0];
     used.add(st);
     return { stat: st, tier: "III", trait: "none" };
@@ -99,7 +101,7 @@ for (const stage of ["groupStage", "playoffs"]) {
   sub(stage === "groupStage" ? "Group stage" : "Playoffs");
   console.log("  role      best banner + best entry   worst banner + best entry   best banner + median entry");
   for (const role of ROLES) {
-    const slotOptions = BANNER_SLOTS[role].slice(0, slots).map((c) => statsForColor(c));
+    const slotOptions = BANNER_SLOTS[role].slice(0, slots).map((c) => trainingStatsForColor(c));
     const start = bannerOf(role, slots);
     const good = optimizeEmblems(before, role, slotOptions, start, 50, {});
     // A deliberately poor but legal banner: the lowest-value stats available.
@@ -133,7 +135,7 @@ for (const stage of ["groupStage", "playoffs"]) {
     const colours = [...new Set(BANNER_SLOTS[role].slice(0, slots))];
     const rows = [];
     for (const colour of colours) {
-      for (const stat of statsForColor(colour)) {
+      for (const stat of trainingStatsForColor(colour)) {
         const one = [{ stat, tier: "III", trait: "none" }];
         const predicted = before.filter((e) => e.role === role)
           .map((e) => matchScores(e, one).reduce((a, b) => a + b, 0) / Math.max(1, matchScores(e, one).length));
@@ -161,7 +163,7 @@ head("3. Traits: what each is worth on a real banner");
 {
   const slots = 5;
   const role = "core";
-  const slotOptions = BANNER_SLOTS[role].slice(0, slots).map((c) => statsForColor(c));
+  const slotOptions = BANNER_SLOTS[role].slice(0, slots).map((c) => trainingStatsForColor(c));
   const base = optimizeEmblems(before, role, slotOptions, bannerOf(role, slots), 50, {});
   const entries = truth.playoffs.filter((e) => e.role === role);
   const score = (banner) => entries.reduce((s, e) => s + banked(e, banner), 0) / entries.length;
@@ -193,7 +195,7 @@ head("4. Tiers: what a quality upgrade is worth");
 
 {
   const role = "core";
-  const slotOptions = BANNER_SLOTS[role].slice(0, 5).map((c) => statsForColor(c));
+  const slotOptions = BANNER_SLOTS[role].slice(0, 5).map((c) => trainingStatsForColor(c));
   const base = optimizeEmblems(before, role, slotOptions, bannerOf(role, 5), 50, {});
   const entries = truth.playoffs.filter((e) => e.role === role);
   const score = (b) => entries.reduce((s, e) => s + banked(e, b), 0) / entries.length;
@@ -228,7 +230,7 @@ head("5. Suffixes, graded on what happened");
       `+${((SUFFIXES[key].bonus / 100) * p * 100).toFixed(2)}%`.padStart(12));
   }
   console.log("\n  Same, but only for the entry the model would have picked:");
-  const slotOptions = BANNER_SLOTS.core.slice(0, 5).map((c) => statsForColor(c));
+  const slotOptions = BANNER_SLOTS.core.slice(0, 5).map((c) => trainingStatsForColor(c));
   const b = optimizeEmblems(before, "core", slotOptions, bannerOf("core", 5), 50, {});
   const pool = truth.playoffs.filter((e) => e.role === "core");
   const byId = new Map(pool.map((e) => [e.id, e]));
@@ -256,7 +258,7 @@ head("6. Would a highroll setting have paid?");
   console.log(`  ${"risk".padStart(5)}  ${"role".padEnd(9)}${"pick".padEnd(34)}${"banked".padStart(10)}${"rank".padStart(8)}`);
   for (const risk of [0, 50, 86, 100]) {
     for (const role of ROLES) {
-      const slotOptions = BANNER_SLOTS[role].slice(0, slots).map((c) => statsForColor(c));
+      const slotOptions = BANNER_SLOTS[role].slice(0, slots).map((c) => trainingStatsForColor(c));
       const b = optimizeEmblems(before, role, slotOptions, bannerOf(role, slots), risk, {});
       const pool = truth[stage].filter((e) => e.role === role);
       const byId = new Map(pool.map((e) => [e.id, e]));

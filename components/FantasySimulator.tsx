@@ -20,45 +20,19 @@ const signed = (n: number) =>
   `${n >= 0 ? "+" : "−"}${Math.abs(Math.round(n)).toLocaleString("en-US")}`;
 
 // The presets sit at 25 and 75 rather than the ends of the bar. Risk 0 reads
-// the 10th percentile and risk 100 the 95th, and the backtest found both to be
-// worse picks than the middle of the range - the ends are there to be dragged
-// to deliberately, not offered as one-click defaults.
+// the historical 10th percentile and risk 100 the 95th; neither is a calibrated
+// forecast bound. The backtest found both to be worse picks than the middle of
+// the range, so the ends must be dragged to deliberately.
 const RISK_LABELS: Array<{ at: number; label: string; hint: string }> = [
-  { at: 25, label: "Safe", hint: "the floor — what holds up on a bad day" },
-  { at: 50, label: "Balanced", hint: "a typical run" },
-  { at: 75, label: "Highroll", hint: "the ceiling — what a good run looks like" }
+  { at: 25, label: "Conservative", hint: "the lower end of recorded results" },
+  { at: 50, label: "Balanced", hint: "the middle of recorded results" },
+  { at: 75, label: "Upside", hint: "the upper end of recorded results" }
 ];
 
 export function riskLabel(risk: number) {
   if (risk <= 37) return RISK_LABELS[0];
   if (risk >= 63) return RISK_LABELS[2];
   return RISK_LABELS[1];
-}
-
-/**
- * What a risk setting is actually asking for, in runs.
- *
- * Risk reads a percentile of your own outcome distribution, and the expected
- * best of N independent runs lands near the N/(N+1)th percentile. Inverting
- * that, a percentile p is the outcome you would target if you were going for
- * the best of
- *
- *     N = p / (1 - p)
- *
- * runs. So risk 50 is a typical run, risk 70 is about the best of two, risk 85
- * about the best of five, and risk 100 the best of twenty. That is the honest
- * reading of the slider: it is not "how brave am I", it is "how many attempts
- * am I effectively aiming to beat".
- */
-export function riskAsRuns(risk: number): number {
-  const p = riskToPercentile(risk) / 100;
-  return p / Math.max(0.001, 1 - p);
-}
-
-export function riskAsOdds(risk: number): string {
-  const n = riskAsRuns(risk);
-  if (n < 1.3) return "a typical run";
-  return `aiming for the best of about ${n < 2.5 ? 2 : Math.round(n)} runs`;
 }
 
 export default function FantasySimulator({
@@ -213,7 +187,7 @@ export default function FantasySimulator({
           <p className="faint" style={{ marginTop: 2 }}>
             {budget} rerolls for the whole roster — Core, Mid and Support share them,
             and every option costs one. Record the three the game just dealt you and see
-            whether any beats waiting for the next deal.
+            whether any is worth using now.
           </p>
         </div>
         <span className="tag">{STAGE_LABELS[stage]} · {slots} emblems</span>
@@ -224,8 +198,9 @@ export default function FantasySimulator({
           <div>
             <h3>Risk</h3>
             <p className="faint" style={{ marginTop: 2 }}>
-              {info.label} — {info.hint}. Reading the{" "}
-              {Math.round(riskToPercentile(risk))}th percentile: {riskAsOdds(risk)}.
+              {info.label} — {info.hint}. Reading the historical{" "}
+              {Math.round(riskToPercentile(risk))}th percentile; this is not a
+              calibrated probability for the next event.
             </p>
           </div>
           <div className="pill-row">
@@ -241,7 +216,7 @@ export default function FantasySimulator({
           aria-label="Risk" className="risk-slider"
         />
         <div className="row-between faint">
-          <span>Floor</span><span>Typical</span><span>Ceiling</span>
+          <span>Historical low</span><span>Typical</span><span>Historical high</span>
         </div>
       </div>
 
@@ -255,9 +230,7 @@ export default function FantasySimulator({
               costs. The stage grants {STAGE_TOKENS.groupStage} for the group stage and{" "}
               {STAGE_TOKENS.playoffs} for the playoffs.
               <br /><br />
-              This is also how many more times you will be dealt three options, and that
-              is what sets the bar: with thirty left you can decline a mediocre offer,
-              with two left you cannot.
+              This is how many more actions or full refreshes you can pay for.
             </Info>
           </small>
           <input
@@ -265,7 +238,7 @@ export default function FantasySimulator({
             onChange={(e) => setRerolls(Math.max(0, Math.min(60, Number(e.target.value) || 0)))}
             className="token-input"
           />
-          <span className="faint">three options dealt each time</span>
+          <span className="faint">shared across all three banners</span>
         </div>
         <div className="stat-tile">
           <small>Roster now</small>
@@ -277,7 +250,7 @@ export default function FantasySimulator({
         <div className="stat-tile">
           <small>Options recorded</small>
           <b>{chosenCount} / {OPTIONS_DEALT}</b>
-          <span className="faint">skip is always compared too</span>
+          <span className="faint">take none is always compared too</span>
         </div>
 
       </div>
@@ -300,8 +273,8 @@ export default function FantasySimulator({
         <p className="faint">
           Record the <strong>three options the game is showing you</strong>, one per slot.
           They are the same three for every banner, so the answer is a pair: which option,
-          and which banner to spend it on. Using one replaces all three, so declining means
-          stopping rather than waiting.
+          and which banner to spend it on. Using one replaces all three. Taking none costs
+          nothing and leaves the same three options on the table.
         </p>
         <div className="offer-slots">
           {[0, 1, 2].map((i) => {
@@ -338,6 +311,11 @@ export default function FantasySimulator({
           onSpend={() => {
             // Using an option replaces all three, so the slots go back to empty
             // for whatever the game deals next.
+            setRerolls((r) => Math.max(0, r - 1));
+            setChosen([]);
+            setResults(null);
+          }}
+          onRefresh={() => {
             setRerolls((r) => Math.max(0, r - 1));
             setChosen([]);
             setResults(null);
@@ -384,7 +362,7 @@ export default function FantasySimulator({
                     title={TRAIT_DESCRIPTIONS[emblem.trait]}
                     onChange={(e) => update(role, index, { trait: e.target.value as Trait })}>
                     {TRAITS.map((trait) => (
-                      <option key={trait} value={trait}>{trait === "none" ? "—" : trait}</option>
+                      <option key={trait} value={trait}>{trait}</option>
                     ))}
                   </select>
                 </div>
@@ -395,23 +373,25 @@ export default function FantasySimulator({
       </div>
 
       <p className="notice">
-        Token costs and the tier/trait roll distributions are <strong>assumptions</strong> —
-        Valve publishes neither. They live in <code>ACTION_COSTS</code>,{" "}
-        <code>TIER_WEIGHTS</code> and <code>TRAIT_WEIGHTS</code> in <code>lib/reroll.ts</code>.
+        Tier and trait roll probabilities are <strong>assumptions</strong> because
+        their weights are not published. Every offered action costs one token.
       </p>
     </section>
   );
 }
 
 function Results({
-  plan, rerolls, onSpend
+  plan, rerolls, onSpend, onRefresh
 }: {
   plan: OfferPlan;
   rerolls: number;
   onSpend: () => void;
+  onRefresh: () => void;
 }) {
   const best = plan.decisions[0];
   const worthTaking = best && best.edge > 0;
+  const refreshBest = rerolls > 0 &&
+    plan.refreshValue > Math.max(plan.current, best?.takeValue ?? -Infinity);
 
   /**
    * One row per option, not one per option-and-banner.
@@ -444,7 +424,7 @@ function Results({
 
   return (
     <div className="stack">
-      <h3>Take one, or wait for the next deal</h3>
+      <h3>Take one, refresh, or take none</h3>
 
       <div className="stat-tiles">
         <div className="stat-tile">
@@ -454,11 +434,10 @@ function Results({
         </div>
         <div className="stat-tile">
           <small>
-            If you stop{" "}
-            <Info title="If you stop">
-              What the roster is worth if you use none of these. The three options only
-              change when one is used, so declining is not waiting for something better —
-              it is stopping. That makes this simply what you already hold.
+            If you take none{" "}
+            <Info title="If you take none">
+              What the roster is worth if you use none of these. It costs nothing and the
+              same three options remain available. This is simply what you already hold.
             </Info>
           </small>
           <b>{fmt(plan.skipValue)}</b>
@@ -466,15 +445,17 @@ function Results({
         </div>
         <div className="stat-tile">
           <small>Verdict</small>
-          <b style={{ color: worthTaking ? "var(--accent)" : "var(--muted)" }}>
-            {!worthTaking ? "Decline" : tiedCount ? "Take any" : "Take one"}
+          <b style={{ color: worthTaking || refreshBest ? "var(--accent)" : "var(--muted)" }}>
+            {refreshBest ? "Refresh" : !worthTaking ? "Take none" : tiedCount ? "Take any" : "Take one"}
           </b>
           <span className="faint">
-            {!worthTaking
+            {refreshBest
+              ? `${signed(plan.refreshEdge)} over taking none`
+              : !worthTaking
               ? "none of them beat what you hold"
               : tiedCount
                 ? `${tiedCount + 1} pairs too close to separate`
-                : `${signed(best.edge)} over stopping`}
+                : `${signed(best.edge)} over taking none`}
           </span>
         </div>
       </div>
@@ -492,10 +473,9 @@ function Results({
                 </Info>
               </th>
               <th style={{ textAlign: "right" }}>
-                Against stopping <Info title="Against stopping" align="right">
-                  Taking it minus keeping what you hold. Using a reroll is also the only
-                  way to see three new options, so a pair can be worth taking for the
-                  reshuffle even when the option itself is unremarkable.
+                Against taking none <Info title="Against taking none" align="right">
+                  Taking it minus keeping what you hold. Applying it also produces the
+                  next deal, so the result includes the value of continuing afterwards.
                 </Info>
               </th>
               <th></th>
@@ -540,7 +520,24 @@ function Results({
               </tr>
             ))}
             <tr className="row-skip">
-              <td>Stop — keep what you have</td>
+              <td>Refresh all three</td>
+              <td className="muted">no banner changes</td>
+              <td className="num" style={{ textAlign: "right" }}>{fmt(plan.refreshValue)}</td>
+              <td className="num" style={{
+                textAlign: "right", fontWeight: 650,
+                color: plan.refreshEdge > 0 ? "var(--accent)" : "var(--muted)"
+              }}>
+                {signed(plan.refreshEdge)}
+              </td>
+              <td style={{ textAlign: "right" }}>
+                <button onClick={onRefresh} disabled={rerolls <= 0}
+                  title="Spend one token to replace all three options">
+                  Refresh
+                </button>
+              </td>
+            </tr>
+            <tr className="row-skip">
+              <td>Take none — keep what you have</td>
               <td className="muted">—</td>
               <td className="num" style={{ textAlign: "right" }}>{fmt(plan.skipValue)}</td>
               <td className="num muted" style={{ textAlign: "right" }}>—</td>
@@ -553,18 +550,22 @@ function Results({
       </div>
 
       <div className="verdict">
-        {worthTaking ? (
+        {refreshBest ? (
+          <>
+            <strong>Refresh all three.</strong> Spending one token without changing a
+            banner is worth {signed(plan.refreshEdge)} against taking none, and beats
+            applying any option currently shown.
+          </>
+        ) : worthTaking ? (
           <>
             <strong>Take &ldquo;{best.action.label}&rdquo;</strong> and apply it to{" "}
             <strong>{ROLE_LABELS[best.role]}</strong> — worth {signed(best.edge)} against
-            keeping what you hold.
+            taking none.
           </>
         ) : (
           <>
-            <strong>Stop here.</strong> None of the three improves any banner enough to be
-            worth a reroll, and spending one is the only way to see different options — so
-            there is nothing to wait for. Your {plan.rounds} remaining rerolls are better
-            unspent than spent making a banner worse.
+            <strong>Take none.</strong> None of the three improves any banner enough to be
+            worth applying. They remain on the table and no token is spent.
           </>
         )}
       </div>
@@ -572,9 +573,8 @@ function Results({
       <p className="faint" style={{ maxWidth: 740 }}>
         Each figure assumes you keep rerolling afterwards while it still helps, over{" "}
         {plan.runs} simulated futures — what the reshuffles turn up is genuinely random,
-        so there is nothing to enumerate. The play-out never pays a small loss just to
-        reshuffle, so these are a floor: a perfect player would sometimes burn a reroll on
-        the least-bad option to see three new ones, and finish slightly ahead of this.
+        so there is nothing to enumerate. Refresh spends one token, preserves every
+        banner and replaces all three options.
       </p>
     </div>
   );
