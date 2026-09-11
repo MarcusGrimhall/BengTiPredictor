@@ -6,6 +6,8 @@ out
 *.tsbuildinfo
 next-env.d.ts
 data/cache
+data/normalized
+data/audits
 scripts/replay-parser/target
 
 # validation build output

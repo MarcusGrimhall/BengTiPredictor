@@ -1,10 +1,11 @@
 #!/usr/bin/env node
 
 import { execFile } from "node:child_process";
-import { access, mkdir, readFile, writeFile } from "node:fs/promises";
+import { access, mkdir, readFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { promisify } from "node:util";
 import { fileURLToPath } from "node:url";
+import { atomicJson, optionalJson, replayErrors } from "./exact-data.mjs";
 
 const exec = promisify(execFile);
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
@@ -30,15 +31,8 @@ async function validCheckpoint(matchId) {
   if (!(await exists(file))) return false;
   try {
     const result = JSON.parse(await readFile(file, "utf8"));
-    const players = result.match?.players;
-    const fields = ["madstones_collected", "watchers_captured",
-      "lotuses_collected", "tormentors_killed"];
-    return result.match?.matchId === matchId
-      && players?.length === 10
-      && new Set(players.map((player) => player.accountId)).size === 10
-      && players.every((player) =>
-        fields.every((field) => Number.isFinite(player.stats?.[field]) && player.stats[field] >= 0)
-      );
+    const raw = JSON.parse(await readFile(join(ROOT, "data/cache/matches", `${matchId}.json`), "utf8"));
+    return replayErrors(result, raw).length === 0;
   } catch {
     return false;
   }
@@ -46,10 +40,11 @@ async function validCheckpoint(matchId) {
 
 async function main() {
   const league = JSON.parse(await readFile(join(GENERATED, `league-${leagueId}.json`), "utf8"));
-  const matchIds = [...new Set(league.players.flatMap((player) => player.sampleMatches ?? []))]
+  const manifest = await optionalJson(join(ROOT, "data/cache/leagues", `${leagueId}.json`));
+  const matchIds = [...new Set(manifest?.matches.map((m) => m.match_id) ?? league.matchIds ?? league.players.flatMap((player) => player.sampleMatches ?? []))]
     .filter(Number.isFinite)
     .sort((a, b) => a - b);
-  if (matchIds.length !== league.matchesUsed) {
+  if (matchIds.length !== (manifest?.matches.length ?? league.matchesTotal)) {
     throw new Error(`Generated league identifies ${matchIds.length} matches, expected ${league.matchesUsed}`);
   }
 
@@ -73,8 +68,8 @@ async function main() {
         if (!(await validCheckpoint(matchId))) throw new Error("parser produced an invalid checkpoint");
         console.log(`[${index + 1}/${matchIds.length}] ${matchId} ok`);
       } catch (error) {
-        const detail = error.stderr?.trim() || error.message;
-        const failure = { matchId, error: detail.split("\n").at(-1) };
+        const detail = error.stderr?.trim() || error.message?.trim() || `process exit ${error.code ?? "unknown"}`;
+        const failure = { matchId, error: detail.split("\n").filter((s) => s.trim()).at(-1) ?? "unknown replay failure" };
         failures.push(failure);
         console.log(`[${index + 1}/${matchIds.length}] ${matchId} failed: ${failure.error}`);
       }
@@ -96,13 +91,14 @@ async function main() {
     missing: matchIds.filter((id) => !valid.includes(id)),
     failures
   };
-  await writeFile(join(REPORT_DIR, `league-${leagueId}.json`), `${JSON.stringify(report, null, 2)}\n`);
+  await atomicJson(join(REPORT_DIR, `league-${leagueId}.json`), report);
 
   console.log(`\n${league.leagueName}: ${report.complete}/${report.matches} exact replay checkpoints.`);
   console.log(report.ready
     ? "Coverage complete; this league is safe to migrate to replay counters."
     : `${report.missing.length} remain; replay counters must not yet be treated as complete.`);
   if (failures.length) console.log(`${failures.length} attempted replay(s) were unavailable or invalid.`);
+  if (!report.ready) process.exitCode = 2;
 }
 
 main().catch((error) => {

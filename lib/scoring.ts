@@ -1,8 +1,9 @@
+import rules from "./current-rules.json";
 // The fantasy scoring model: raw stats -> fantasy points.
 //
 // POINT_VALUES is points per unit from Valve's official TI 2026 Compendium
-// fantasy scale. If the scale changes this is the only file you need to
-// touch - data/generated/ stores raw values and never needs re-fetching.
+// fantasy scale. Values are configured in current-rules.json; source semantics
+// and new counter algorithms still require evidence and code.
 
 export type StatKey =
   | "kills" | "deaths" | "creeps" | "gpm" | "towers" | "roshan" | "tormentor"
@@ -12,35 +13,9 @@ export type StatKey =
 export type EmblemColor = "red" | "blue" | "green";
 export type Role = "core" | "mid" | "support";
 
-export const POINT_VALUES: Record<StatKey, { per: number; base?: number }> = {
-  kills: { per: 107 },
-  deaths: { per: -195, base: 1950 },   // starts at 1950, subtracted per death
-  creeps: { per: 3 },
-  gpm: { per: 2 },
-  towers: { per: 352 },
-  roshan: { per: 1172 },
-  tormentor: { per: 879 },
-  courier: { per: 703 },
-  firstBlood: { per: 1934 },
-  teamfight: { per: 2124 },
-  stuns: { per: 10 },
-  wards: { per: 117 },
-  stacks: { per: 234 },
-  runes: { per: 141 },
-  smokes: { per: 293 },
-  madstones: { per: 13 },
-  lotuses: { per: 176 },
-  watchers: { per: 147 }
-};
+export const POINT_VALUES = rules.points as Record<StatKey, { per: number; base?: number }>;
 
-export const STAT_COLORS: Record<StatKey, EmblemColor> = {
-  gpm: "red", deaths: "red", creeps: "red", kills: "red", towers: "red",
-  madstones: "red",
-  wards: "blue", stacks: "blue", runes: "blue", smokes: "blue",
-  lotuses: "blue", watchers: "blue",
-  teamfight: "green", stuns: "green", tormentor: "green", roshan: "green",
-  firstBlood: "green", courier: "green"
-};
+export const STAT_COLORS = rules.statColors as Record<StatKey, EmblemColor>;
 
 export const STAT_LABELS: Record<StatKey, string> = {
   kills: "Kills", deaths: "Deaths", creeps: "Creep score", gpm: "GPM",
@@ -65,9 +40,9 @@ export const STAT_DEFINITIONS: Record<StatKey, string> = {
   kills:
     "Hero kills the player took themselves. Assists are not counted here at all.",
   deaths:
-    "Starts at 1950 and subtracts 195 a death, with a floor of zero — ten deaths pays nothing rather than a penalty. Scored per game, then averaged.",
+    `Starts at ${POINT_VALUES.deaths.base} and changes by ${POINT_VALUES.deaths.per} per death, floored at ${rules.deathsFloor}. Scored per game, then averaged.`,
   creeps:
-    "Last hits AND denies together — the in-game glossary pays +3 per last hit or deny. Denies are about 2.5% of the total.",
+    `Last hits and denies together, ${POINT_VALUES.creeps.per} points per last hit or deny.`,
   gpm:
     "Gold per minute, already averaged over the match. The only stat that is a rate rather than a count, so a long game does not inflate it.",
   towers:
@@ -75,13 +50,13 @@ export const STAT_DEFINITIONS: Record<StatKey, string> = {
   roshan:
     "The killing blow on Roshan, not the team that took it.",
   tormentor:
-    "Read from the combat log's kill credit, not the kill announcement. The game credits everyone involved in the kill, which no single-player field reproduces, so this is the closest public data gets.",
+    "Participation credit from the game's m_iTormentorKills replay counter. Older descriptive datasets may contain a last-hit proxy; that proxy is rejected by primary training.",
   courier:
     "Couriers killed. Couriers that die to creeps or towers count for no one.",
   firstBlood:
-    "Once a game, to whoever took the kill rather than the assist. It pays 1934, but it only fires in about a tenth of games.",
+    `Once a game, to whoever took the kill rather than the assist. It pays ${POINT_VALUES.firstBlood.per} points.`,
   teamfight:
-    "The player's share of their team's fighting: kills plus assists, over the number of times the other team died. A fraction between 0 and 1, typically about two thirds.",
+    "The game's end-of-match m_flTeamFightParticipation counter. The primary model requires this replay value; an API reconstruction is not treated as exact.",
   stuns:
     "Seconds of stun applied, summed per hero hit — a three-hero, two-second stun counts as six. That favours wide AoE stuns over single-target ones.",
   wards:
@@ -93,7 +68,7 @@ export const STAT_DEFINITIONS: Record<StatKey, string> = {
   smokes:
     "Smokes used, whoever paid for them. A smoke bought and never used is worth nothing.",
   madstones:
-    "The game's end-of-match Madstone fantasy counter, read from the replay when available. Older events fall back to a bundle-based estimate.",
+    "The game's end-of-match Madstone fantasy counter. Primary training requires the replay counter; older descriptive datasets may contain a bundle-based estimate.",
   lotuses:
     "Lotuses taken by the player, from the game's m_iLotusesTaken replay counter.",
   watchers:
@@ -102,18 +77,13 @@ export const STAT_DEFINITIONS: Record<StatKey, string> = {
 
 export const STAT_KEYS = Object.keys(POINT_VALUES) as StatKey[];
 
-// Stats TI fantasy scores but neither OpenDota nor STRATZ exposes at all.
-// We mark them unavailable rather than guessing. Madstones used to be on this
-// list; it is now derived from madstone_bundle events - see ASSUMPTIONS.md.
+// Current rule catalogue has no structurally unsupported scoring columns.
+// Dataset-specific missing observations are gated by scripts/exact-data.mjs.
 export const UNAVAILABLE_STATS: string[] = [];
 
 // The colour of each banner slot, following the TI 2026 layout: five
 // emblems per banner, colour decides which stats may be placed there.
-export const BANNER_SLOTS: Record<Role, EmblemColor[]> = {
-  core: ["red", "green", "red", "green", "red"],
-  mid: ["red", "blue", "green", "red", "green"],
-  support: ["blue", "green", "blue", "green", "blue"]
-};
+export const BANNER_SLOTS = rules.bannerSlots as Record<Role, EmblemColor[]>;
 
 /**
  * Converts a per-game raw value into fantasy points for that stat.
@@ -125,7 +95,7 @@ export const BANNER_SLOTS: Record<Role, EmblemColor[]> = {
  */
 export function statToPoints(stat: StatKey, rawPerGame: number): number {
   const { per, base = 0 } = POINT_VALUES[stat];
-  return Math.max(0, base + per * rawPerGame);
+  return Math.max(stat === "deaths" ? rules.deathsFloor : 0, base + per * rawPerGame);
 }
 
 /**

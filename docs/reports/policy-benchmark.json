@@ -1,0 +1,64 @@
+{
+  "scope": "Exact reduced game, not measured regret for the full TI game",
+  "state": "two ordered 3-quality slots plus one current offer; weighted rerolls and paid refresh",
+  "method": "memoized finite-horizon Bellman recursion; exact policy evaluation over all 27 starting states",
+  "rows": [
+    {
+      "tokens": 1,
+      "optimalMean": 8.644444444444444,
+      "greedyMeanRegret": 0,
+      "greedyMaxRegret": 0
+    },
+    {
+      "tokens": 2,
+      "optimalMean": 9.880967078189302,
+      "greedyMeanRegret": 0.18271604938271604,
+      "greedyMaxRegret": 1.5
+    },
+    {
+      "tokens": 3,
+      "optimalMean": 10.972710905349793,
+      "greedyMeanRegret": 0.5912808641975308,
+      "greedyMaxRegret": 3.521874999999998
+    },
+    {
+      "tokens": 4,
+      "optimalMean": 11.99569508744856,
+      "greedyMeanRegret": 0.9981076388888886,
+      "greedyMaxRegret": 4.46484375
+    },
+    {
+      "tokens": 5,
+      "optimalMean": 12.91257394547325,
+      "greedyMeanRegret": 1.3858892746913574,
+      "greedyMaxRegret": 5.405859374999999
+    },
+    {
+      "tokens": 10,
+      "optimalMean": 16.32660657466684,
+      "greedyMeanRegret": 3.015735432892473,
+      "greedyMaxRegret": 9.446983337402342
+    },
+    {
+      "tokens": 30,
+      "optimalMean": 20.490803522315908,
+      "greedyMeanRegret": 5.23281867509892,
+      "greedyMaxRegret": 14.394020531594194
+    },
+    {
+      "tokens": 40,
+      "optimalMean": 20.83203334380473,
+      "greedyMeanRegret": 5.419688194746981,
+      "greedyMaxRegret": 14.800107735100308
+    }
+  ],
+  "reachableStates": 1107,
+  "seconds": 0.08624975700000001,
+  "fullMechanicsTwoToken": {
+    "scope": "synthetic cheap additive terminal oracle; not end-to-end website latency",
+    "seconds": 0.213604647,
+    "cachedExpectations": 10785,
+    "actions": 7,
+    "optimalValue": 30943.17373389036
+  }
+}

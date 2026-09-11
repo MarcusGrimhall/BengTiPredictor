@@ -25,12 +25,13 @@ export default async function FantasyPage() {
   }
 
   const training = await loadTraining(league.leagueId);
-  if (!training) {
+  if (!training || training.dataPolicy !== "complete-exact" || !training.modelValidated) {
     return (
       <main className="shell">
         <div className="page-head"><h1>Fantasy calculator</h1></div>
         <div className="notice">
-          No pre-event training set. Run <code>npm run train -- {league.leagueId}</code>.
+          Predictions are awaiting a validated model built from complete match data.
+          Historical scoring and banner rules remain available on the Information page.
         </div>
       </main>
     );

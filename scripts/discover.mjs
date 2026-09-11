@@ -32,6 +32,7 @@ Find tournaments that are not in data/generated/ yet.
 
   npm run discover -- [options]
 
+  --target <id>    track only this target roster’s team IDs, before its lock
   --months <N>     how far back to look                    (default 2)
   --tier <t>       premium | professional | both           (default both)
   --min-matches N  ignore events smaller than this          (default 8)
@@ -50,7 +51,10 @@ const MIN_MATCHES = Number(flag("min-matches", 8)) || 8;
 const DO_FETCH = args.includes("--fetch");
 const TAKE_ALL = args.includes("--all");
 
-const CUTOFF = Math.floor(Date.now() / 1000) - MONTHS * 30 * 24 * 3600;
+let CUTOFF = Math.floor(Date.now() / 1000) - MONTHS * 30 * 24 * 3600;
+const targetId = flag("target", null);
+const trackedIds = new Set();
+let targetLock = Infinity;
 
 // ---------------------------------------------------------------- what we have
 const files = (await readdir(OUT_DIR)).filter((f) => /^league-\d+\.json$/.test(f));
@@ -70,12 +74,19 @@ for (const f of files) {
 let target = null;
 try {
   const index = JSON.parse(await readFile(join(OUT_DIR, "index.json"), "utf8"));
-  const entry = index.find((e) => !e.training);
+  const entry = targetId ? index.find((e) => e.leagueId === Number(targetId)) : index.find((e) => !e.training);
   if (entry) {
     const l = JSON.parse(await readFile(join(OUT_DIR, `league-${entry.leagueId}.json`), "utf8"));
     target = { name: l.leagueName, firstMatch: l.firstMatch };
+    if (targetId) {
+      targetLock = l.firstMatch;
+      CUTOFF = targetLock - MONTHS * 30 * 86400;
+      for (const team of l.teams) trackedIds.add(team.id);
+    }
   }
 } catch { /* no index yet */ }
+
+if (targetId && !trackedIds.size) throw new Error("Unknown target roster; fetch target metadata first");
 
 console.log(`Have ${have.size} events, ${tracked.size} distinct teams.`);
 if (target) {
@@ -98,6 +109,7 @@ while (pages < 400) {
   let reachedCutoff = false;
   for (const m of page) {
     scanned += 1;
+    if (m.start_time >= targetLock) continue;
     if (m.start_time < CUTOFF) { reachedCutoff = true; continue; }
     if (!m.leagueid) continue;
     const e = seen.get(m.leagueid) ?? {
@@ -107,7 +119,7 @@ while (pages < 400) {
     e.matches += 1;
     const a = (m.radiant_name ?? "").toLowerCase();
     const b = (m.dire_name ?? "").toLowerCase();
-    if (tracked.has(a) || tracked.has(b)) e.tracked += 1;
+    if (targetId ? trackedIds.has(m.radiant_team_id) || trackedIds.has(m.dire_team_id) : tracked.has(a) || tracked.has(b)) e.tracked += 1;
     e.first = Math.min(e.first, m.start_time);
     e.last = Math.max(e.last, m.start_time);
     seen.set(m.leagueid, e);

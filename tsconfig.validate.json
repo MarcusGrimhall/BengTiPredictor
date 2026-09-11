@@ -7,7 +7,10 @@
     "strict": true,
     "skipLibCheck": true,
     "esModuleInterop": true,
-    "forceConsistentCasingInFileNames": true
+    "forceConsistentCasingInFileNames": true,
+    "resolveJsonModule": true
   },
-  "include": ["lib/**/*.ts"]
+  "include": [
+    "lib/**/*.ts"
+  ]
 }

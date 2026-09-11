@@ -14,6 +14,7 @@ import { fileURLToPath } from "node:url";
 import { odFetch } from "./opendota.mjs";
 import { extractMatch, suffixFlags, RAW_STATS, UNAVAILABLE_STATS } from "./extract.mjs";
 import { splitStages, STAGES } from "./stages.mjs";
+import { atomicJson, optionalJson } from "./exact-data.mjs";
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
 const CACHE_DIR = join(ROOT, "data", "cache", "matches");
@@ -45,10 +46,13 @@ const progress = (line) => {
 async function getMatch(id) {
   const cached = join(CACHE_DIR, `${id}.json`);
   if (!refresh && (await exists(cached))) {
-    return JSON.parse(await readFile(cached, "utf8"));
+    const match = JSON.parse(await readFile(cached, "utf8"));
+    if (match.match_id !== id) throw new Error(`Cached match identity mismatch: ${id}`);
+    return match;
   }
   const match = await odFetch(`/matches/${id}`);
-  await writeFile(cached, JSON.stringify(match));
+  if (match.match_id !== id) throw new Error(`OpenDota match identity mismatch: ${id}`);
+  await atomicJson(cached, match);
   return match;
 }
 
@@ -74,7 +78,8 @@ async function main() {
   }
   const [leagueInfo, matchList, allTeams, proPlayers] = await Promise.all([
     offline ? { name: previous.leagueName } : odFetch(`/leagues/${leagueId}`).catch(() => null),
-    offline ? [...new Set(previous.players.flatMap((p) => p.sampleMatches ?? []))].map((match_id) => ({ match_id })) : odFetch(`/leagues/${leagueId}/matches`),
+    offline ? (await optionalJson(join(ROOT, "data/cache/leagues", `${leagueId}.json`)))?.matches
+      ?? (previous.matchIds ?? [...new Set(previous.players.flatMap((p) => p.sampleMatches ?? []))]).map((match_id) => ({ match_id })) : odFetch(`/leagues/${leagueId}/matches`),
     // OpenDota maintains an Elo rating per team. This is what drives the
     // bracket model, so nobody has to invent strength numbers by hand.
     offline ? previous.teams.map((t) => ({ team_id: t.id, rating: t.elo, wins: t.careerWins, losses: t.careerLosses })) : odFetch(`/teams`).catch(() => []),
@@ -82,6 +87,9 @@ async function main() {
     // happened to be using, plus the official fantasy role.
     offline ? previous.players.map((p) => ({ account_id: p.accountId, name: p.name, fantasy_role: ({ core: 1, support: 2, mid: 4 })[p.role] })) : odFetch(`/proPlayers`).catch(() => [])
   ]);
+  if (!offline) await atomicJson(join(ROOT, "data/cache/leagues", `${leagueId}.json`), {
+    leagueId: Number(leagueId), acquiredAt: new Date().toISOString(), source: "OpenDota league matches", matches: matchList
+  });
   const eloById = new Map((allTeams ?? []).map((t) => [t.team_id, t]));
   const proById = new Map((proPlayers ?? []).map((p) => [p.account_id, p]));
 
@@ -234,7 +242,8 @@ async function main() {
         lastPossible: lastPossibleOf.get(match.match_id),
         replayTitles: replayFantasy?.match?.titleConditions
       }));
-      agg.sampleReplayTitles.push(Boolean(replayFantasy));
+      agg.sampleReplayTitles.push(["anyPlayerDiedToTormentor", "firstBloodBeforeHorn", "anyPlayerDiedInOwnFountain"]
+        .every((key) => typeof replayFantasy?.match?.titleConditions?.[key] === "boolean"));
       agg.stageGames[stage] += 1;
       if (row.won) agg.stageWins[stage] += 1;
 
@@ -402,6 +411,7 @@ async function main() {
     leagueName,
     fetchedAt: new Date().toISOString(),
     matchesTotal: matchList.length,
+    ...(offline && !previous.matchIds ? {} : { matchIds: matchList.map((m) => m.match_id) }),
     matchesUsed: parsedCount,
     matchesSkipped: skipped,
     minGames,

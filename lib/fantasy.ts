@@ -1,3 +1,4 @@
+import rules from "./current-rules.json";
 // The emblem, tier and trait engine.
 //
 // A banner holds five emblems. Each emblem points at a stat, has a tier
@@ -9,16 +10,16 @@ import { Role, StatKey, pointsToStat, statToPoints } from "./scoring";
 export type Tier = "I" | "II" | "III" | "IV" | "V";
 export type Trait = "none" | "fractal" | "benevolent" | "vampiric" | "unique" | "friendly";
 
-export const TIER_BONUSES: Record<Tier, number> = { I: 10, II: 30, III: 60, IV: 100, V: 150 };
+export const TIER_BONUSES: Record<Tier, number> = rules.tierBonuses;
 export const TIERS = Object.keys(TIER_BONUSES) as Tier[];
 
 export const TRAIT_DESCRIPTIONS: Record<Trait, string> = {
   none: "No trait",
-  fractal: "+60% to this emblem if every quality on the banner is different",
-  benevolent: "+20% to adjacent emblems",
-  vampiric: "+50% to this emblem, -10% to adjacent emblems",
-  unique: "+30% to this emblem if it is the only Unique on the banner",
-  friendly: "+50% to this emblem if the banner has at least three Friendly"
+  fractal: `+${rules.traits.fractal*100}% to this emblem if every quality on the banner is different`,
+  benevolent: `+${rules.traits.benevolent*100}% to adjacent emblems`,
+  vampiric: `+${rules.traits.vampiric*100}% to this emblem, ${rules.traits.vampiricAdjacent*100}% to adjacent emblems`,
+  unique: `+${rules.traits.unique*100}% to this emblem if it is the only Unique on the banner`,
+  friendly: `+${rules.traits.friendly*100}% to this emblem if the banner has at least ${rules.traits.friendlyMinimum} Friendly`
 };
 /** The five traits an emblem can actually carry. `none` is internal-only. */
 export const TRAITS: Trait[] = ["fractal", "benevolent", "vampiric", "unique", "friendly"];
@@ -115,20 +116,20 @@ export function traitBonuses(emblems: Emblem[]): number[] {
   const friendlyCount = emblems.filter((e) => e.trait === "friendly").length;
 
   emblems.forEach((emblem, index) => {
-    if (emblem.trait === "fractal" && allTiersDifferent) bonus[index] += 0.6;
-    if (emblem.trait === "unique" && uniqueCount === 1) bonus[index] += 0.3;
-    if (emblem.trait === "friendly" && friendlyCount >= 3) bonus[index] += 0.5;
+    if (emblem.trait === "fractal" && allTiersDifferent) bonus[index] += rules.traits.fractal;
+    if (emblem.trait === "unique" && uniqueCount === 1) bonus[index] += rules.traits.unique;
+    if (emblem.trait === "friendly" && friendlyCount >= rules.traits.friendlyMinimum) bonus[index] += rules.traits.friendly;
 
     if (emblem.trait === "benevolent") {
       emblems.forEach((_, target) => {
-        if (isAdjacent(index, target)) bonus[target] += 0.2;
+        if (isAdjacent(index, target)) bonus[target] += rules.traits.benevolent;
       });
     }
 
     if (emblem.trait === "vampiric") {
-      bonus[index] += 0.5;
+      bonus[index] += rules.traits.vampiric;
       emblems.forEach((_, target) => {
-        if (isAdjacent(index, target)) bonus[target] -= 0.1;
+        if (isAdjacent(index, target)) bonus[target] += rules.traits.vampiricAdjacent;
       });
     }
   });
@@ -776,7 +777,7 @@ export function optimizeEmblems(
     // --- combinations, which no single-slot move can reach ---
 
     // Friendly on every subset of three or more. Each one alone is worth zero.
-    for (const subset of subsetsOfAtLeast(best.length, 3)) {
+    for (const subset of subsetsOfAtLeast(best.length, rules.traits.friendlyMinimum)) {
       const candidate = best.map((e, i) =>
         subset.includes(i) ? { ...e, trait: "friendly" as Trait } : e
       );

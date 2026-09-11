@@ -76,6 +76,7 @@ Examples
 `;
 
 const args = process.argv.slice(2);
+if (!args.includes("--legacy") && !args.includes("--help") && !args.includes("-h")) throw new Error("Legacy simulator is not an exact-data model. Use prepare-ti/train for gated data and compare-models for chronological diagnostics. --legacy explicitly enables the old approximate benchmark only.");
 if (args.includes("--help") || args.includes("-h")) { console.log(HELP); process.exit(0); }
 
 const flag = (name, fallback = null) => {

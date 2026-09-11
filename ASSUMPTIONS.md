@@ -4,6 +4,50 @@ Every rule the calculator applies, and where it came from. Anything marked
 **assumed** is a guess of mine and should be treated as provisional — if it is
 wrong, the numbers that depend on it are wrong.
 
+
+## Primary-model policy (2026-09-10; supersedes legacy data/model claims below)
+
+The primary training path now retains a match only when all ten players have
+all 18 adopted fantasy fields, with per-field provenance. Missing fields are
+null; negative/impossible counters, identity mismatches and partial replay
+checkpoints are excluded. It does not use calibrated Watcher/Lotus/Madstone
+ratios, Tormentor kill-credit proxies or OpenDota Teamfight as exact observations.
+Those fallbacks remain only in legacy descriptive data for regression comparison.
+"Exact" means measured under the adopted semantic rules; the still-assumed
+Stuns/Wisdom/Deaths interpretations below are not magically verified by a parser.
+
+The source gate requires at least 90% usable matches in each selected event,
+checks the full acquired match manifest, and tests excessive missingness by
+team/stage/patch/week. Small subgroup gaps are warnings; one-sided binomial
+checks against 10% missingness use a 1% Bonferroni family threshold. This is a
+practical quality policy, not proof that missingness is random. Every retained
+row is 100% populated, and individual target players need at least 20 exact
+maps. That adequacy threshold is provisional, not empirically optimal.
+
+Training requires an explicit lock timestamp and roster evidence dated no
+later than lock; every training match must have FINISHED strictly before lock.
+No role is inferred from target performance in the new training builder. Group
+and Playoff configurations are independent (3/40 and 5/30); completed Groups
+may enter Playoff training, never the target Playoff stage. Per the current
+owner instruction, the calculator now stores separate banner state per stage;
+the older carry-three-slots UI convention is not used to transfer optimization
+state. This is an explicit product-policy change, not new evidence about Valve.
+
+Stat rerolls now exclude the current stat; the old implementation contradicted
+R08. No-repeat of all three previous offers is now implemented as the existing
+adopted assumption. Initial quality weights remain separate from crafting weights.
+Wildcards and immediate action probabilities are enumerable. The old rollout
+looked at sampled outcomes for *every* option before choosing; it now chooses
+using exact expectations and observes only the chosen outcome. It remains a
+greedy continuation, not a proven near-optimal 40/30-token policy. One-token
+planning is exact; `lib/finiteHorizon.ts` is an exact small-game reference.
+
+Current configurable values live in `lib/current-rules.json`. The historical
+risk slider, reliability table, strength coefficient and equal top-four path
+are not promoted to a validated primary model. See
+[the audit](docs/STATISTICAL_AUDIT.md) and
+[the pipeline contract](docs/EXACT_PIPELINE.md).
+
 ## Verified against a source
 
 | Rule | Source |
@@ -48,7 +92,7 @@ wrong, the numbers that depend on it are wrong.
 | Kills, deaths, last hits, GPM, courier kills, observer wards, camps stacked | Verified field by field against STRATZ on the same match, 10/10 players each |
 | Roshan is the player credited with the kill | Sum of `killed.npc_dota_roshan` equals the count of `CHAT_MESSAGE_ROSHAN_KILL` events exactly, over 12 matches |
 | First Blood | Sum of `firstblood_claimed` equals the count of `CHAT_MESSAGE_FIRSTBLOOD` events exactly |
-| Tormentor is the player the combat log credits with the kill | `killed.npc_dota_miniboss`. Cannot be made exact — the game credits everyone involved in the kill. The chat message was worse and has been dropped, see Retracted. STRATZ has no tormentor data at all |
+| Tormentor participation uses `m_iTormentorKills` | Replay game-state counter. Combat-log last-hit credit survives only in legacy descriptive fallback data and is forbidden in primary training |
 | Runes count **bottled runes as well as taken ones** | In-game glossary: *"bottled or taken"*. It says nothing either way about Wisdom runes; that `rune_pickups` excludes them is a measured property of the data, not a stated rule — see below |
 | A tower goes to whoever landed the **last hit** | You |
 | Teamfight participation is a **0–1 share**, scored per unit and not per percentage point | You |
@@ -64,9 +108,9 @@ wrong, the numbers that depend on it are wrong.
 | **Deaths floor at zero rather than becoming negative after ten deaths** | `statToPoints` in `lib/scoring.ts` | This was the agreed working assumption, but external evidence now points the other way: the client only states `1950 - 195 per death`, while battlepass.ru's replay-based verifier explicitly says the game allows a negative result. Keep the current behaviour only provisionally until an actual 11+ death client result settles it. |
 | Hero colour/theme groups | `HERO_GROUPS`, empty | Prefix titles — reported as unknown rather than guessed |
 | **Older matches approximate Madstones as 3.17 × `item_uses.madstone_bundle`** | `MADSTONES_PER_BUNDLE` in `scripts/extract.mjs` | Replay-covered matches use the exact `m_iNeutralTokensFound` counter. The fallback factor is calibrated from exact/bundle totals: 3.177× at TI and EWC 2026 and 3.164× at 1win Essence II. |
-| **None of the three shown options may be offered again in the immediately following deal** | User instruction 2026-09-03; `deal()` in `lib/offers.ts` draws freely | The value of a reroll. Public sources confirm only three unique options within one deal. Valve stores operations in buckets with a requested count, but the live bucket contents are not public and no consecutive-deal dataset was found. |
+| **None of the three shown options may be offered again in the immediately following deal** | User instruction 2026-09-03; `deal()` in `lib/offers.ts` now excludes the previous three | The value of a reroll. Public sources confirm only three unique options within one deal. Valve stores operations in buckets with a requested count, but the live bucket contents are not public and no consecutive-deal dataset was found. |
 | **A stat is trusted as far as it repeats** | `lib/reliability.ts`, weights from `data/generated/reliability.json` | Every ranking. Each stat's estimate is pulled toward the field average by however unreliable the stat was measured to be — the standard regression-to-the-mean correction, with the weight measured rather than chosen. What is assumed is that split-half reliability WITHIN an event is a fair stand-in for how well a stat carries ACROSS months and roster changes. It is not: measured inside one event it is an upper bound, so the correction is smaller than it should be. Backtested rather than argued — see below. |
-| **A role heuristic is a role** | `scripts/fetch-league.mjs` | Every ranking. Lane detection is OpenDota's reading of where a hero stood, not Valve's fantasy assignment. It has never disagreed where it can be checked and is never close, but it is inference. STRATZ exposes a real per-match `Position` (POSITION_1…POSITION_5) behind a free API token, which would remove the inference entirely. |
+| **A role heuristic is a role** | `scripts/fetch-league.mjs` | Every ranking. Lane detection is OpenDota's reading of where a hero stood, not Valve's fantasy assignment. It has never disagreed where it can be checked and is never close, but it is inference. STRATZ exposes per-match `Position` (POSITION_1…POSITION_5), but a field name does not establish official fantasy-role correctness. Its classifier still needs comparison; no exact-role claim is made. |
 
 That is the whole list, and it is seven. Runes, Towers and Teamfight were on it
 briefly: they were never new guesses, they were old guesses that had never been

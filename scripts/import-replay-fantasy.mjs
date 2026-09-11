@@ -4,9 +4,10 @@
 // the raw cache. Generated league files are never edited here; `npm run fetch`
 // remains the only writer of data/generated/.
 
-import { copyFile, mkdir, readFile, readdir } from "node:fs/promises";
+import { mkdir, readFile, readdir } from "node:fs/promises";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
+import { atomicJson, readJson, replayErrors, digest } from "./exact-data.mjs";
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
 const destination = join(ROOT, "data", "cache", "replay-fantasy", "matches");
@@ -38,6 +39,9 @@ async function main() {
       const source = join(matchDir, file);
       const parsed = JSON.parse(await readFile(source, "utf8"));
       const players = parsed?.match?.players;
+      const raw = await readJson(join(ROOT, "data/cache/matches", file));
+      const errors = replayErrors(parsed, raw);
+      if (errors.length) throw new Error(`${source}: ${errors.join("; ")}`);
       if (!Array.isArray(players) || players.length !== 10) {
         throw new Error(`${source}: expected ten replay players`);
       }
@@ -48,7 +52,10 @@ async function main() {
           }
         }
       }
-      await copyFile(source, join(destination, file));
+      await atomicJson(join(destination, file), { ...parsed, provenance: {
+        source: "TinyKiecoo/Calculator-for-DOTA2-TI-Fantasy", importedAt: new Date().toISOString(),
+        contentHash: digest(parsed), method: "replay game-state counters; identity checked against raw match"
+      } });
       count += 1;
     }
     imported += count;

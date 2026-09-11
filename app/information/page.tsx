@@ -294,6 +294,10 @@ export default async function InformationPage() {
         </p>
       </div>
       <InformationTabs {...props} />
+      <p className="faint">
+        Older descriptive datasets include estimated replay counters. These
+        approximations are excluded from primary model training.
+      </p>
     </main>
   );
 }

@@ -30,6 +30,12 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Verify mechanics and data contracts
+        run: npm test
+
+      - name: Check legacy scoring regressions
+        run: npm run validate
+
       - name: Build static website
         env:
           GITHUB_PAGES: "true"

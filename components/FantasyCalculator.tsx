@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type SetStateAction } from "react";
 import {
   Emblem, PlayerEntry, Ranked, TIERS, TIER_BONUSES, TRAITS, TRAIT_DESCRIPTIONS,
   Tier, Trait, availableStats, buildLineups, matchScores, optimizeEmblems, rankPlayers
@@ -33,7 +33,7 @@ const defaultBanner = (role: Role): Emblem[] => {
   return BANNER_SLOTS[role].map((color) => {
     const stat = statsForColor(color).find((s) => !used.has(s)) ?? statsForColor(color)[0];
     used.add(stat);
-    return { stat, tier: "III" as Tier, trait: "none" as Trait };
+    return { stat, tier: "III" as Tier, trait: "unique" as Trait };
   });
 };
 
@@ -67,8 +67,14 @@ export default function FantasyCalculator({
 }) {
   // Use the bracket the user built if there is one, else the Elo-seeded default.
   const playoffProjection = useMainEventMaps(teams, projection);
-  const [banners, setBanners] = useState<Record<Role, Emblem[]>>(defaultBanners);
   const [stage, setStage] = useState<Stage>("groupStage");
+  const [stageBanners, setStageBanners] = useState<Record<Stage, Record<Role, Emblem[]>>>(
+    () => ({ groupStage: defaultBanners(), playoffs: defaultBanners() })
+  );
+  const banners = stageBanners[stage];
+  const setBanners = (update: SetStateAction<Record<Role, Emblem[]>>) => setStageBanners((current) => ({
+    ...current, [stage]: typeof update === "function" ? update(current[stage]) : update
+  }));
   const [risk, setRisk] = useState(50);
   const [prefix, setPrefix] = useState<PrefixKey | null>(null);
   const [suffix, setSuffix] = useState<SuffixKey | null>(null);
@@ -80,7 +86,7 @@ export default function FantasyCalculator({
     // whatever this browser happened to have saved.
     const shared = decodeSetup(window.location.search);
     if (shared) {
-      setBanners({ ...defaultBanners(), ...shared.banners });
+      setStageBanners((now) => ({ ...now, [shared.stage]: { ...defaultBanners(), ...shared.banners } }));
       setRisk(shared.risk);
       setStage(shared.stage);
       setPrefix(shared.prefix as PrefixKey | null);
@@ -92,7 +98,13 @@ export default function FantasyCalculator({
       const saved = window.localStorage.getItem(STORAGE_KEY);
       if (saved) {
         const parsed = JSON.parse(saved);
-        if (parsed.banners) setBanners({ ...defaultBanners(), ...parsed.banners });
+        if (parsed.stageBanners) setStageBanners({
+          groupStage: { ...defaultBanners(), ...parsed.stageBanners.groupStage },
+          playoffs: { ...defaultBanners(), ...parsed.stageBanners.playoffs }
+        });
+        else if (parsed.banners) setStageBanners((now) => ({ ...now,
+          [parsed.stage === "playoffs" ? "playoffs" : "groupStage"]: { ...defaultBanners(), ...parsed.banners }
+        }));
         if (typeof parsed.risk === "number") setRisk(parsed.risk);
         if (parsed.stage === "groupStage" || parsed.stage === "playoffs") setStage(parsed.stage);
         if (parsed.prefix) setPrefix(parsed.prefix);
@@ -107,14 +119,13 @@ export default function FantasyCalculator({
   useEffect(() => {
     if (!ready) return;
     try {
-      window.localStorage.setItem(STORAGE_KEY, JSON.stringify({ banners, risk, stage, prefix, suffix }));
+      window.localStorage.setItem(STORAGE_KEY, JSON.stringify({ stageBanners, risk, stage, prefix, suffix }));
     } catch {
       /* private mode can block writes */
     }
-  }, [banners, risk, stage, prefix, suffix, ready]);
+  }, [stageBanners, risk, stage, prefix, suffix, ready]);
 
-  // Three emblems in the group stage, five in the playoffs - the playoff card
-  // keeps the first three and adds two, so one banner holds both.
+  // Each stage has an independent banner state and its own fresh token budget.
   const slots = STAGE_SLOTS[stage];
   // A banner picks a same-team pair at Core and Support and a single player at
   // Mid, so those are the entries that get ranked - not individuals.

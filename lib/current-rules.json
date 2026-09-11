@@ -1,0 +1,148 @@
+{
+  "schemaVersion": 1,
+  "name": "Current adopted TI rules",
+  "points": {
+    "kills": {
+      "per": 107
+    },
+    "deaths": {
+      "per": -195,
+      "base": 1950
+    },
+    "creeps": {
+      "per": 3
+    },
+    "gpm": {
+      "per": 2
+    },
+    "towers": {
+      "per": 352
+    },
+    "roshan": {
+      "per": 1172
+    },
+    "tormentor": {
+      "per": 879
+    },
+    "courier": {
+      "per": 703
+    },
+    "firstBlood": {
+      "per": 1934
+    },
+    "teamfight": {
+      "per": 2124
+    },
+    "stuns": {
+      "per": 10
+    },
+    "wards": {
+      "per": 117
+    },
+    "stacks": {
+      "per": 234
+    },
+    "runes": {
+      "per": 141
+    },
+    "smokes": {
+      "per": 293
+    },
+    "madstones": {
+      "per": 13
+    },
+    "lotuses": {
+      "per": 176
+    },
+    "watchers": {
+      "per": 147
+    }
+  },
+  "statColors": {
+    "gpm": "red",
+    "deaths": "red",
+    "creeps": "red",
+    "kills": "red",
+    "towers": "red",
+    "madstones": "red",
+    "wards": "blue",
+    "stacks": "blue",
+    "runes": "blue",
+    "smokes": "blue",
+    "lotuses": "blue",
+    "watchers": "blue",
+    "teamfight": "green",
+    "stuns": "green",
+    "tormentor": "green",
+    "roshan": "green",
+    "firstBlood": "green",
+    "courier": "green"
+  },
+  "bannerSlots": {
+    "core": [
+      "red",
+      "green",
+      "red",
+      "green",
+      "red"
+    ],
+    "mid": [
+      "red",
+      "blue",
+      "green",
+      "red",
+      "green"
+    ],
+    "support": [
+      "blue",
+      "green",
+      "blue",
+      "green",
+      "blue"
+    ]
+  },
+  "tierBonuses": {
+    "I": 10,
+    "II": 30,
+    "III": 60,
+    "IV": 100,
+    "V": 150
+  },
+  "qualityRerollWeights": {
+    "I": 5,
+    "II": 4,
+    "III": 3,
+    "IV": 2,
+    "V": 1
+  },
+  "initialQualityWeights": {
+    "I": 1,
+    "II": 1,
+    "III": 1,
+    "IV": 1,
+    "V": 1
+  },
+  "stages": {
+    "groupStage": {
+      "slots": 3,
+      "tokens": 40
+    },
+    "playoffs": {
+      "slots": 5,
+      "tokens": 30
+    }
+  },
+  "traits": {
+    "fractal": 0.6,
+    "benevolent": 0.2,
+    "vampiric": 0.5,
+    "vampiricAdjacent": -0.1,
+    "unique": 0.3,
+    "friendly": 0.5,
+    "friendlyMinimum": 3
+  },
+  "deathsFloor": 0,
+  "offersPerDeal": 3,
+  "excludePreviousDeal": true,
+  "operationCost": 1
+}

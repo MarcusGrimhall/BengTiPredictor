@@ -5,11 +5,8 @@
 // lib/scoring.ts change - no re-fetch needed.
 
 // Which raw stats we can pull out of OpenDota, and from where.
-export const RAW_STATS = [
-  "kills", "deaths", "creeps", "gpm", "towers", "roshan", "tormentor",
-  "courier", "firstBlood", "teamfight", "stuns", "wards", "stacks",
-  "runes", "smokes", "madstones", "lotuses", "watchers"
-];
+import { CURRENT_RULES } from "./current-rules.mjs";
+export const RAW_STATS = Object.keys(CURRENT_RULES.points);
 
 // Stats TI fantasy scores that we do not extract. Neither is named in the API:
 // there is no "lotus" key but the item Lotus Orb, and no "watcher" key at all.

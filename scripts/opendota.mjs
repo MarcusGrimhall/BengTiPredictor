@@ -8,20 +8,28 @@ const KEY = process.env.OPENDOTA_API_KEY || "";
 // 60/min => 1000ms between calls leaves margin. With a key we can go faster.
 const MIN_INTERVAL_MS = KEY ? 200 : 1100;
 let lastCall = 0;
+let queue = Promise.resolve();
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
-export async function odFetch(path, { retries = 4 } = {}) {
-  const wait = MIN_INTERVAL_MS - (Date.now() - lastCall);
-  if (wait > 0) await sleep(wait);
+export function odFetch(path, options = {}) {
+  // Promise.all callers used to wake together and burst through the limiter.
+  const pending = queue.then(() => request(path, options));
+  queue = pending.catch(() => {});
+  return pending;
+}
+
+async function request(path, { retries = 4 } = {}) {
 
   const url = `${BASE}${path}${KEY ? (path.includes("?") ? "&" : "?") + "api_key=" + KEY : ""}`;
 
   for (let attempt = 0; attempt <= retries; attempt += 1) {
+    const wait = MIN_INTERVAL_MS - (Date.now() - lastCall);
+    if (wait > 0) await sleep(wait);
     lastCall = Date.now();
     let res;
     try {
-      res = await fetch(url, { headers: { "user-agent": "BengTiPredictor" } });
+      res = await fetch(url, { headers: { "user-agent": "BengTiPredictor" }, signal: AbortSignal.timeout(30000) });
     } catch (err) {
       if (attempt === retries) throw new Error(`Network error on ${path}: ${err.message}`);
       await sleep(2000 * (attempt + 1));
@@ -29,8 +37,10 @@ export async function odFetch(path, { retries = 4 } = {}) {
     }
 
     if (res.status === 429) {
-      // Out of quota for this minute - wait the window out.
-      const backoff = 5000 * (attempt + 1);
+      if (res.headers.get("x-rate-limit-remaining-day") === "0") throw new Error("OpenDota daily quota exhausted; cached work is retained. Resume after quota reset.");
+      const retry = res.headers.get("retry-after");
+      const requested = retry ? (/^\d+(\.\d+)?$/.test(retry) ? Number(retry)*1000 : Date.parse(retry)-Date.now()) : 0;
+      const backoff = Math.max(Number.isFinite(requested) ? requested : 0, Math.min(60000, 2000*2**attempt));
       process.stderr.write(`  rate limited, waiting ${backoff / 1000}s...\n`);
       await sleep(backoff);
       continue;

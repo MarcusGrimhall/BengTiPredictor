@@ -1,3 +1,4 @@
+import rules from "./current-rules.json";
 // Reroll simulation.
 //
 // You start a stage with a randomly rolled banner and a pool of tokens: 40 for
@@ -40,13 +41,7 @@ export const TIERS_ALL: Tier[] = ["I", "II", "III", "IV", "V"];
  * that sample (likelihood-ratio p=0.75), while uniform odds are rejected at
  * p<1e-8. See ASSUMPTIONS.md for provenance and uncertainty.
  */
-export const QUALITY_WEIGHTS: Record<Tier, number> = {
-  I: 5,
-  II: 4,
-  III: 3,
-  IV: 2,
-  V: 1
-};
+export const QUALITY_WEIGHTS: Record<Tier, number> = rules.qualityRerollWeights;
 
 /** Every tier except the one held; probabilities come from QUALITY_WEIGHTS. */
 export function tierOptions(current: Tier): Tier[] {
@@ -108,7 +103,7 @@ export type RerollAction = {
  * Every option costs one reroll. There is no menu of prices - a wildcard that
  * moves three emblems costs exactly what rerolling one stat costs.
  */
-export const REROLL_COST = 1;
+export const REROLL_COST = rules.operationCost;
 
 const ROLLABLE_TRAITS: Trait[] = ["fractal", "benevolent", "vampiric", "unique", "friendly"];
 
@@ -195,6 +190,7 @@ export function applyAction(
   random: () => number
 ): Emblem[] {
   const next = banner.map((e) => ({ ...e }));
+  if (action.target === "skip") return next;
   const slots = targetSlots(next, role, action, random);
 
   if (action.target === "qualityUp" || action.target === "qualityUpTwoDownOne") {
@@ -280,7 +276,7 @@ export function applyAction(
       // in the wildcard branch above: a candidate that skips a draw walks off
       // the shared random stream and stops being comparable.
       const taken = new Set(next.filter((_, i) => i !== slot).map((e) => e.stat));
-      const pool = statsForColor(BANNER_SLOTS[role][slot]).filter((s) => !taken.has(s));
+      const pool = statsForColor(BANNER_SLOTS[role][slot]).filter((s) => !taken.has(s) && s !== next[slot].stat);
       const roll = random();
       if (pool.length) next[slot].stat = pool[Math.floor(roll * pool.length)];
     }
@@ -306,14 +302,15 @@ export function enumerateOutcomes(
   action: RerollAction,
   limit = 4096
 ): Array<{ banner: Emblem[]; probability: number }> | null {
+  if (action.target === "skip") return [{ banner: banner.map((e) => ({ ...e })), probability: 1 }];
   if (action.target === "qualityUp" || action.target === "qualityUpTwoDownOne") {
-    return null; // these pick slots at random; enumeration would be a rewrite
+    return enumerateWildcard(banner, action, limit);
   }
 
   const slots = action.color === "any"
     ? banner.map((_, i) => i)
     : banner.map((_, i) => i).filter((i) => BANNER_SLOTS[role][i] === action.color);
-  if (!slots.length) return null;
+  if (!slots.length) return [{ banner: banner.map((e) => ({ ...e })), probability: 1 }];
 
   let targets: number[];
   switch (action.scope) {
@@ -334,7 +331,7 @@ export function enumerateOutcomes(
       return options.map((trait) => [{ ...sofar[slot], trait }, 1 / options.length]);
     }
     const taken = new Set(sofar.filter((_, i) => i !== slot).map((e) => e.stat));
-    const pool = statsForColor(BANNER_SLOTS[role][slot]).filter((x) => !taken.has(x));
+    const pool = statsForColor(BANNER_SLOTS[role][slot]).filter((x) => !taken.has(x) && x !== sofar[slot].stat);
     if (!pool.length) return [[sofar[slot], 1]];
     return pool.map((stat) => [{ ...sofar[slot], stat }, 1 / pool.length]);
   };
@@ -369,6 +366,46 @@ export function enumerateOutcomes(
   }
 
   return out;
+}
+
+/** Enumerate slot choices and conditional quality draws, including overlap. */
+function enumerateWildcard(banner: Emblem[], action: RerollAction, limit: number) {
+  type Outcome = { banner: Emblem[]; probability: number };
+  const upCount = action.target === "qualityUp" ? 1 : 2;
+  const eligible = banner.flatMap((e, i) => e.tier !== "V" ? [i] : []);
+  const choices: { slots: number[]; probability: number }[] = [];
+  const choose = (pool: number[], slots: number[], probability: number) => {
+    if (!pool.length || slots.length === upCount) { choices.push({ slots, probability }); return; }
+    for (const i of pool) choose(pool.filter((j) => i !== j), [...slots, i], probability / pool.length);
+  };
+  choose(eligible, [], 1);
+  const merged = new Map<string, Outcome>();
+  for (const selected of choices) {
+    const lowerable = banner.flatMap((e, i) => e.tier !== "I" ? [i] : []);
+    const spared = lowerable.filter((i) => !selected.slots.includes(i));
+    const lower: (number | null)[] = action.target === "qualityUp" ? [null]
+      : (spared.length ? spared : lowerable).length ? (spared.length ? spared : lowerable) : [null];
+    for (const low of lower) {
+      let states: Outcome[] = [{ banner, probability: selected.probability / lower.length }];
+      const moves: { slot: number; direction: QualityDirection }[] = selected.slots.map((slot) => ({ slot, direction: "increase" }));
+      if (low !== null) moves.push({ slot: low, direction: "decrease" });
+      for (const { slot, direction } of moves) {
+        states = states.flatMap((state) => qualityOutcomes(state.banner[slot].tier, direction).map(({ tier, probability }) => ({
+          banner: state.banner.map((e, i) => i === slot ? { ...e, tier } : { ...e }),
+          probability: state.probability * probability
+        })));
+        if (states.length > limit) return null;
+      }
+      for (const state of states) {
+        const key = state.banner.map((e) => e.tier).join(":");
+        const old = merged.get(key);
+        if (old) old.probability += state.probability;
+        else merged.set(key, { banner: state.banner.map((e) => ({ ...e })), probability: state.probability });
+      }
+      if (merged.size > limit) return null;
+    }
+  }
+  return [...merged.values()];
 }
 
 export type ActionOutcome = {
@@ -410,7 +447,9 @@ export type ActionOutcome = {
 const MAX_ATTEMPTS = 60;
 
 /**
- * Optimal stopping over repeated rolls of the same action.
+ * Exact optimal stopping for an i.i.d. reference distribution.
+ * This is NOT the state-dependent reroll game; excluded current values change
+ * the distribution after each roll. Retained for legacy regression only.
  *
  * A single roll can be a bad bet while the same roll repeated is a good one.
  * You never get the old emblem back, but you do decide after every roll whether
@@ -425,10 +464,8 @@ const MAX_ATTEMPTS = 60;
  * worth it across a 40 token budget even though one roll loses on average.
  * Rolling is worth starting at all exactly when c_attempts beats what you hold.
  *
- * The recursion assumes the outcome distribution stays put as the rest of the
- * banner changes around the rolled slot. That is close to exact for a single
- * slot and loosest for the "all" scopes, which reroll the very emblems the
- * distribution was measured against.
+ * The stationary assumption generally fails even for one slot. Use the
+ * finite-horizon transition model for an actual reroll policy.
  */
 export function stoppingCurve(outcomes: number[], attempts: number): number[] {
   if (!outcomes.length || attempts < 1) return [];
@@ -472,40 +509,32 @@ export function evaluateAction(
   seed = "reroll"
 ): ActionOutcome {
   const current = valueOf(banner);
-  const results: number[] = [];
-  let better = 0;
-
-  // Exact where the outcome space allows it, sampled only where it does not.
+  const outcomes: { value: number; probability: number }[] = [];
   const exact = enumerateOutcomes(banner, role, action);
   if (exact) {
-    // Weighted outcomes are expanded into a flat sample so every downstream
-    // percentile and stopping curve works unchanged. 2000 slots is finer than
-    // any probability the tables produce.
-    const GRAIN = 2000;
     for (const { banner: rolled, probability } of exact) {
-      const value = hasDuplicateStats(rolled) ? current : valueOf(rolled);
-      const copies = Math.max(1, Math.round(probability * GRAIN));
-      for (let i = 0; i < copies; i += 1) results.push(value);
-      if (value > current) better += copies;
+      outcomes.push({ value: valueOf(rolled), probability });
     }
   } else {
-    const random = seededRandom(`${seed}::${action.id}::${JSON.stringify(banner)}::${runs}`);
-    for (let i = 0; i < runs; i += 1) {
-      const rolled = applyAction(banner, role, action, random);
-      // Should never happen, but a duplicate banner is worthless if it does.
-      const value = hasDuplicateStats(rolled) ? current : valueOf(rolled);
-      results.push(value);
-      if (value > current) better += 1;
-    }
+    if (!Number.isSafeInteger(runs) || runs < 1) throw new Error("Positive run count required");
+    const random = seededRandom(`${seed}::${action.id}::${JSON.stringify(banner)}`);
+    for (let i = 0; i < runs; i++) outcomes.push({ value: valueOf(applyAction(banner, role, action, random)), probability: 1 / runs });
   }
-
-  results.sort((a, b) => a - b);
-  const at = (p: number) => results[Math.min(results.length - 1, Math.floor((p / 100) * results.length))];
-  const mean = results.reduce((a, b) => a + b, 0) / results.length;
-
+  outcomes.sort((a,b) => a.value-b.value);
+  const at = (p: number) => {
+    let cumulative = 0;
+    for (const o of outcomes) { cumulative += o.probability; if (cumulative + 1e-12 >= p / 100) return o.value; }
+    return outcomes.at(-1)?.value ?? current;
+  };
+  const mean = outcomes.reduce((sum,o) => sum + o.probability * o.value, 0);
+  const better = outcomes.reduce((sum,o) => sum + (o.value > current ? o.probability : 0), 0);
   const attempts = Math.min(MAX_ATTEMPTS, Math.floor(tokens / Math.max(1, action.cost)));
-  const curve = stoppingCurve(results, attempts);
-  const planValue = Math.max(current, curve[curve.length - 1] ?? current);
+  // This stationary-distribution illustration is NOT a reroll policy: actual
+  // transitions depend on the newly held tier/stat/trait. Use planOffers/MDP.
+  const curve: number[] = [];
+  for (let k = 0; k < attempts; k++) curve.push(k === 0 ? mean
+    : outcomes.reduce((sum,o) => sum + o.probability * Math.max(o.value, curve[k-1]), 0));
+  const planValue = Math.max(current, curve.at(-1) ?? current);
   const breakEven = curve.findIndex((value) => value > current);
 
   return {
@@ -514,7 +543,7 @@ export function evaluateAction(
     median: at(50),
     p10: at(10),
     p90: at(90),
-    improveChance: better / results.length,
+    improveChance: better,
     delta: mean - current,
     perToken: (mean - current) / Math.max(1, action.cost),
     runs: exact ? 0 : runs,
@@ -639,7 +668,12 @@ export function randomBanner(role: Role, slots: number, random: () => number): E
       stat,
       // Fresh emblems are a separate draw from quality rerolls. Until measured
       // otherwise, all five initial qualities are modelled 1:1:1:1:1.
-      tier: pick(TIERS_ALL, random()),
+      tier: (() => {
+        const total = TIERS_ALL.reduce((sum,t) => sum + rules.initialQualityWeights[t],0);
+        let target = random()*total;
+        for (const tier of TIERS_ALL) { target -= rules.initialQualityWeights[tier]; if (target < 0) return tier; }
+        return TIERS_ALL[TIERS_ALL.length-1];
+      })(),
       trait: pick(ROLLABLE_TRAITS, random())
     };
   });

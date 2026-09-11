@@ -80,13 +80,12 @@ export default function FantasySimulator({
     [slots]
   );
 
-  // Rerolls are compared against a reduced field per role: the strongest
-  // entries under the current banner. The best entry after a reroll is
-  // essentially always among them, and it keeps this responsive in a browser.
+  // Evaluate the full legal field. A stat change can favour a player outside
+  // the old top-ten shortlist; no safe bound justified dropping those players.
   const shortlists = useMemo(
     () => Object.fromEntries(ROLES.map((r) => [
       r,
-      rankPlayers(playersByRole[r] ?? [], r, staged[r], risk, seriesByTeam).slice(0, 10).map((x) => x.player)
+      rankPlayers(playersByRole[r] ?? [], r, staged[r], risk, seriesByTeam).map((x) => x.player)
     ])) as Record<Role, PlayerEntry[]>,
     [playersByRole, staged, risk, seriesByTeam]
   );
@@ -535,14 +534,14 @@ function Results({
                   {d.action.label}
                   {d.improveChance === 0 && (
                     <span className="faint" style={{ display: "block", fontSize: "0.72rem" }}>
-                      cannot improve — every outcome is worse
+                      cannot improve immediately
                     </span>
                   )}
                 </td>
                 <td className="muted">
                   {ROLE_LABELS[d.role]}
                   <span className="faint" style={{ display: "block", fontSize: "0.72rem" }}>
-                    {d.runsUsed.toLocaleString()} play-outs
+                    {d.runsUsed ? `${d.runsUsed.toLocaleString()} play-outs` : "Exact expectation"}
                   </span>
                   {alternatives(d).length > 0 && (
                     <span className="faint" style={{ display: "block", fontSize: "0.78rem" }}>
@@ -559,9 +558,9 @@ function Results({
                 </td>
                 <td className="num" style={{ textAlign: "right" }}>
                   {fmt(d.takeValue)}
-                  <span className="faint" style={{ display: "block", fontSize: "0.72rem" }}>
+                  {d.downside !== null && <span className="faint" style={{ display: "block", fontSize: "0.72rem" }}>
                     bad case {fmt(d.downside)}
-                  </span>
+                  </span>}
                 </td>
                 <td className="num" style={{
                   textAlign: "right", fontWeight: 650,

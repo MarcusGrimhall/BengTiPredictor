@@ -3,6 +3,25 @@
 Detta är arbetsunderlaget för steg 1 i `PLAN.md`: en samlad lista över regler
 som påverkar användarens resultat. Den ändrar inte modellens beteende.
 
+## Implementerat 2026-09-10
+
+Primär träning kräver kompletta exakta matchrader och en daterad roster/cutoff.
+Kalibrerade fallbackräknare och reducerad stat-intersection är borttagna ur den
+primära vägen. Äldre genererade beskrivningar är legacy-data.
+
+R04 är implementerad: refresh kostar en token. R13 är nu implementerad enligt
+det dokumenterade antagandet (samtliga tre tidigare offers utesluts). R08 hade
+ett kodfel: aktuell stat kunde återkomma; båda transitionsvägarna är rättade.
+Wildcards enumereras nu exakt. R14 kvarstår som approximationsgap: rollout får
+inte längre se samtliga möjliga slumpresultat före sitt beslut, men använder
+fortfarande greedy continuation. En-tokenbeslut och reducerade Bellman-spel är
+exakta. Se `docs/reports/policy-benchmark.json` för uppmätt reducerad regret.
+
+F06 överför inte längre simulatorns Group-state till Playoffs, enligt ägarens
+aktuella produktinstruktion. Det är ingen ny verifiering av spelets UI-regel.
+P07 använder matchens sluttid strikt före fantasy-lock; Group-resultat får
+användas efter Group inför en separat Playoff-lock. Döds-golvet är oförändrat.
+
 ## Status
 
 | Status | Betydelse |
@@ -53,7 +72,7 @@ Påverkan anger hur mycket en felaktig regel rimligen kan påverka rekommendatio
 | R01 | En deal innehåller exakt tre unika alternativ som delas av alla tre banners. | Bekräftad | Hög | In-game-regler och användarobservation; `OPTIONS_DEALT`/`deal` i `lib/offers.ts` |
 | R02 | Man kan välja att inte använda något alternativ; oförändrade alternativ ligger då kvar. | Bekräftad | Hög | In-game tutorial; UI och `planOffers` |
 | R03 | Att använda ett alternativ kostar en token och ersätter alla tre alternativen. | Bekräftad | Hög | In-game-regler; `lib/offers.ts` |
-| R04 | Att kasta de tre alternativen och dra tre nya kostar en token. | Implementationsgap | Hög | Bekräftat i in-game tutorial; `playOut` stannar i stället när inget alternativ förbättrar bannern |
+| R04 | Att kasta de tre alternativen och dra tre nya kostar en token. | Bekräftad och implementerad | Hög | `playOut` betalar refresh när policyn avstår från apply |
 | R05 | Varje rerolloperation kostar exakt en token. | Bekräftad | Hög | In-game-regler och communityguider; `lib/reroll.ts`/`lib/offers.ts` |
 | R06 | En quality-reroll väljer en annan tillgänglig tier, inte bara ett steg upp eller ned. | Observerad | Hög | Användaruppgift; `tierOptions` i `lib/reroll.ts` |
 | R07 | En quality-reroll kan aldrig ge samma tier som emblemet redan har. | Observerad | Hög | Användarbekräftat 2026-09-03; `tierOptions` modellerar redan detta |
@@ -62,8 +81,8 @@ Påverkan anger hur mycket en felaktig regel rimligen kan påverka rekommendatio
 | R10 | Tier V kan inte höjas och tier I kan inte sänkas. | Observerad | Medel | Användaruppgift; wildcardlogik i `lib/reroll.ts` |
 | R11 | Wildcards väljer slumpmässigt bland riktningens giltiga mål innan något flyttas. II/II/V innebär att båda II höjs och V sänks; I/V/V höjer I och sänker en slumpad V. | Observerad | Medel | Användarexempel; `applyAction` i `lib/reroll.ts` |
 | R12 | Katalogen har 20 operationer: Red granular Quality, Blue granular Trait, Green granular Stat, övriga egenskaper all-only, plus två quality-wildcards. | Observerad | Medel | Komplett publicerad klientlista och Valves operation-bucket-schema; `actionCatalogue` |
-| R13 | Inget av de tre visade alternativen kan förekomma igen direkt i nästa deal. | Antagen | Medel | Användarinstruktion 2026-09-03 att utgå från no-repeat; exakt scope är ännu inte direkt verifierat. `deal` har inget minne och modellerar därför inte regeln |
-| R14 | Simulatorns greedy-policy är en tillräcklig approximation av optimal framtida användning. | Implementationsgap | Hög | `playOut` tar endast omedelbart positiva alternativ och kan inte betala för refresh eller ett tillfälligt sämre val |
+| R13 | Inget av de tre visade alternativen kan förekomma igen direkt i nästa deal. | Antagen | Medel | Användarinstruktion 2026-09-03 att utgå från no-repeat; exakt scope är ännu inte direkt verifierat. `deal` utesluter de tre tidigare alternativen; antagandet är konfigurerbart |
+| R14 | Simulatorns greedy-policy är en tillräcklig approximation av optimal framtida användning. | Implementationsgap | Hög | `playOut` väljer på förväntad omedelbar förbättring och betalar för refresh; tillfälliga försämringar kräver starkare policy |
 | R15 | Nya emblems quality är uniform 1:1:1:1:1; rerolls använder däremot uppmätta 5:4:3:2:1. | Antagen | Medel | Användarinstruktion 2026-09-03; `randomBanner` kontra `qualityOutcomes` |
 
 ## Poängstats och datafält
@@ -117,7 +136,7 @@ datafält faktiskt räknar.
 
 ## Högst prioriterade öppna frågor
 
-1. **R04/R14:** modellera den bekräftade token-betalda refresh-mekaniken.
+1. **R14:** ersätt/validera greedy continuation för hela spelet; R04 är implementerad.
 2. **T07:** fastställ traitutfallens fördelning; T06 är implementerad utan `none`.
 3. **R06:** verifiera att quality-rerollen kan landa på varje annan tier; R07 är användarbekräftad.
 4. **R13:** verifiera no-repeat-regelns exakta scope innan den implementeras.

@@ -1,11 +1,12 @@
 #!/usr/bin/env node
 
 import { execFile } from "node:child_process";
-import { access, mkdir, mkdtemp, open, readFile, rm, stat, writeFile } from "node:fs/promises";
+import { access, mkdir, mkdtemp, open, readFile, rm, stat } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { promisify } from "node:util";
 import { fileURLToPath } from "node:url";
+import { atomicJson, replayErrors } from "./exact-data.mjs";
 
 const exec = promisify(execFile);
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
@@ -51,6 +52,7 @@ async function decompress(compressed, replay) {
 }
 
 function attachPlayers(raw, match) {
+  if (raw.matchId !== Number(matchId)) throw new Error("Replay metadata match id mismatch");
   const byAccount = new Map(match.players.map((player) => [player.account_id, player]));
   if (raw.players.length !== 10 || new Set(raw.players.map((row) => row.accountId)).size !== 10) {
     throw new Error("Replay player identities are incomplete; expected ten unique Steam IDs");
@@ -66,6 +68,7 @@ function attachPlayers(raw, match) {
         playerSlot: player.player_slot,
         heroId: player.hero_id,
         stats: {
+          teamfight_participation: row.teamfight,
           madstones_collected: row.madstones,
           watchers_captured: row.watchers,
           lotuses_collected: row.lotuses,
@@ -80,16 +83,17 @@ function attachPlayers(raw, match) {
 
 async function main() {
   const cachedResult = join(RESULT_CACHE, `${matchId}.json`);
-  if (!refresh && (await exists(cachedResult))) {
-    console.log(await readFile(cachedResult, "utf8"));
-    return;
-  }
-
   const matchFile = join(MATCH_CACHE, `${matchId}.json`);
   if (!(await exists(matchFile))) {
     throw new Error(`Missing ${matchFile}; fetch the league through OpenDota first`);
   }
   const match = JSON.parse(await readFile(matchFile, "utf8"));
+  if (!refresh && (await exists(cachedResult))) {
+    try {
+      const cached = JSON.parse(await readFile(cachedResult, "utf8"));
+      if (!replayErrors(cached, match).length) { console.log(JSON.stringify(cached)); return; }
+    } catch { /* Rebuild corrupt/incomplete checkpoints. */ }
+  }
   if (!match.replay_url) throw new Error("OpenDota did not provide a replay URL for this match");
 
   await ensureParser();
@@ -98,16 +102,20 @@ async function main() {
     const compressed = join(work, "replay.dem.bz2");
     const replay = join(work, "replay.dem");
     await exec("curl", [
-      "-fsSL", "--retry", "2", "--connect-timeout", "10", "--max-time", "180",
+      "-fsSL", "--retry", "2", "--retry-all-errors", "--retry-max-time", "600", "--connect-timeout", "10", "--max-time", "180",
       "--speed-limit", "1024", "--speed-time", "30", "-o", compressed, match.replay_url
     ]);
     await decompress(compressed, replay);
     const { stdout } = await exec("java", ["-Xmx4g", "-jar", PARSER_JAR, replay], {
-      maxBuffer: 10 * 1024 * 1024
+      maxBuffer: 10 * 1024 * 1024, timeout: 10 * 60 * 1000
     });
     const result = attachPlayers(JSON.parse(stdout.trim()), match);
+    const errors = replayErrors(result, match);
+    if (errors.length) throw new Error(errors.join("; "));
+    result.provenance = { source: "Valve replay / local Clarity", parserVersion: 2,
+      parsedAt: new Date().toISOString(), matchIdentity: "replay metadata and ten account IDs" };
     await mkdir(RESULT_CACHE, { recursive: true });
-    await writeFile(cachedResult, `${JSON.stringify(result, null, 2)}\n`);
+    await atomicJson(cachedResult, result);
     console.log(JSON.stringify(result, null, 2));
   } finally {
     await rm(work, { recursive: true, force: true });

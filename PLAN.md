@@ -1,3 +1,9 @@
+> Current implementation status (2026-09-10): see
+> [STATISTICAL_AUDIT.md](docs/STATISTICAL_AUDIT.md) and
+> [EXACT_PIPELINE.md](docs/EXACT_PIPELINE.md). The notes below describe earlier
+> experiments. Claims that refresh is missing or Tormentor cannot be exact
+> are superseded. The primary path now rejects legacy fallback training.
+
 # Arbetsplan
 
 Målet är att vanliga spelare ska kunna lita på att reglerna och matchdatan är

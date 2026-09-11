@@ -279,6 +279,8 @@ export function teamsInStage(league: LeagueData, stage: Stage): TeamEntry[] {
  * tournaments that finished before it started.
  */
 export type TrainingData = {
+  dataPolicy?: "complete-exact";
+  modelValidated?: boolean;
   targetLeagueId: number;
   targetLeagueName: string;
   builtAt: string;

@@ -1,3 +1,4 @@
+import rules from "./current-rules.json";
 // Deciding what to do with the three options in front of you.
 //
 // The mechanic, from the in-game rules:
@@ -12,14 +13,15 @@
 // them in place; spending a token can either apply one option or refresh all
 // three. Both ways of spending are valued here against keeping the current hand.
 //
-// That trade has no closed form, so it is simulated forward: deal random
-// options, play the rest out, average. The future is genuinely random and there
-// is nothing to enumerate about it.
+// One- and two-token expected values enumerate transitions exactly. Longer horizons use
+// rollout under a non-clairvoyant greedy continuation, not an optimal policy.
+// finiteHorizon.ts supplies the exact reduced-game reference solver.
 
 import { Emblem, hasDuplicateStats } from "./fantasy";
 import { Role } from "./scoring";
-import { RerollAction, applyAction } from "./reroll";
+import { RerollAction, applyAction, enumerateOutcomes } from "./reroll";
 import { seededRandom } from "./rng";
+import { exactTwoTokenValues } from "./endgame";
 
 /** An option, and the banner you would apply it to. */
 export type RosterOffer = { role: Role; action: RerollAction };
@@ -61,7 +63,7 @@ export type OfferDecision = {
    * The world where the repair does not come. A mean alone cannot show it,
    * which is what made a guaranteed loss read as neutral.
    */
-  downside: number;
+  downside: number | null;
   /** Play-outs this pair actually got. Contenders get more than also-rans. */
   runsUsed: number;
   /**
@@ -96,7 +98,7 @@ const ROLES: Role[] = ["core", "mid", "support"];
  * standing option to use none of them - never more, never fewer. Exported so
  * the simulator's UI and the play-out below cannot drift apart.
  */
-export const OPTIONS_DEALT = 3;
+export const OPTIONS_DEALT = rules.offersPerDeal;
 
 /**
  * Deals `count` distinct options.
@@ -105,32 +107,22 @@ export const OPTIONS_DEALT = 3;
  * once rather than per role. A scope that only makes sense on one banner - "all
  * blue emblems" on a Core banner with no blue - simply cannot be applied there.
  *
- * Distinct WITHIN a deal, but with no memory of the previous one: an option can
- * be dealt again immediately, and with 3 drawn from 38 that happens in about
- * 22% of deals. ASSUMPTIONS.md once listed "the same option cannot be offered
- * twice in a row" as verified; it is now on the assumed list, because the
- * observation behind it was not a careful one and nobody has checked.
- *
- * Do not enforce it without settling what it means first - it could block only
- * the option just used, all three just shown, or only the ones declined, and
- * those are three different rules. If it is real, the simulator currently
- * understates what a reshuffle is worth.
+ * The adopted no-repeat assumption excludes all three previous offers from
+ * the next deal. This is configured explicitly in current-rules.json.
  */
-function deal(
-  catalogue: RerollAction[],
-  count: number,
-  random: () => number
+export function deal(
+  catalogue: RerollAction[], count: number, random: () => number,
+  previous: RerollAction[] = []
 ): RerollAction[] {
-  if (catalogue.length <= count) return [...catalogue];
-  const picked: RerollAction[] = [];
-  const used = new Set<number>();
-  while (picked.length < count) {
-    const i = Math.floor(random() * catalogue.length);
-    if (used.has(i)) continue;
-    used.add(i);
-    picked.push(catalogue[i]);
+  const excluded = new Set(rules.excludePreviousDeal ? previous.map((a) => a.id) : []);
+  const pool = catalogue.filter((a) => !excluded.has(a.id));
+  if (pool.length < count) throw new Error("Offer catalogue cannot supply a legal new deal");
+  // Partial Fisher-Yates: exactly count draws, uniform without replacement.
+  for (let i = 0; i < count; i++) {
+    const j = i + Math.floor(random() * (pool.length-i));
+    [pool[i], pool[j]] = [pool[j], pool[i]];
   }
-  return picked;
+  return pool.slice(0, count);
 }
 
 /** Banners an option can actually be applied to. */
@@ -149,46 +141,47 @@ function applicable(
  * cannot hurt the banner, so with tokens left it dominates abandoning the
  * remaining budget.
  */
-function playOut(
-  banners: Record<Role, Emblem[]>,
-  catalogue: RerollAction[],
+export function greedyOffer(
+  banners: Record<Role, Emblem[]>, options: RerollAction[],
   catalogues: Record<Role, RerollAction[]>,
   valueOf: (role: Role, b: Emblem[]) => number,
-  rerolls: number,
-  random: () => number
+  expectedCache = new Map<string, number>()
+): { role: Role; action: RerollAction; gain: number } | null {
+  let best: { role: Role; action: RerollAction; gain: number } | null = null;
+  for (const action of options) for (const role of applicable(action, catalogues)) {
+    const key = `${role}:${action.id}:${JSON.stringify(banners[role])}`;
+    let expected = expectedCache.get(key);
+    if (expected === undefined) {
+      const outcomes = enumerateOutcomes(banners[role], role, action);
+      if (!outcomes) throw new Error("Transition too large for exact greedy expectation");
+      expected = outcomes.reduce((sum,o) => sum + o.probability * valueOf(role,o.banner),0);
+      expectedCache.set(key, expected);
+    }
+    const gain = expected - valueOf(role, banners[role]);
+    if (gain > 0 && (!best || gain > best.gain)) best = { role, action, gain };
+  }
+  return best;
+}
+
+function playOut(
+  banners: Record<Role, Emblem[]>, catalogue: RerollAction[],
+  catalogues: Record<Role, RerollAction[]>, valueOf: (role: Role, b: Emblem[]) => number,
+  rerolls: number, random: () => number, previous: RerollAction[],
+  expectedCache: Map<string, number>
 ): number {
   const hand = { ...banners };
-  const value = { core: 0, mid: 0, support: 0 } as Record<Role, number>;
-  for (const role of ROLES) value[role] = valueOf(role, hand[role]);
-  let left = rerolls;
-
-  while (left > 0) {
-    const options = deal(catalogue, OPTIONS_DEALT, random);
-    let best: { role: Role; banner: Emblem[]; value: number; gain: number } | null = null;
-
-    for (const action of options) {
-      for (const role of applicable(action, catalogues)) {
-        const rolled = applyAction(hand[role], role, action, random);
-        if (hasDuplicateStats(rolled)) continue;
-        const v = valueOf(role, rolled);
-        const gain = v - value[role];
-        if (gain > 0 && (!best || gain > best.gain)) {
-          best = { role, banner: rolled, value: v, gain };
-        }
-      }
-    }
-
-    // Pay one token to replace all three without changing a banner.
-    if (!best) {
-      left -= 1;
-      continue;
-    }
-    hand[best.role] = best.banner;
-    value[best.role] = best.value;
-    left -= 1;
+  for (let left = rerolls; left > 0; left--) {
+    // One parent draw per step; action-dependent draws cannot desynchronise
+    // the future deal streams used for paired candidate comparisons.
+    const stepSeed = String(random());
+    const options = deal(catalogue, OPTIONS_DEALT, seededRandom(`${stepSeed}:deal`), previous);
+    previous = options;
+    const best = greedyOffer(hand, options, catalogues, valueOf, expectedCache);
+    // Choose on expectations FIRST. Only the chosen action's result is seen.
+    if (best) hand[best.role] = applyAction(hand[best.role], best.role, best.action, seededRandom(`${stepSeed}:outcome`));
+    // Otherwise the token pays for a refresh; no future outcome is inspected.
   }
-
-  return ROLES.reduce((sum, role) => sum + value[role], 0);
+  return ROLES.reduce((sum, role) => sum + valueOf(role, hand[role]), 0);
 }
 
 /**
@@ -220,7 +213,51 @@ export function planOffers(
   runs = 200,
   seed = "offers"
 ): OfferPlan {
+  if (!Number.isSafeInteger(rerolls) || rerolls < 0 || rerolls > 60) throw new Error("Invalid shared token budget");
+  if (!Number.isSafeInteger(runs) || runs < 1) throw new Error("Positive run count required");
+  if (options.length !== OPTIONS_DEALT || new Set(options.map((a) => a.id)).size !== OPTIONS_DEALT) throw new Error("Exactly three unique offers required");
+  if (options.some((a) => !catalogue.some((c) => c.id === a.id))) throw new Error("Unknown offer");
+  const expectedCache = new Map<string, number>();
   const current = ROLES.reduce((sum, role) => sum + valueOf(role, banners[role]), 0);
+
+  if (rerolls === 0) return { decisions: [], skipValue: current, baseline: current,
+    refreshValue: current, refreshEdge: 0, current, rounds: 0, runs: 0 };
+  if (rerolls === 1) {
+    const decisions: OfferDecision[] = [];
+    for (const action of options) for (const role of applicable(action, catalogues)) {
+      const outcomes = enumerateOutcomes(banners[role], role, action);
+      if (!outcomes) throw new Error("Transition enumeration limit exceeded");
+      const rest = current - valueOf(role, banners[role]);
+      const values = outcomes.map((o) => ({ value: rest + valueOf(role, o.banner), p: o.probability })).sort((a,b) => a.value-b.value);
+      const mean = values.reduce((s,o) => s+o.p*o.value,0);
+      let mass = 0, downside = values[0].value;
+      for (const o of values) { mass += o.p; downside = o.value; if (mass >= 0.1) break; }
+      decisions.push({ role, action, takeValue: mean, skipValue: current, baseline: current,
+        edge: mean-current, current, immediate: mean, immediateDelta: mean-current,
+        improveChance: values.reduce((s,o) => s+(o.value > current ? o.p : 0),0),
+        downside, runsUsed: 0, tied: false });
+    }
+    decisions.sort((a,b) => b.takeValue-a.takeValue);
+    for (const d of decisions.slice(1)) d.tied = Math.abs(d.takeValue-decisions[0].takeValue) < 1e-8;
+    return { decisions, skipValue: current, baseline: current, refreshValue: current,
+      refreshEdge: 0, current, rounds: 1, runs: 0 };
+  }
+
+  if (rerolls === 2) {
+    const exact = exactTwoTokenValues(banners, options, catalogue, catalogues, valueOf);
+    const baseline = Math.max(current, exact.refresh);
+    const decisions: OfferDecision[] = exact.actions.map((a, i) => ({
+      role: a.role, action: a.action, takeValue: a.value, skipValue: current,
+      baseline, edge: a.value-baseline, current, immediate: a.immediate,
+      immediateDelta: a.immediate-current, improveChance: a.improveChance,
+      // Integrating expected next-deal values does not produce a terminal
+      // outcome quantile. Do not label the spread of conditional means as one.
+      downside: null, runsUsed: 0,
+      tied: i > 0 && Math.abs(a.value-exact.actions[0].value) < 1e-8
+    }));
+    return { decisions, skipValue: current, baseline, refreshValue: exact.refresh,
+      refreshEdge: exact.refresh-current, current, rounds: 2, runs: 0 };
+  }
 
   // Taking none: no token is spent and the current three stay on the table.
   const skipValue = current;
@@ -233,7 +270,7 @@ export function planOffers(
     for (let run = 0; run < runs; run += 1) {
       refreshTotal += playOut(
         banners, catalogue, catalogues, valueOf, rerolls - 1,
-        seededRandom(`${seed}:future:${run}`)
+        seededRandom(`${seed}:future:${run}`), options, expectedCache
       );
     }
   }
@@ -286,7 +323,7 @@ export function planOffers(
       immediate,
       final: playOut(
         { ...banners, [c.role]: after }, catalogue, catalogues, valueOf,
-        Math.max(0, rerolls - 1), futureRandom
+        Math.max(0, rerolls - 1), futureRandom, options, expectedCache
       )
     };
   }

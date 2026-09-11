@@ -1,3 +1,4 @@
+import rules from "./current-rules.json";
 // The two fantasy periods.
 //
 // TI scores two separate fantasy cards. The group stage card runs over the
@@ -25,11 +26,11 @@ export const STAGE_LABELS: Record<Stage, string> = {
   playoffs: "Playoffs"
 };
 
-/** Emblems on the card. The playoff card keeps the first three and adds two. */
-export const STAGE_SLOTS: Record<Stage, number> = { groupStage: 3, playoffs: 5 };
+/** Emblems on each independently optimized stage's card. */
+export const STAGE_SLOTS: Record<Stage, number> = { groupStage: rules.stages.groupStage.slots, playoffs: rules.stages.playoffs.slots };
 
 /** Reroll tokens granted at the start of each stage. Unused tokens expire. */
-export const STAGE_TOKENS: Record<Stage, number> = { groupStage: 40, playoffs: 30 };
+export const STAGE_TOKENS: Record<Stage, number> = { groupStage: rules.stages.groupStage.tokens, playoffs: rules.stages.playoffs.tokens };
 
 /** Teams that come out of the group stage and into the bracket. */
 export const PLAYOFF_TEAMS = 8;

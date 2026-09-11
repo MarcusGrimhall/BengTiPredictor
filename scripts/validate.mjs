@@ -142,8 +142,8 @@ const ROLES = ["core", "mid", "support"];
 // ---------------------------------------------------------------------------
 
 function checkStoppingCurve() {
-  head("1. Reroll planning: does the formula match actually rolling?");
-  console.log("  The end-of-budget number comes from an optimal-stopping recursion.");
+  head("1. Legacy i.i.d. stopping reference (not a full reroll policy)");
+  console.log("  This checks stationary draws only; actual reroll transitions depend on state.");
   console.log("  Here it is checked against brute force: literally roll k times,");
   console.log("  stopping when the banner beats the continuation value, and average.\n");
 

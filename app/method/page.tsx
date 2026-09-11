@@ -19,6 +19,12 @@ export default async function MethodPage() {
       </div>
 
       <div className="stack">
+        <div className="notice">
+          Primary predictions now require complete exact match data and a validated
+          model. The descriptions below include the earlier exploratory model;
+          its historical risk percentiles and reroll rollout are not calibrated
+          forecasts or an optimal-policy guarantee.
+        </div>
         <section className="card stack">
           <h2>From match to points</h2>
           <ol className="muted" style={{ margin: 0, paddingLeft: 20, lineHeight: 1.9 }}>
