@@ -1,0 +1,590 @@
+{
+  "_draft": "Roster och roller verifierade mot daterad pre-lock-revision; LGD:s TaiLung-till-Topson-byte verifierat separat. Se docs/PRELOCK_19719.md. Kallturneringsurvalet aterstar att validera som modellval.",
+  "targetLeagueId": 19719,
+  "targetLeagueName": "The International 2026",
+  "stage": "groupStage",
+  "cutoff": 1786586400,
+  "rosterKnownAt": 1786406400,
+  "rosterSource": "docs/PRELOCK_19719.md — pinned 2026-08-03 account/position roster plus LGD's public 2026-08-09 TaiLung-to-Topson replacement; audited 2026-09-15",
+  "sourceLeagueIds": [
+    20009,
+    19917,
+    19894,
+    19893,
+    19892,
+    19891,
+    19890,
+    19785,
+    19696,
+    19543,
+    19435,
+    19422,
+    19269,
+    19239,
+    19101,
+    19099,
+    18988
+  ],
+  "roster": [
+    {
+      "accountId": 320219866,
+      "name": "kaori",
+      "teamId": 9467224,
+      "teamName": "Aurora Gaming",
+      "role": "support"
+    },
+    {
+      "accountId": 301750126,
+      "name": "Mikoto",
+      "teamId": 9467224,
+      "teamName": "Aurora Gaming",
+      "role": "mid"
+    },
+    {
+      "accountId": 256156323,
+      "name": "Mira",
+      "teamId": 9467224,
+      "teamName": "Aurora Gaming",
+      "role": "support"
+    },
+    {
+      "accountId": 124801257,
+      "name": "Nightfall",
+      "teamId": 9467224,
+      "teamName": "Aurora Gaming",
+      "role": "core"
+    },
+    {
+      "accountId": 126842529,
+      "name": "Ws`",
+      "teamId": 9467224,
+      "teamName": "Aurora Gaming",
+      "role": "core"
+    },
+    {
+      "accountId": 480412663,
+      "name": "gpk~",
+      "teamId": 8255888,
+      "teamName": "BoomBoys",
+      "role": "mid"
+    },
+    {
+      "accountId": 196878136,
+      "name": "Kataomi`",
+      "teamId": 8255888,
+      "teamName": "BoomBoys",
+      "role": "support"
+    },
+    {
+      "accountId": 172099728,
+      "name": "Kiritych~",
+      "teamId": 8255888,
+      "teamName": "BoomBoys",
+      "role": "core"
+    },
+    {
+      "accountId": 165564598,
+      "name": "MieRo",
+      "teamId": 8255888,
+      "teamName": "BoomBoys",
+      "role": "core"
+    },
+    {
+      "accountId": 317880638,
+      "name": "Save-",
+      "teamId": 8255888,
+      "teamName": "BoomBoys",
+      "role": "support"
+    },
+    {
+      "accountId": 90423751,
+      "name": "Bignum",
+      "teamId": 9964962,
+      "teamName": "GamerLegion",
+      "role": "support"
+    },
+    {
+      "accountId": 160119017,
+      "name": "Fayde",
+      "teamId": 9964962,
+      "teamName": "GamerLegion",
+      "role": "core"
+    },
+    {
+      "accountId": 206642367,
+      "name": "Ghost",
+      "teamId": 9964962,
+      "teamName": "GamerLegion",
+      "role": "core"
+    },
+    {
+      "accountId": 154974246,
+      "name": "RCY",
+      "teamId": 9964962,
+      "teamName": "GamerLegion",
+      "role": "mid"
+    },
+    {
+      "accountId": 191362875,
+      "name": "Speeed",
+      "teamId": 9964962,
+      "teamName": "GamerLegion",
+      "role": "support"
+    },
+    {
+      "accountId": 92487440,
+      "name": "Corrupted",
+      "teamId": 10149530,
+      "teamName": "HULIGANI",
+      "role": "core"
+    },
+    {
+      "accountId": 140251702,
+      "name": "Mirage`雨",
+      "teamId": 10149530,
+      "teamName": "HULIGANI",
+      "role": "mid"
+    },
+    {
+      "accountId": 123787715,
+      "name": "RESPECT",
+      "teamId": 10149530,
+      "teamName": "HULIGANI",
+      "role": "support"
+    },
+    {
+      "accountId": 145065875,
+      "name": "sayuw",
+      "teamId": 10149530,
+      "teamName": "HULIGANI",
+      "role": "support"
+    },
+    {
+      "accountId": 320017600,
+      "name": "ssnovv1",
+      "teamId": 10149530,
+      "teamName": "HULIGANI",
+      "role": "core"
+    },
+    {
+      "accountId": 86698277,
+      "name": "33",
+      "teamId": 10150413,
+      "teamName": "Iron Wing",
+      "role": "core"
+    },
+    {
+      "accountId": 346412363,
+      "name": "Ari",
+      "teamId": 10150413,
+      "teamName": "Iron Wing",
+      "role": "support"
+    },
+    {
+      "accountId": 93618577,
+      "name": "bzm",
+      "teamId": 10150413,
+      "teamName": "Iron Wing",
+      "role": "mid"
+    },
+    {
+      "accountId": 331855530,
+      "name": "Pure",
+      "teamId": 10150413,
+      "teamName": "Iron Wing",
+      "role": "core"
+    },
+    {
+      "accountId": 136829091,
+      "name": "Whitemon",
+      "teamId": 10150413,
+      "teamName": "Iron Wing",
+      "role": "support"
+    },
+    {
+      "accountId": 81306398,
+      "name": "KingJungles",
+      "teamId": 10150538,
+      "teamName": "LGD Gaming",
+      "role": "support"
+    },
+    {
+      "accountId": 105045291,
+      "name": "Thiolicor",
+      "teamId": 10150538,
+      "teamName": "LGD Gaming",
+      "role": "support"
+    },
+    {
+      "accountId": 94054712,
+      "name": "Topson",
+      "teamId": 10150538,
+      "teamName": "LGD Gaming",
+      "role": "mid"
+    },
+    {
+      "accountId": 292921272,
+      "name": "Wisper",
+      "teamId": 10150538,
+      "teamName": "LGD Gaming",
+      "role": "core"
+    },
+    {
+      "accountId": 177203952,
+      "name": "Yuma",
+      "teamId": 10150538,
+      "teamName": "LGD Gaming",
+      "role": "core"
+    },
+    {
+      "accountId": 138880576,
+      "name": "Davai",
+      "teamId": 10136357,
+      "teamName": "Nigma Galaxy ",
+      "role": "core"
+    },
+    {
+      "accountId": 101356886,
+      "name": "GH",
+      "teamId": 10136357,
+      "teamName": "Nigma Galaxy ",
+      "role": "support"
+    },
+    {
+      "accountId": 210053851,
+      "name": "lorenof",
+      "teamId": 10136357,
+      "teamName": "Nigma Galaxy ",
+      "role": "mid"
+    },
+    {
+      "accountId": 152168157,
+      "name": "OmaR",
+      "teamId": 10136357,
+      "teamName": "Nigma Galaxy ",
+      "role": "support"
+    },
+    {
+      "accountId": 111620041,
+      "name": "SumaiL-",
+      "teamId": 10136357,
+      "teamName": "Nigma Galaxy ",
+      "role": "core"
+    },
+    {
+      "accountId": 355168766,
+      "name": "Natsumi",
+      "teamId": 2586976,
+      "teamName": "OG",
+      "role": "core"
+    },
+    {
+      "accountId": 132309493,
+      "name": "Raven",
+      "teamId": 2586976,
+      "teamName": "OG",
+      "role": "core"
+    },
+    {
+      "accountId": 100594231,
+      "name": "skem",
+      "teamId": 2586976,
+      "teamName": "OG",
+      "role": "support"
+    },
+    {
+      "accountId": 155494381,
+      "name": "TIMS",
+      "teamId": 2586976,
+      "teamName": "OG",
+      "role": "support"
+    },
+    {
+      "accountId": 324277900,
+      "name": "Yopaj-",
+      "teamId": 2586976,
+      "teamName": "OG",
+      "role": "mid"
+    },
+    {
+      "accountId": 183719386,
+      "name": "AMMAR_THE_F",
+      "teamId": 9247354,
+      "teamName": "Team Falcons",
+      "role": "core"
+    },
+    {
+      "accountId": 25907144,
+      "name": "Cr1t-",
+      "teamId": 9247354,
+      "teamName": "Team Falcons",
+      "role": "support"
+    },
+    {
+      "accountId": 898455820,
+      "name": "Malr1ne",
+      "teamId": 9247354,
+      "teamName": "Team Falcons",
+      "role": "mid"
+    },
+    {
+      "accountId": 100058342,
+      "name": "skiter",
+      "teamId": 9247354,
+      "teamName": "Team Falcons",
+      "role": "core"
+    },
+    {
+      "accountId": 10366616,
+      "name": "Sneyking",
+      "teamId": 9247354,
+      "teamName": "Team Falcons",
+      "role": "support"
+    },
+    {
+      "accountId": 97590558,
+      "name": "Ace ♠",
+      "teamId": 2163,
+      "teamName": "Team Liquid",
+      "role": "core"
+    },
+    {
+      "accountId": 77490514,
+      "name": "Boxi",
+      "teamId": 2163,
+      "teamName": "Team Liquid",
+      "role": "support"
+    },
+    {
+      "accountId": 152962063,
+      "name": "m1CKe",
+      "teamId": 2163,
+      "teamName": "Team Liquid",
+      "role": "core"
+    },
+    {
+      "accountId": 201358612,
+      "name": "Nisha",
+      "teamId": 2163,
+      "teamName": "Team Liquid",
+      "role": "mid"
+    },
+    {
+      "accountId": 16497807,
+      "name": "tOfu",
+      "teamId": 2163,
+      "teamName": "Team Liquid",
+      "role": "support"
+    },
+    {
+      "accountId": 315272623,
+      "name": "Echozz",
+      "teamId": 5017210,
+      "teamName": "Team Resilience",
+      "role": "mid"
+    },
+    {
+      "accountId": 145957968,
+      "name": "niu",
+      "teamId": 5017210,
+      "teamName": "Team Resilience",
+      "role": "core"
+    },
+    {
+      "accountId": 150961567,
+      "name": "planet",
+      "teamId": 5017210,
+      "teamName": "Team Resilience",
+      "role": "support"
+    },
+    {
+      "accountId": 170896543,
+      "name": "YSR-04E",
+      "teamId": 5017210,
+      "teamName": "Team Resilience",
+      "role": "core"
+    },
+    {
+      "accountId": 249835593,
+      "name": "zzq",
+      "teamId": 5017210,
+      "teamName": "Team Resilience",
+      "role": "support"
+    },
+    {
+      "accountId": 302214028,
+      "name": "Collapse",
+      "teamId": 7119388,
+      "teamName": "Team Spirit",
+      "role": "core"
+    },
+    {
+      "accountId": 106305042,
+      "name": "Larl",
+      "teamId": 7119388,
+      "teamName": "Team Spirit",
+      "role": "mid"
+    },
+    {
+      "accountId": 218231587,
+      "name": "not_me",
+      "teamId": 7119388,
+      "teamName": "Team Spirit",
+      "role": "support"
+    },
+    {
+      "accountId": 847565596,
+      "name": "rue",
+      "teamId": 7119388,
+      "teamName": "Team Spirit",
+      "role": "support"
+    },
+    {
+      "accountId": 321580662,
+      "name": "Yatoro",
+      "teamId": 7119388,
+      "teamName": "Team Spirit",
+      "role": "core"
+    },
+    {
+      "accountId": 164199202,
+      "name": "9Class",
+      "teamId": 9572001,
+      "teamName": "TEAM VISION",
+      "role": "support"
+    },
+    {
+      "accountId": 73401082,
+      "name": "Dukalis",
+      "teamId": 9572001,
+      "teamName": "TEAM VISION",
+      "role": "support"
+    },
+    {
+      "accountId": 106573901,
+      "name": "No[o]ne-",
+      "teamId": 9572001,
+      "teamName": "TEAM VISION",
+      "role": "mid"
+    },
+    {
+      "accountId": 195108598,
+      "name": "Noticed",
+      "teamId": 9572001,
+      "teamName": "TEAM VISION",
+      "role": "core"
+    },
+    {
+      "accountId": 1044002267,
+      "name": "Satanic",
+      "teamId": 9572001,
+      "teamName": "TEAM VISION",
+      "role": "core"
+    },
+    {
+      "accountId": 312436974,
+      "name": "CHIRA_JUNIOR",
+      "teamId": 9823272,
+      "teamName": "Team Yandex",
+      "role": "mid"
+    },
+    {
+      "accountId": 56351509,
+      "name": "DM",
+      "teamId": 9823272,
+      "teamName": "Team Yandex",
+      "role": "core"
+    },
+    {
+      "accountId": 93817671,
+      "name": "Maladych",
+      "teamId": 9823272,
+      "teamName": "Team Yandex",
+      "role": "support"
+    },
+    {
+      "accountId": 103735745,
+      "name": "Saksa",
+      "teamId": 9823272,
+      "teamName": "Team Yandex",
+      "role": "support"
+    },
+    {
+      "accountId": 171262902,
+      "name": "医者watson`",
+      "teamId": 9823272,
+      "teamName": "Team Yandex",
+      "role": "core"
+    },
+    {
+      "accountId": 118134220,
+      "name": "Bach",
+      "teamId": 726228,
+      "teamName": "Vici Gaming",
+      "role": "core"
+    },
+    {
+      "accountId": 320252024,
+      "name": "shiro",
+      "teamId": 726228,
+      "teamName": "Vici Gaming",
+      "role": "core"
+    },
+    {
+      "accountId": 157475523,
+      "name": "XinQ",
+      "teamId": 726228,
+      "teamName": "Vici Gaming",
+      "role": "support"
+    },
+    {
+      "accountId": 137129583,
+      "name": "Xm",
+      "teamId": 726228,
+      "teamName": "Vici Gaming",
+      "role": "mid"
+    },
+    {
+      "accountId": 111114687,
+      "name": "y`",
+      "teamId": 726228,
+      "teamName": "Vici Gaming",
+      "role": "support"
+    },
+    {
+      "accountId": 898754153,
+      "name": "Ame",
+      "teamId": 8261500,
+      "teamName": "Xtreme Gaming",
+      "role": "core"
+    },
+    {
+      "accountId": 101695162,
+      "name": "fy",
+      "teamId": 8261500,
+      "teamName": "Xtreme Gaming",
+      "role": "support"
+    },
+    {
+      "accountId": 173978074,
+      "name": "NothingToSay",
+      "teamId": 8261500,
+      "teamName": "Xtreme Gaming",
+      "role": "mid"
+    },
+    {
+      "accountId": 94296097,
+      "name": "xNova",
+      "teamId": 8261500,
+      "teamName": "Xtreme Gaming",
+      "role": "support"
+    },
+    {
+      "accountId": 129958758,
+      "name": "Xxs",
+      "teamId": 8261500,
+      "teamName": "Xtreme Gaming",
+      "role": "core"
+    }
+  ]
+}

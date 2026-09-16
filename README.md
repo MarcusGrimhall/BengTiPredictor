@@ -11,6 +11,14 @@ an explicit pre-lock roster/cutoff. The Fantasy page withholds the old forecast
 until a validated replacement is published. Information and Bracket remain
 available; their historical/legacy numbers are not exact-data model validation.
 
+The current delivery order and definition of done are in
+[PLAN.md](PLAN.md). The immediate checkpoint is an exact TI 2026 Group training
+bank from the audited [pre-lock evidence](docs/PRELOCK_19719.md). Its first build
+correctly stopped because late stand-in Topson has no exact history in the
+selected 2026 sources; [the plan](PLAN.md) records the recovery/fallback decision
+needed next. A validated roster forecast will be delivered before the
+longer-horizon reroll policy.
+
 ```bash
 npm install
 npm run dev
