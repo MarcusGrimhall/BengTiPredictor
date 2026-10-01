@@ -38,6 +38,10 @@ async function main() {
   for (const [id,matches] of groups) {
     const manifest=await optionalJson(join(ROOT,"data/cache/leagues",`${id}.json`));
     const league=await readJson(join(ROOT,"data/generated",`league-${id}.json`));
+    if (league.researchTarget) {
+      excludedEvents.push({leagueId:id,exactMatches:matches.length,expectedMatches:manifest?.matches.length??null,reason:"held-out research target; excluded from model selection"});
+      continue;
+    }
     if (!manifest || matches.length/manifest.matches.length < .9) {
       excludedEvents.push({leagueId:id,exactMatches:matches.length,expectedMatches:manifest?.matches.length??null,reason:"missing manifest or less than 90% complete exact coverage"});continue;
     }
@@ -45,13 +49,18 @@ async function main() {
   }
   events.sort((a,b)=>a.cutoff-b.cutoff);
   const candidates=[...[30,60,90,120,180,270,365].map(days=>({name:`window-${days}`,days})),
+    {name:"window-180-decay-60",days:180,halfLife:60},
     {name:"decay-60",halfLife:60},{name:"decay-120",halfLife:120},{name:"decay-60-team",halfLife:60,sameTeam:true}];
   const report={scope:"Diagnostic raw-stat forecasts on recovered exact events; not a selected/validated production model or an entry decision backtest",
     primaryDataGate:"Not certified by this diagnostic: prepare-ti/train gate the selected source population independently",
     selection:"For each event, choose by mean CRPS on at least three completed earlier event evaluations; otherwise abstain. This selects only the raw-stat diagnostic, not a production entry model.",
     sourceFingerprint: digest(events.flatMap(e=>e.matches.map(m=>[m.matchId,m.sourceHash]))),
     excludedEvents, candidates,events:[]};
-  const points=(stat,v)=>Math.max(stat==="deaths"?rules.deathsFloor:0,(rules.points[stat].base??0)+rules.points[stat].per*v);
+  const points=(stat,v)=>{
+    const value=(rules.points[stat].base??0)+rules.points[stat].per*v;
+    if(stat==="deaths")return rules.deathsFloor===null?value:Math.max(rules.deathsFloor,value);
+    return stat==="stuns"?value:Math.max(0,value);
+  };
   for(const event of events) {
     const selectionHistory=report.events.filter(e=>e.end<event.cutoff && e.results?.length);
     const selectionScores=selectionHistory.length<3?[]:candidates.map(c=>({candidate:c.name,

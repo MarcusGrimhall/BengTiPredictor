@@ -163,9 +163,11 @@ Reports are written to `docs/reports/`. `compare-models` uses the recovered
 complete-row cohort and common evaluation players across candidate windows.
 It is a diagnostic under event/roster conditioning, not a validated final entry
 forecaster. The runner does not select or publish a winner from a short history.
-It compares 30/60/90/120/180/270/365-day windows, exponential half-lives of
-60/120 days and one restrained same-team variant. Exact event completion before
-the target cutoff is required. No frequency duplication or random game split.
+It compares 30/60/90/120/180/270/365-day windows, a 180-day cap with 60-day
+half-life, uncapped exponential half-lives of 60/120 days and one restrained
+same-team variant. Exact event completion before the target cutoff is required.
+Events fetched with `--research-target` are excluded from model selection.
+No frequency duplication or random game split.
 
 `benchmark-policy` evaluates an exact two-slot, three-quality reduced game over
 all 27 starting states and 1–40 tokens. It is not an optimality certificate for
