@@ -9,7 +9,7 @@ import { odFetch } from "./opendota.mjs";
 const args = process.argv.slice(2);
 const tierIndex = args.indexOf("--tier");
 const tier = tierIndex !== -1 ? args[tierIndex + 1] : null;
-const query = args.filter((a, i) => a !== "--tier" && i !== tierIndex + 1).join(" ").toLowerCase();
+const query = args.filter((a, i) => a !== "--tier" && (tierIndex === -1 || i !== tierIndex + 1)).join(" ").toLowerCase();
 
 const leagues = await odFetch("/leagues");
 const hits = leagues
