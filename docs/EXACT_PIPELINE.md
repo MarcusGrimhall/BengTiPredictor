@@ -82,8 +82,11 @@ intersection. It does not mark a model validated or publish a browser forecast.
    code and evidence; JSON cannot safely describe an unimplemented mechanic.
 2. Capture target rosters, positions, lock and format before play. Create a
    preparation manifest. For existing targets, `discover --target ID` narrows
-   Tier 1/2 event discovery by team ID and date. Automatic transfer-aware player
-   discovery and automatic identification of a future TI are still incomplete.
+   Tier 1/2 event discovery by team ID and date. `discover-sources --target ID
+   --config MANIFEST` inventories earlier league participation by roster account
+   ID, including prior teams. This inventory does not verify the roster or
+   classify source events; see `COMMANDS.md`. Automatic identification of a
+   future TI is still incomplete.
 3. Fetch selected leagues with `--training`. Acquire manifests using
    `prepare-ti --acquire-manifests`; recover with `prepare-ti --recover`.
    All completed work is cached; old unavailable replays remain explicit holes.

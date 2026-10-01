@@ -131,8 +131,9 @@ async function leagues() {
   const out = [];
   for (const f of files) {
     const league = JSON.parse(await readFile(join(dir, f), "utf8"));
-    // Training events feed the model; they are not what it is graded on.
-    if (!league.training) out.push(league);
+    // Training sources and ongoing research targets are not the finished
+    // public tournaments this legacy regression suite grades.
+    if (!league.training && !league.researchTarget) out.push(league);
   }
   return out.sort((a, b) => b.leagueId - a.leagueId);
 }

@@ -8,6 +8,8 @@ next-env.d.ts
 data/cache
 data/normalized
 data/audits
+# Ongoing Wallachia research target: regenerated from OpenDota, excluded from the public index.
+data/generated/league-20279.json
 scripts/replay-parser/target
 
 # validation build output

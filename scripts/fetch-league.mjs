@@ -8,13 +8,14 @@
 // Raw match responses are cached in data/cache/ (gitignored) so re-runs are
 // free and you can recompute the aggregation without fetching again.
 
-import { mkdir, readFile, writeFile, access } from "node:fs/promises";
+import { mkdir, readFile, access } from "node:fs/promises";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { odFetch } from "./opendota.mjs";
 import { extractMatch, suffixFlags, RAW_STATS, UNAVAILABLE_STATS } from "./extract.mjs";
 import { splitStages, STAGES } from "./stages.mjs";
 import { atomicJson, optionalJson } from "./exact-data.mjs";
+import { sourceSeriesId } from "./series-corrections.mjs";
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
 const CACHE_DIR = join(ROOT, "data", "cache", "matches");
@@ -27,11 +28,23 @@ const refresh = args.includes("--refresh");
 const offline = args.includes("--offline");
 // Training events feed the model but are never shown as "the tournament".
 const training = args.includes("--training");
+// Research targets need generated facts for auditing but must not replace the
+// public site's default tournament in data/generated/index.json.
+const researchTarget = args.includes("--research-target");
+// Reuse an already acquired source manifest while building the audit scaffold.
+// Historical source recovery needs raw maps, not today's pro registry/Elo.
+const sourceRecovery = args.includes("--source-recovery");
+const nameAt = args.indexOf("--league-name");
+const suppliedLeagueName = nameAt < 0 ? null : args[nameAt + 1];
+if (training && researchTarget) throw new Error("--training and --research-target cannot be combined");
+if (sourceRecovery && (!training || refresh || offline || researchTarget || !suppliedLeagueName)) {
+  throw new Error("--source-recovery requires --training and --league-name; it cannot refresh or run offline");
+}
 const minGamesIndex = args.indexOf("--min-games");
 const minGames = minGamesIndex === -1 ? 2 : Number(args[minGamesIndex + 1]) || 2;
 
 if (!leagueId) {
-  console.error("Usage: npm run fetch -- <leagueId> [--min-games N] [--refresh] [--training]");
+  console.error("Usage: npm run fetch -- <leagueId> [--min-games N] [--refresh] [--training|--research-target] [--source-recovery --league-name NAME --training]");
   console.error("Find a league ID with: npm run leagues -- <search term>");
   process.exit(1);
 }
@@ -45,13 +58,20 @@ const progress = (line) => {
 
 async function getMatch(id) {
   const cached = join(CACHE_DIR, `${id}.json`);
+  const usable = (match) => match?.match_id === id && match.leagueid === Number(leagueId)
+    && match.players?.length === 10 && Number.isFinite(match.start_time)
+    && Number.isFinite(match.duration) && match.duration > 0;
   if (!refresh && (await exists(cached))) {
-    const match = JSON.parse(await readFile(cached, "utf8"));
-    if (match.match_id !== id) throw new Error(`Cached match identity mismatch: ${id}`);
-    return match;
+    try {
+      const match = JSON.parse(await readFile(cached, "utf8"));
+      if (usable(match)) return match;
+      console.log(`${id} - invalid cached raw match, retrying OpenDota`);
+    } catch (error) {
+      console.log(`${id} - unreadable cached raw match, retrying OpenDota (${error.message})`);
+    }
   }
   const match = await odFetch(`/matches/${id}`);
-  if (match.match_id !== id) throw new Error(`OpenDota match identity mismatch: ${id}`);
+  if (!usable(match)) throw new Error(`OpenDota match identity or required fields invalid: ${id}`);
   await atomicJson(cached, match);
   return match;
 }
@@ -76,18 +96,28 @@ async function main() {
     try { previous = JSON.parse(await readFile(join(OUT_DIR, `league-${leagueId}.json`), "utf8")); }
     catch { throw new Error(`Offline rebuild needs existing data/generated/league-${leagueId}.json`); }
   }
+  const cachedSourceManifest = sourceRecovery
+    ? await optionalJson(join(ROOT, "data/cache/leagues", `${leagueId}.json`)) : null;
+  if (sourceRecovery && (!cachedSourceManifest || cachedSourceManifest.leagueId !== Number(leagueId)
+    || !Array.isArray(cachedSourceManifest.matches) || !cachedSourceManifest.matches.length)) {
+    throw new Error(`Source recovery needs the acquired match manifest for league ${leagueId}`);
+  }
   const [leagueInfo, matchList, allTeams, proPlayers] = await Promise.all([
-    offline ? { name: previous.leagueName } : odFetch(`/leagues/${leagueId}`).catch(() => null),
-    offline ? (await optionalJson(join(ROOT, "data/cache/leagues", `${leagueId}.json`)))?.matches
+    offline ? { name: previous.leagueName } : sourceRecovery ? { name: suppliedLeagueName } : odFetch(`/leagues/${leagueId}`).catch(() => null),
+    sourceRecovery ? cachedSourceManifest.matches : offline ? (await optionalJson(join(ROOT, "data/cache/leagues", `${leagueId}.json`)))?.matches
       ?? (previous.matchIds ?? [...new Set(previous.players.flatMap((p) => p.sampleMatches ?? []))]).map((match_id) => ({ match_id })) : odFetch(`/leagues/${leagueId}/matches`),
     // OpenDota maintains an Elo rating per team. This is what drives the
     // bracket model, so nobody has to invent strength numbers by hand.
-    offline ? previous.teams.map((t) => ({ team_id: t.id, rating: t.elo, wins: t.careerWins, losses: t.careerLosses })) : odFetch(`/teams`).catch(() => []),
+    offline ? previous.teams.map((t) => ({ team_id: t.id, rating: t.elo, wins: t.careerWins, losses: t.careerLosses }))
+      : sourceRecovery ? []
+      : researchTarget ? [] : odFetch(`/teams`).catch(() => []),
     // The pro registry: real names rather than whatever Steam handle a player
     // happened to be using, plus the official fantasy role.
-    offline ? previous.players.map((p) => ({ account_id: p.accountId, name: p.name, fantasy_role: ({ core: 1, support: 2, mid: 4 })[p.role] })) : odFetch(`/proPlayers`).catch(() => [])
+    offline ? previous.players.map((p) => ({ account_id: p.accountId, name: p.name, fantasy_role: ({ core: 1, support: 2, mid: 4 })[p.role] }))
+      : sourceRecovery ? []
+      : researchTarget ? [] : odFetch(`/proPlayers`).catch(() => [])
   ]);
-  if (!offline) await atomicJson(join(ROOT, "data/cache/leagues", `${leagueId}.json`), {
+  if (!offline && !sourceRecovery) await atomicJson(join(ROOT, "data/cache/leagues", `${leagueId}.json`), {
     leagueId: Number(leagueId), acquiredAt: new Date().toISOString(), source: "OpenDota league matches", matches: matchList
   });
   const eloById = new Map((allTeams ?? []).map((t) => [t.team_id, t]));
@@ -114,6 +144,7 @@ async function main() {
    */
   async function rosterFor(teamId) {
     if (offline) return previous.teams.find((t) => t.id === teamId)?.roster ?? null;
+    if (researchTarget || sourceRecovery) return null;
     const rows = await odFetch(`/teams/${teamId}/players`).catch(() => null);
     if (!Array.isArray(rows)) return null;
     return rows.filter((r) => r.is_current_team_member).map((r) => r.account_id);
@@ -130,6 +161,7 @@ async function main() {
     try {
       loaded.push(await getMatch(entry.match_id));
     } catch (err) {
+      if (/daily quota exhausted/i.test(err.message)) throw err;
       console.log(`${label} - skipping (${err.message})`);
       skipped += 1;
       continue;
@@ -142,7 +174,7 @@ async function main() {
   const LAST_GAME = { 0: 1, 1: 3, 2: 5 };
   const seriesGames = new Map();
   for (const m of loaded) {
-    const key = m.series_id || -m.match_id;
+    const key = sourceSeriesId(m);
     if (!seriesGames.has(key)) seriesGames.set(key, []);
     seriesGames.get(key).push(m);
   }
@@ -270,7 +302,7 @@ async function main() {
       if (side.won) team.wins += 1;
       team.stageMaps[stage] += 1;
       if (side.won) team.stageWins[stage] += 1;
-      if (match.series_id != null) team.stageSeries[stage].add(match.series_id);
+      if (match.series_id != null) team.stageSeries[stage].add(sourceSeriesId(match));
     }
 
     if (match.radiant_team_id && match.dire_team_id) {
@@ -416,6 +448,10 @@ async function main() {
     matchesSkipped: skipped,
     minGames,
     training,
+    ...(loaded.some((m) => sourceSeriesId(m) !== (m.series_id || -m.match_id))
+      ? { seriesCorrections: loaded.filter((m) => sourceSeriesId(m) !== (m.series_id || -m.match_id))
+        .map((m) => ({ matchId: m.match_id, seriesId: sourceSeriesId(m) })) } : {}),
+    ...(researchTarget ? { researchTarget: true } : {}),
     // Bounds of the event in the schedule. `npm run train` uses these to refuse
     // any training event that runs into the tournament it is meant to predict.
     firstMatch: loaded.length ? Math.min(...loaded.map((m) => m.start_time || Infinity)) : null,
@@ -494,7 +530,12 @@ async function main() {
   }
 
   const outFile = join(OUT_DIR, `league-${leagueId}.json`);
-  await writeFile(outFile, JSON.stringify(payload, null, 2));
+  await atomicJson(outFile, payload);
+
+  if (researchTarget) {
+    console.log(`Research target ${leagueId} written without changing the public league index.`);
+    return;
+  }
 
   // Update the index the app reads.
   const indexFile = join(OUT_DIR, "index.json");
@@ -512,7 +553,7 @@ async function main() {
   // Newest tournament first. League IDs increase over time, so this keeps the
   // most recent event active rather than whichever was fetched last.
   without.sort((a, b) => b.leagueId - a.leagueId);
-  await writeFile(indexFile, JSON.stringify(without, null, 2));
+  await atomicJson(indexFile, without);
 
   console.log(`\n\nDone.`);
   console.log(`  matches used : ${parsedCount} of ${matchList.length} (${skipped} skipped)`);

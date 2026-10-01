@@ -5,6 +5,7 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { createHash } from "node:crypto";
 import { RAW_STATS } from "./extract.mjs";
+import { sourceSeriesId } from "./series-corrections.mjs";
 
 export const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
 export const EXACT_SCHEMA = 1;
@@ -120,7 +121,7 @@ export function exactMatch(match, replay = null) {
     schemaVersion: EXACT_SCHEMA, matchId: match.match_id, leagueId: match.leagueid,
     startTime: match.start_time, endTime: match.start_time + match.duration,
     duration: match.duration, patch: match.patch ?? null,
-    seriesId: match.series_id || -match.match_id, seriesType: match.series_type,
+    seriesId: sourceSeriesId(match), seriesType: match.series_type,
     radiant, dire, radiantWin: match.radiant_win, parsed,
     replayPresent: Boolean(replay), replayErrors: overlayErrors,
     exact: errors.length === 0 && overlayErrors.length === 0 && rows.length === 10 && rows.every((r) => r.complete),

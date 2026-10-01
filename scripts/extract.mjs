@@ -6,6 +6,7 @@
 
 // Which raw stats we can pull out of OpenDota, and from where.
 import { CURRENT_RULES } from "./current-rules.mjs";
+import { sourceSeriesId } from "./series-corrections.mjs";
 export const RAW_STATS = Object.keys(CURRENT_RULES.points);
 
 // Stats TI fantasy scores that we do not extract. Neither is named in the API:
@@ -142,7 +143,7 @@ export function extractMatch(match, replayFantasy = null) {
       // group a series so it can be scored as its two best games.
       matchId: match.match_id,
       // A series id of 0 means a standalone game; give it its own bucket.
-      seriesId: match.series_id || -match.match_id,
+      seriesId: sourceSeriesId(match),
       heroId: p.hero_id ?? 0,
       stats: {
         kills: p.kills ?? 0,
