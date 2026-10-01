@@ -89,6 +89,14 @@ does. This is the largest single gap between the model and the game.
 
 ## Model gaps
 
+**A correct scoring path is not a scenario model.** `lib/scenarioFantasy.ts`
+now scores complete common futures with pair averaging and role-specific best
+series, including title uncertainty. It has no fitted generator for opponents,
+series lengths, joint map vectors or per-player sparse-history fallback. In
+particular, a tail-risk reroll objective depends on all three banners jointly;
+the existing `planOffers` callback assumes additive role values and cannot be
+used unchanged for that objective.
+
 **Shrinkage is calibrated on the wrong axis.** `lib/reliability.ts` trusts a stat
 as far as it repeats, measured by split-half *within* an event. The ranking
 predicts *across* months and roster changes, where transfer is lower. So the

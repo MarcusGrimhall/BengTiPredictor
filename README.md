@@ -56,6 +56,18 @@ The main changes and measured limitations are in
 slots, tier bonuses, trait parameters, initial/crafting quality weights and stage
 budgets. Titles remain modular in `lib/titles.ts`. New stat semantics or entirely
 new trait mechanics still need an extractor/implementation and evidence.
+`lib/title-rules-ti2026.json` is a versioned title input for the new scenario
+scorer. Its uncertain conditions require an explicit trigger or probability;
+the file is not evidence for next TI's rules. `lib/scenarioFantasy.ts` scores
+provided common futures with the actual pair/map/series order, but no validated
+future generator or end-to-end recommendation has been published yet.
+`lib/historyForecast.ts` provides exact-row role and player history baselines,
+recency weighting and a configurable sparse-history shrinkage candidate. Its
+parameters still require chronological Fantasy-decision validation.
+For a supplied set of common futures, `adviseCurrentOffersMean` connects a
+fixed roster and current offers to the existing shared-token planner. Its
+long-horizon continuation is approximate; tail objectives require a separate
+joint policy evaluation.
 
 No paid service is required. Raw API and replay checkpoints, normalized training
 banks and detailed local audits are gitignored. Small research reports live in

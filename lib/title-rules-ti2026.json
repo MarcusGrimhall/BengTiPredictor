@@ -1,0 +1,23 @@
+{
+  "version": "ti2026-adopted-2026-10-01",
+  "prefix": {
+    "crimson": { "bonus": 6, "condition": "red hero", "evidence": "unknown" },
+    "cerulean": { "bonus": 11, "condition": "blue hero", "evidence": "unknown" },
+    "emerald": { "bonus": 6, "condition": "green hero", "evidence": "unknown" },
+    "royal": { "bonus": 10, "condition": "purple hero", "evidence": "unknown" },
+    "golden": { "bonus": 8, "condition": "yellow or brown hero", "evidence": "unknown" },
+    "elemental": { "bonus": 8, "condition": "aquatic, fiery or icy hero", "evidence": "unknown" },
+    "otherworldly": { "bonus": 7, "condition": "undead, demon or spirit hero", "evidence": "unknown" },
+    "heroic": { "bonus": 9, "condition": "caped or masked hero", "evidence": "unknown" }
+  },
+  "suffix": {
+    "tormented": { "bonus": 23, "condition": "any player dies to Tormentor", "evidence": "assumed" },
+    "flayedTwins": { "bonus": 9, "condition": "first blood before horn", "evidence": "assumed" },
+    "patient": { "bonus": 23, "condition": "first blood after 10:00", "evidence": "assumed" },
+    "underdog": { "bonus": 6, "condition": "player team loses", "evidence": "verified" },
+    "decisive": { "bonus": 24, "condition": "map ends before 25:00", "evidence": "verified" },
+    "clutch": { "bonus": 16, "condition": "last possible map of series", "evidence": "assumed" },
+    "lucky": { "bonus": 21, "condition": "duration ends in digit 8", "evidence": "assumed" },
+    "cruel": { "bonus": 13, "condition": "player killed at own fountain", "evidence": "assumed" }
+  }
+}

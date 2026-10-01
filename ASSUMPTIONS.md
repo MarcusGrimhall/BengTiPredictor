@@ -48,6 +48,22 @@ are not promoted to a validated primary model. See
 [the audit](docs/STATISTICAL_AUDIT.md) and
 [the pipeline contract](docs/EXACT_PIPELINE.md).
 
+The new scenario scorer accepts a versioned `SeasonRules` title bundle; the
+TI 2026 input is `lib/title-rules-ti2026.json`. A missing Prefix/Suffix trigger
+does not silently count as false: the caller must supply a probability or the
+scorer rejects the future. Prefix hero groups remain unknown, and uncertain
+Suffix trigger interpretations remain assumptions. Neither those title rules
+nor the scorer constitute a verified client-score comparison or next-TI rules.
+An explicit fallback probability gives an expected title multiplier for mean
+scoring only; lower/upper-tail advice requires actual sampled trigger states in
+each common future, because a mean multiplier would hide title variance.
+
+`lib/historyForecast.ts` treats a player's pre-lock roster role as the role of
+their historical account rows, including rows from previous teams. This is an
+explicit modelling assumption for a candidate baseline, not evidence that the
+player held the same role on every old map. Its leave-one-out role fallback and
+`priorMaps` strength are uncalibrated until several dated origins are tested.
+
 ## Verified against a source
 
 | Rule | Source |
