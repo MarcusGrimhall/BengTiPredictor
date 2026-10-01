@@ -29,9 +29,9 @@ test("all required fields and identity checked; a replay-title flag proves nothi
   const wrong=fixture();wrong.replay.match.matchId=99;
   assert.equal(exactMatch(wrong.match,wrong.replay).players[0].stats.watchers,null);
 });
-test("impossible values rejected instead of clamped or calibrated",()=>{
+test("negative replay stuns retained; other impossible values rejected",()=>{
   const {match,replay}=fixture();match.players[0].stuns=-0.5;
-  const got=exactMatch(match,replay); assert.equal(got.exact,false);assert.deepEqual(got.players[0].invalid,["stuns"]);
+  const got=exactMatch(match,replay); assert.equal(got.exact,true);assert.equal(got.players[0].stats.stuns,-0.5);
   replay.match.players[1].stats.teamfight_participation=1.1;assert.ok(replayErrors(replay,match).length);
 });
 test("roster evidence and explicit lock prevent post-event inference",()=>{

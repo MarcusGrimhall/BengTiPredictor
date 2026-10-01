@@ -90,7 +90,7 @@ export function exactMatch(match, replay = null) {
     const provenance = {};
     const invalid = [];
     const put = (stat, v, source) => {
-      if (!Number.isFinite(v) || v < 0 || (stat !== "stuns" && stat !== "teamfight" && !count(v))
+      if (!Number.isFinite(v) || (v < 0 && stat !== "stuns") || (stat !== "stuns" && stat !== "teamfight" && !count(v))
         || (stat === "teamfight" && v > 1) || (stat === "firstBlood" && v > 1)) {
         if (v != null) invalid.push(stat);
         return;

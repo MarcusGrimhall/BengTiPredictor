@@ -20,15 +20,13 @@ A full sweep of the in-game text settled most of the rule set — three of the f
 places this disagreed with the other public calculator came back in our favour.
 These are what it left open. Each is a real gap, not a wording quibble.
 
-**Deaths: does the score floor at zero?** The single most consequential one. The
-client wording gives the linear scale but does not mention a floor. A 2026
-replay-based calculator at battlepass.ru explicitly reports that the game lets
-the result become negative, so the current zero floor is now a disputed working
-assumption rather than positive evidence. One actual in-client 11+ death result
-would settle it cleanly. Eleven deaths is arithmetically −195. Only 1.0–1.7% of
-TI player-games go past ten deaths, so the aggregate effect is ~0.3%, but this
-is still the rule that makes pair-scoring order matter. **A screenshot of a
-fantasy card where a player had 11+ deaths settles it.**
+**Deaths below zero:** On 2026-10-01 the owner adopted uncapped negative scoring.
+The client wording gives the linear scale but does not mention a floor; external
+calculators claim negatives without linking a specific client result. A real
+Deaths emblem score from a player with 11+ deaths would verify the rule. At TI
+2026 only 11 of 882 core/mid player-maps exceeded ten deaths; supports cannot
+equip the red Deaths emblem. The rule should remain marked assumed, even though
+the model now uses negative values.
 
 **Quality odds are measured rather than published.** Valve says only that higher
 qualities are "more rare when crafting". A public log of 195 client rolls (163
@@ -166,11 +164,10 @@ exactly in 102 of 120 player-games and in 13 more with a numerator one assist
 lower — 95.8% accounted for, 4.2% unexplained. It is the second most valuable
 emblem in the game and, per the persistence work, one of the least predictive.
 
-**Stun duration** sums per hero hit, so a three-hero two-second stun counts as
-six. OpenDota does this; whether Valve does is likely but unverified. It
-systematically favours wide AoE stuns, and ours runs 8–32% above the community
-reference across all three roles, which is the signature of a definition
-difference rather than a bug.
+**Stun duration** comes from the replay's scoreboard `m_fStuns` field, including
+negative values. A local parse reproduced OpenDota's negative Xm value exactly.
+On 2026-10-01 the owner adopted negative values for training and scoring, but
+the exact combat-event semantics have not been checked against a client score.
 
 ## The reroll search
 

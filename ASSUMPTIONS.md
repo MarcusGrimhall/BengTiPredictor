@@ -9,12 +9,12 @@ wrong, the numbers that depend on it are wrong.
 
 The primary training path now retains a match only when all ten players have
 all 18 adopted fantasy fields, with per-field provenance. Missing fields are
-null; negative/impossible counters, identity mismatches and partial replay
+null; impossible counters (except adopted negative replay Stuns), identity mismatches and partial replay
 checkpoints are excluded. It does not use calibrated Watcher/Lotus/Madstone
 ratios, Tormentor kill-credit proxies or OpenDota Teamfight as exact observations.
 Those fallbacks remain only in legacy descriptive data for regression comparison.
 "Exact" means measured under the adopted semantic rules; the still-assumed
-Stuns/Wisdom/Deaths interpretations below are not magically verified by a parser.
+Stuns/Deaths interpretations below are not magically verified by a parser.
 
 The source gate requires at least 90% usable matches in each selected event,
 checks the full acquired match manifest, and tests excessive missingness by
@@ -97,7 +97,7 @@ are not promoted to a validated primary model. See
 | A tower goes to whoever landed the **last hit** | You |
 | Teamfight participation is a **0–1 share**, scored per unit and not per percentage point | You |
 | Teamfight participation is the game's `CDOTA_PlayerResource … m_flTeamFightParticipation` end-of-game counter | Valve replay schema plus an open Clarity extractor. Against 1,470 TI 2026 player-games, OpenDota's field is identical within 1e-5 in 1,450 (98.6%) and its total differs by only 0.007%; the remaining 20 rows show why reconstructing it from K/A/deaths is not exact |
-| `p.stuns` **sums per target hit** — a three-hero, two-second stun counts as six seconds | OpenDota reads `modifier_stunned` from the combat log per affected hero. Means the emblem systematically favours AoE stuns |
+| OpenDota's `p.stuns` is copied from the replay's `CDOTA_DataRadiant`/`CDOTA_DataDire` `m_vecDataTeam.*.m_fStuns` scoreboard field | [OpenDota's parser](https://github.com/odota/parser/blob/master/src/main/java/opendota/Parse.java) reads that property directly. Our earlier claim that this field was reconstructed by summing `modifier_stunned` combat-log events was wrong. The scoring meaning of negative values remains unverified below. |
 
 ## Assumed — not verified anywhere
 
@@ -105,14 +105,15 @@ are not promoted to a validated primary model. See
 | --- | --- | --- |
 | **Every trait outcome is equally likely** | `traitOptions` in `lib/reroll.ts` | The value of every trait reroll. Trait weights are unpublished. Every emblem always having one of five traits is user-confirmed, so a trait reroll has four alternatives rather than the five the current `none` state models. Quality is no longer part of this assumption: it uses the measured 5:4:3:2:1 weights. |
 | **Prefix and Suffix add inside one separate Coaching Title layer** | `FantasyCalculator.tsx` | Playoff data proves the layer is applied after the emblem multiplier and per player/game. No captured game has both parts active simultaneously, so `1 + prefix + suffix` rather than multiplying the two title factors remains an explicit user-approved assumption. |
-| **Deaths floor at zero rather than becoming negative after ten deaths** | `statToPoints` in `lib/scoring.ts` | This was the agreed working assumption, but external evidence now points the other way: the client only states `1950 - 195 per death`, while battlepass.ru's replay-based verifier explicitly says the game allows a negative result. Keep the current behaviour only provisionally until an actual 11+ death client result settles it. |
+| **Deaths can score below zero after ten deaths** | `statToPoints` in `lib/scoring.ts`; user decision 2026-10-01 | The client states `1950 - 195 per death` without a floor. Third-party calculators also allow negatives, but none supplies a linked 11+ death client result. This is the adopted rule, not verified Valve behavior. |
+| **Negative replay Stuns give negative fantasy points** | `exactMatch` in `scripts/exact-data.mjs` and `statToPoints` in `lib/scoring.ts`; user decision 2026-10-01 | OpenDota reads `m_fStuns` directly from Valve replays; a local parse reproduced Xm's −5.5816774 exactly. A Fantasy user reported negative Stuns for Xm, but did not supply a match ID or score for a direct comparison. The former gate excluded these maps, including 104 in six S8 source leagues; it now retains them. The precise combat-event semantics remain unverified. |
 | Hero colour/theme groups | `HERO_GROUPS`, empty | Prefix titles — reported as unknown rather than guessed |
 | **Older matches approximate Madstones as 3.17 × `item_uses.madstone_bundle`** | `MADSTONES_PER_BUNDLE` in `scripts/extract.mjs` | Replay-covered matches use the exact `m_iNeutralTokensFound` counter. The fallback factor is calibrated from exact/bundle totals: 3.177× at TI and EWC 2026 and 3.164× at 1win Essence II. |
 | **None of the three shown options may be offered again in the immediately following deal** | User instruction 2026-09-03; `deal()` in `lib/offers.ts` now excludes the previous three | The value of a reroll. Public sources confirm only three unique options within one deal. Valve stores operations in buckets with a requested count, but the live bucket contents are not public and no consecutive-deal dataset was found. |
 | **A stat is trusted as far as it repeats** | `lib/reliability.ts`, weights from `data/generated/reliability.json` | Every ranking. Each stat's estimate is pulled toward the field average by however unreliable the stat was measured to be — the standard regression-to-the-mean correction, with the weight measured rather than chosen. What is assumed is that split-half reliability WITHIN an event is a fair stand-in for how well a stat carries ACROSS months and roster changes. It is not: measured inside one event it is an upper bound, so the correction is smaller than it should be. Backtested rather than argued — see below. |
 | **A role heuristic is a role** | `scripts/fetch-league.mjs` | Every ranking. Lane detection is OpenDota's reading of where a hero stood, not Valve's fantasy assignment. It has never disagreed where it can be checked and is never close, but it is inference. STRATZ exposes per-match `Position` (POSITION_1…POSITION_5), but a field name does not establish official fantasy-role correctness. Its classifier still needs comparison; no exact-role claim is made. |
 
-That is the whole list, and it is seven. Runes, Towers and Teamfight were on it
+That is the current list, now eight. Runes, Towers and Teamfight were on it
 briefly: they were never new guesses, they were old guesses that had never been
 written down, and you settled all three. Two came back the other way. Madstones,
 because the bundle count is measured but the stones-per-bundle factor that turns
@@ -267,18 +268,11 @@ the best-scoring one is used. Both were previously credited to observation.
 
 ### The order is the part that bit
 
-"Average the **score**" is not the same as averaging the stat lines and scoring
-once. For the fifteen linear stats it is; Deaths are floored at zero, and a
-2-death game beside an 18-death game averages to exactly ten deaths, which scores
-nothing — while the two scores average to 780. This project had it the wrong way
-round, in 246 of 3,176 pair-games across five Internationals (7.7%),
-understating pair Deaths by 1.34% overall and by a whole emblem in the worst
-case. `pairUp` now scores each player, averages, and converts back through
-`pointsToStat`. Rankings and the backtest are unchanged, which is what a 1.34%
-correction on one stat should do.
-
-Note this only bites if Deaths really do floor at zero, which is still on the
-assumed list and is the next thing worth asking about.
+"Average the **score**" is the client rule, and `pairUp` preserves that order.
+Under the previously assumed zero floor, this differed from averaging raw death
+counts in 246 of 3,176 pair-games across five Internationals (7.7%). The
+2026-10-01 adopted negative-Deaths rule removes that nonlinearity: averaging
+the two scores and averaging their raw death counts now give the same result.
 
 ## The reference table cannot settle Tormentor
 
@@ -330,12 +324,14 @@ Things I asserted that turned out to be invented or wrong, and have been fixed:
   29 of 56 player-games that have the data, and by a factor between 0.67 and
   1.03 per player across TI 2026's supports — so it reordered the support
   ranking rather than just scaling it. Now `item_uses.smoke_of_deceit`.
-- **Deaths could pay a negative score** — 1950 − 195 a death crosses zero at ten
-  deaths, and 5.9% of player-games are above that. No stat pays a penalty.
+- **Deaths could pay a negative score** — this was previously retracted under
+  the zero-floor assumption. On 2026-10-01 the owner adopted negative scoring;
+  it remains unverified against a client row with 11+ deaths.
 - **An emblem's average was scored from the average stat line** — scoring
   happens per game, so the average has to be taken over scored games. Identical
-  for fifteen stats, which are linear; wrong for Deaths, which is floored. It
-  understated Deaths by 3% across the board and by up to 4x for one player.
+  under the former zero-floor rule, wrong for Deaths. With the adopted
+  negative-Deaths rule every current stat scale is linear, though per-game
+  series and title conditions still require per-game scoring.
 - **Tormentor goes to whoever the chat message names** - `CHAT_MESSAGE_MINIBOSS_KILL`
   names a support five times more often than an independent per-role table says
   it should, and a core six times too rarely. The combat log's kill credit,

@@ -20,7 +20,8 @@ exakta. Se `docs/reports/policy-benchmark.json` för uppmätt reducerad regret.
 F06 överför inte längre simulatorns Group-state till Playoffs, enligt ägarens
 aktuella produktinstruktion. Det är ingen ny verifiering av spelets UI-regel.
 P07 använder matchens sluttid strikt före fantasy-lock; Group-resultat får
-användas efter Group inför en separat Playoff-lock. Döds-golvet är oförändrat.
+användas efter Group inför en separat Playoff-lock. Deaths tillåter från
+2026-10-01 negativa poäng enligt ägarens beslut; klientverifiering saknas.
 
 ## Status
 
@@ -51,7 +52,7 @@ Påverkan anger hur mycket en felaktig regel rimligen kan påverka rekommendatio
 | F08 | Samma stat får inte förekomma två gånger på ett banner. | Bekräftad | Hög | In-game Emblem Stats glossary; `hasDuplicateStats` |
 | F09 | Tierbonusarna är +10, +30, +60, +100 och +150 procent. | Bekräftad | Hög | In-game-regler; `lib/fantasy.ts` |
 | F10 | Tier- och traitbonusar adderas mot baspoängen i stället för att multipliceras med varandra. | Bekräftad | Hög | Tutorialtext och fångat bannerexempel; `emblemMultipliers` i `lib/fantasy.ts` |
-| F11 | Deaths golvas vid noll i den nuvarande modellen. | Antagen, motsagd | Hög | Klienten anger bara `1950 - 195 per death`. battlepass.ru:s replaybaserade verifiering säger uttryckligen att spelet tillåter negativa poäng. Behöver ett verkligt 11+ deaths-klientresultat; `statToPoints` i `lib/scoring.ts` är tills vidare oförändrad. |
+| F11 | Deaths kan ge minuspoäng efter tio dödsfall. | Antagen, användarbeslut | Hög | Klienten anger `1950 - 195 per death` utan golv. Externa kalkylatorer påstår att minuspoäng gäller men länkar inget 11+ deaths-klientresultat. `statToPoints` tillåter minus från 2026-10-01. |
 
 ## Traits
 
@@ -94,7 +95,7 @@ datafält faktiskt räknar.
 | ID | Stat och tolkning | Status | Påverkan | Underlag och kod |
 | --- | --- | --- | --- | --- |
 | S01 | Kills: spelarens egna hero kills; assists räknas inte. | Uppmätt | Medel | OpenDota jämfört med STRATZ, 10/10; `scripts/extract.mjs` |
-| S02 | Deaths: 1 950 − 195 per death och beräknat per game; nollgolvet är osäkert. | Delvis bekräftad | Hög | Skalan är klientbekräftad. Golvet bygger på F11 och motsägs av en replaybaserad extern verifiering; `lib/scoring.ts` golvar ännu. |
+| S02 | Deaths: 1 950 − 195 per death och beräknat per game; negativa poäng tillåts enligt antagande. | Delvis bekräftad | Hög | Skalan är klientbekräftad. Avsaknad av golv är ägarens regelbeslut 2026-10-01, ännu utan direkt 11+ deaths-klientresultat. |
 | S03 | Creep Score: last hits plus denies. | Bekräftad | Medel | In-game glossary; `scripts/extract.mjs` |
 | S04 | GPM: guld per minut som rate, inte total guldmängd. | Uppmätt | Medel | OpenDota/STRATZ; `scripts/extract.mjs` |
 | S05 | Towers: spelaren som gör sista träffen får poängen. | Observerad | Medel | Användaruppgift; tower combat-log extraction |
@@ -103,7 +104,7 @@ datafält faktiskt räknar.
 | S08 | Courier: couriers som spelaren dödar. | Uppmätt | Låg | OpenDota jämfört med STRATZ, 10/10 |
 | S09 | First Blood: spelaren med första killen, inte assist. | Uppmätt | Medel | `firstblood_claimed` stämmer mot chatthändelser |
 | S10 | Teamfight: spelets sluträknare `m_flTeamFightParticipation`, som andel 0–1. | Verifierad | Hög | Replayfältet identifierat; OpenDota matchar inom 1e-5 på 98,6 % av 1 470 TI-rader och totalsumman inom 0,007 %. K/A/deaths-formeln är bara en rekonstruktion |
-| S11 | Stuns: sekunder summeras per träffad hjälte. | Uppmätt | Medel | OpenDota combat-loggens `modifier_stunned`; Valve-definition ej verifierad |
+| S11 | Stuns: replayfältet `m_fStuns` används inklusive negativa värden. | Uppmätt råvärde, antagen poängtolkning | Medel | OpenDota och lokal Valve-repris gav båda −5,5816774 för Xm; ett användarrapporterat negativt Fantasy-resultat saknar match-ID/poäng. Exakt combat-semantik ej verifierad. |
 | S12 | Observer wards: wards placerade, inte köpta; sentries ingår inte. | Uppmätt | Medel | OpenDota jämfört med STRATZ |
 | S13 | Camps stacked: antal camps, inte antal creeps. | Uppmätt | Medel | OpenDota jämfört med STRATZ |
 | S14 | Runes: tagna och bottled runes, men inte Wisdom runes. | Uppmätt | Medel | 120/120 player-games samt STRATZ-kontroll |
@@ -140,7 +141,7 @@ datafält faktiskt räknar.
 2. **T07:** fastställ traitutfallens fördelning; T06 är implementerad utan `none`.
 3. **R06:** verifiera att quality-rerollen kan landa på varje annan tier; R07 är användarbekräftad.
 4. **R13:** verifiera no-repeat-regelns exakta scope innan den implementeras.
-5. **F11/S02:** Deaths-golvet är ett avsiktligt användarantagande som nu motsägs av replaybaserad extern evidens; verifiera med ett verkligt 11+ deaths-resultat och överväg att ta bort golvet.
+5. **F11/S02:** Negativa Deaths-poäng är nu det antagna huvudfallet; verifiera med ett verkligt 11+ deaths-klientresultat.
 6. **S17/S07:** utöka replaytäckningen bortom de tre importerade 2026-ligorna.
 7. **P02:** jämför lane-heuristiken mot STRATZ Position där det är möjligt.
 
@@ -183,7 +184,7 @@ följande punkter:
 | Fråga | BengTiPredictor | Kadadji-projektet | Evidensbedömning |
 | --- | --- | --- | --- |
 | Quality + traits | Adderas mot baspoängen | Multipliceras | Vår modell stöds av in-game-exemplet |
-| Deaths under noll | Golvas vid noll | Tillåts bli negativ | Fortfarande öppet; projektskillnaden avgör inget |
+| Deaths under noll | Tillåts bli negativ enligt antagen regel | Tillåts bli negativ | Projekten är överens; direkt klientverifiering saknas fortfarande |
 | Fractal | Alla emblem som finns på bannern måste ha olika quality | Guidetext säger alla fem | In-game-texten säger alla qualities på bannern; vår läsning stöds |
 | Vampiric | −10 % endast på angränsande emblem | −10 % på angränsande emblem | Projekten överensstämmer |
 | Periodvärde | Bästa serien | Visar genomsnittlig matchscore över källturneringar | Deras visade prognos är inte samma storhet som faktisk periodscoring |

@@ -141,7 +141,7 @@
     "friendly": 0.5,
     "friendlyMinimum": 3
   },
-  "deathsFloor": 0,
+  "deathsFloor": null,
   "offersPerDeal": 3,
   "excludePreviousDeal": true,
   "operationCost": 1

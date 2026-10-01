@@ -15,7 +15,7 @@ before they can support near-optimal full-period advice.
 | `sampleReplayTitles` merely meant an overlay existed | Neither full fantasy counters nor all title triggers were proven | Dedicated five-counter validation; title coverage now checks the three actual boolean fields |
 | Configured replay-overlay directory was empty locally; old cache held four-counter outputs | Committed generated “exact” rows could not be regenerated from that directory | Restored 364 public overlays, identity/range validation, local parser extended to Teamfight and replay match metadata |
 | Java parser used zero defaults for absent properties | A schema change could manufacture exact zeros | Preserve null and fail checkpoint validation |
-| A few OpenDota Stuns values were negative | Physically invalid retained counters | Reject complete matches containing them; no clamp/substitute |
+| A few OpenDota Stuns values were negative | Initially treated as invalid | The 2026-10-01 owner decision supersedes this: retain replay values, including negatives, without clamping |
 | Old training copied weighted rows and manufactured match IDs, with at least one copy retained | Claimed decay weights differed from the distribution actually fitted | Keep original samples once; continuous weights in research fitting |
 | Cutoffs used start times, sometimes event-level timestamp fallbacks | Completion-before-lock was not enforced at observation level | Explicit lock/roster manifest and strict per-map end time |
 | Target roles were inferred from target lane performance; current rosters and ratings could be anachronistic | “Known at lock” was asserted without an attested snapshot | Pre-lock roster evidence required; historical context kept separately |
@@ -33,7 +33,8 @@ before they can support near-optimal full-period advice.
 The old refresh omission had already been repaired in code; several notes still
 said it was absent. Those notes are now explicitly superseded. No Deaths-floor,
 pair averaging, best-two-games, best-single-series, or measured crafting-quality
-rule was changed. Stat exclusion and no-repeat repair existing adopted rules.
+rule was changed in this 2026-09-10 audit. Deaths and Stuns were later changed
+on 2026-10-01 as documented in ASSUMPTIONS.md. Stat exclusion and no-repeat repair existing adopted rules.
 Separate Group/Playoff banner state follows the owner's current instruction;
 it is a product-policy override of the earlier carry-three-slots UI convention,
 not newly established Valve evidence.
@@ -47,9 +48,9 @@ cannot be repaired by silently selecting only the two easiest source events.
 
 | Initial recovered event | Expected maps | Complete exact maps | Excluded |
 | --- | ---: | ---: | ---: |
-| EWC, 19785 | 157 | 156 | 1 negative Stuns value |
+| EWC, 19785 | 157 | 156 | 1 negative Stuns value under the former gate |
 | 1win Essence II, 20009 | 60 | 60 | 0 |
-| Target TI, 19719 | 147 | 145 | 2 negative Stuns values |
+| Target TI, 19719 | 147 | 145 | 2 negative Stuns values under the former gate |
 
 The target TI rows cannot train its Group forecast. They can supply held-out
 truth, or completed Groups can update a later Playoff forecast.
@@ -69,7 +70,7 @@ American qualifier replays also parsed successfully; historical recovery is
 therefore feasible for at least some previously uncovered data.
 
 The term exact remains conditional on the adopted stat semantics. Stun-duration
-semantics, Wisdom rune eligibility and the Deaths floor retain their documented
+semantics, Wisdom rune eligibility and negative Deaths scoring retain their documented
 uncertainty. STRATZ Position is not promoted to official fantasy-role truth
 merely because it is a named API field; a validated adapter remains outstanding.
 

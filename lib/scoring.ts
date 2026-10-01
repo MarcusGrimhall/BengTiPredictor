@@ -40,7 +40,7 @@ export const STAT_DEFINITIONS: Record<StatKey, string> = {
   kills:
     "Hero kills the player took themselves. Assists are not counted here at all.",
   deaths:
-    `Starts at ${POINT_VALUES.deaths.base} and changes by ${POINT_VALUES.deaths.per} per death, floored at ${rules.deathsFloor}. Scored per game, then averaged.`,
+    `Starts at ${POINT_VALUES.deaths.base} and changes by ${POINT_VALUES.deaths.per} per death, with negative points allowed. Scored per game, then averaged.`,
   creeps:
     `Last hits and denies together, ${POINT_VALUES.creeps.per} points per last hit or deny.`,
   gpm:
@@ -58,7 +58,7 @@ export const STAT_DEFINITIONS: Record<StatKey, string> = {
   teamfight:
     "The game's end-of-match m_flTeamFightParticipation counter. The primary model requires this replay value; an API reconstruction is not treated as exact.",
   stuns:
-    "Seconds of stun applied, summed per hero hit — a three-hero, two-second stun counts as six. That favours wide AoE stuns over single-target ones.",
+    "Replay scoreboard stun value in seconds. Negative values are retained and can give negative points; the exact stun-counting semantics remain unverified.",
   wards:
     "Observer wards actually placed, not bought. Sentries are not counted.",
   stacks:
@@ -88,27 +88,26 @@ export const BANNER_SLOTS = rules.bannerSlots as Record<Role, EmblemColor[]>;
 /**
  * Converts a per-game raw value into fantasy points for that stat.
  *
- * Never below zero. Only Deaths can go negative on the raw scale - it starts at
- * 1950 and subtracts 195 a death, so it crosses zero at exactly ten deaths, and
- * about one player-game in eleven is above that. No emblem pays a penalty: the
- * floor is zero, the same way emblemMultipliers refuses to go negative.
+ * Deaths may score below zero after ten deaths, and replay stun values may also
+ * be negative. Other stats retain their zero floor.
  */
 export function statToPoints(stat: StatKey, rawPerGame: number): number {
   const { per, base = 0 } = POINT_VALUES[stat];
-  return Math.max(stat === "deaths" ? rules.deathsFloor : 0, base + per * rawPerGame);
+  const points = base + per * rawPerGame;
+  if (stat === "deaths") {
+    const floor = rules.deathsFloor as number | null;
+    return floor === null ? points : Math.max(floor, points);
+  }
+  if (stat === "stuns") return points;
+  return Math.max(0, points);
 }
 
 /**
  * The raw value that would score `points` - the inverse of `statToPoints`.
  *
  * Needed because a pair is scored by averaging its two players' SCORES, while
- * an entry carries raw stat lines. For the fifteen linear stats the two are the
- * same thing and this returns the plain average. Deaths are the exception: they
- * are floored at zero, so averaging two scores and averaging two death counts
- * are different numbers, and this is what keeps the pair on the first of those.
- *
- * Only meaningful for a target the scale can actually produce, which is
- * guaranteed here: the average of two non-negative scores is non-negative.
+ * an entry carries raw stat lines. Under the adopted linear Deaths rule this
+ * equals averaging the two raw death counts, including negative scores.
  */
 export function pointsToStat(stat: StatKey, points: number): number {
   const { per, base = 0 } = POINT_VALUES[stat];

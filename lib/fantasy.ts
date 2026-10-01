@@ -152,11 +152,9 @@ export function emblemMultipliers(emblems: Emblem[]): number[] {
  * Average points an emblem pays per game.
  *
  * Scoring happens per game, so the average has to be taken over scored games -
- * not by scoring the average stat line. For every stat except Deaths those
- * are the same number, because points are linear in the raw value. Deaths are
- * the exception: they are floored at zero, and flooring an average is not the
- * same as averaging floors. A player who goes 18, 8, 6, 6, 15, 3 averages 9.3
- * deaths and looks like 130 points, while the games actually paid 553.
+ * not by scoring the average stat line. With the adopted uncapped Deaths rule,
+ * all stat point scales are linear, so the two means agree. Per-game scoring
+ * remains explicit because series and title conditions are per game.
  *
  * Falls back to the season average when a player has no per-game lines.
  */
@@ -612,16 +610,10 @@ function pairUp(a: PlayerEntry, b: PlayerEntry, teamName: string, role: Role): P
     if (j === undefined) return; // only one of the pair played this game
     const left = a.gameLines[i];
     const right = b.gameLines[j];
-    // The glossary is specific about the order: "we then average the SCORE of
-    // all players for a role". Scoring first and averaging second is not the
-    // same as averaging the stat lines and scoring once, because Deaths floor
-    // at zero - a 2-death and an 18-death game average to exactly ten deaths,
-    // which scores nothing, while the two scores average to 780. It bites in
-    // 7.7% of pair-games across five Internationals.
-    //
-    // The entry still has to carry a raw line for everything downstream, so the
-    // averaged score is converted back to the raw value that produces it. Exact
-    // for all sixteen, and an identity for the fifteen linear ones.
+    // The glossary specifies averaging the players' scores for a role.
+    // The entry still has to carry a raw line for downstream scoring, so the
+    // averaged score is converted back to its raw value. With uncapped Deaths,
+    // all current stat scales are linear and this equals averaging raw lines.
     const combined = {} as Record<StatKey, number>;
     for (const stat of Object.keys(left) as StatKey[]) {
       const scored = (statToPoints(stat, left[stat] ?? 0) + statToPoints(stat, right[stat] ?? 0)) / 2;

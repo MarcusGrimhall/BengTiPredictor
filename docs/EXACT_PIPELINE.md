@@ -35,7 +35,7 @@ The exact-data gate is separate from the existing legacy regression suite:
 - A map must finish strictly before lock. Playoffs may include completed Group
   maps from the same target league, but never its Playoff maps.
 
-The audit records negative counters, duplicate identities, malformed series,
+The audit records impossible negative counters (replay Stuns are allowed to be negative), duplicate identities, malformed series,
 missing timestamps, source usage, all-zero fields and large weekly distribution
 changes. Weekly changes are diagnostics: changing roster/patch composition can
 explain them, and the tool does not silently rescale them.

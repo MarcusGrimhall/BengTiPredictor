@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import {createRequire} from "node:module";
 const require=createRequire(import.meta.url);
 const {traitBonuses,emblemMultipliers,hasDuplicateStats,buildLineups,gameScores,matchScores,periodScore}=require("../.validate/fantasy.js");
-const {STAT_KEYS}=require("../.validate/scoring.js");
+const {STAT_KEYS,statToPoints}=require("../.validate/scoring.js");
 const {STAGE_SLOTS,STAGE_TOKENS}=require("../.validate/stages.js");
 const {randomBanner,actionCatalogue,enumerateOutcomes,applyAction,evaluateAction,qualityOutcomes}=require("../.validate/reroll.js");
 const {seededRandom}=require("../.validate/rng.js");
@@ -31,11 +31,14 @@ test("Fractal three and five slots, repeated traits allowed, duplicate stats for
   assert.deepEqual(traitBonuses(b),[.5,.5,.5]);b[1].stat=b[0].stat;assert.equal(hasDuplicateStats(b),true);
 });
 test("score players then average pair; top two games then single best series",()=>{
+  assert.equal(statToPoints("deaths",11),-195);
+  assert.equal(statToPoints("deaths",18),-1560);
+  assert.equal(statToPoints("stuns",-5.5816774),-55.816774);
   const line=(deaths,kills)=>Object.fromEntries(STAT_KEYS.map((s)=>[s,s==="deaths"?deaths:s==="kills"?kills:0]));
   const player=(id,role,lines,series)=>({id,name:id,teamName:"A",role,games:lines.length,winRate:1,perGame:lines[0],gameLines:lines,gameMatches:lines.map((_,i)=>i+1),gameSeries:series});
   const b=[{stat:"deaths",tier:"I",trait:"none"}];
   const p=buildLineups([player("1","core",[line(2,0)],[1]),player("2","core",[line(18,0)],[1])])[0];
-  close(gameScores(p,b)[0],780*1.1);
+  close(gameScores(p,b)[0],0);
   const mid=player("3","mid",[line(0,1),line(0,3),line(0,2),line(0,4),line(0,1),line(0,9)],[1,1,1,2,2,3]);
   const kills=[{stat:"kills",tier:"I",trait:"none"}];
   assert.deepEqual(matchScores(mid,kills).map(x=>Math.round(x/117.7)),[5,5,9]);

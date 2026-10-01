@@ -27,7 +27,7 @@ export function validateRules(rules) {
   for(const trait of ["fractal","benevolent","vampiric","vampiricAdjacent","unique","friendly"])if(!Number.isFinite(rules.traits?.[trait]))errors.push(`invalid trait ${trait}`);
   if(!Number.isSafeInteger(rules.traits?.friendlyMinimum)||rules.traits.friendlyMinimum<1||rules.traits.friendlyMinimum>5)errors.push("invalid Friendly condition");
   if(rules.offersPerDeal!==3||rules.operationCost!==1||typeof rules.excludePreviousDeal!=="boolean")errors.push("unsupported offer mechanics");
-  if(!Number.isFinite(rules.deathsFloor))errors.push("invalid Deaths floor");
+  if(rules.deathsFloor!==null && !Number.isFinite(rules.deathsFloor))errors.push("invalid Deaths floor");
   if(errors.length)throw new Error(`Invalid current rules: ${errors.join("; ")}`);
   return rules;
 }
