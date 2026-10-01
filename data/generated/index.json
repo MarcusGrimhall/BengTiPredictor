@@ -162,6 +162,69 @@
     "training": true
   },
   {
+    "leagueId": 18920,
+    "leagueName": "PGL Wallachia 2025 Season 6",
+    "fetchedAt": "2026-09-25T16:25:05.593Z",
+    "matchesUsed": 118,
+    "teams": 16,
+    "players": 81,
+    "training": true
+  },
+  {
+    "leagueId": 18863,
+    "leagueName": "FISSURE PLAYGROUND 2",
+    "fetchedAt": "2026-09-25T16:27:25.808Z",
+    "matchesUsed": 124,
+    "teams": 16,
+    "players": 80,
+    "training": true
+  },
+  {
+    "leagueId": 18633,
+    "leagueName": "FISSURE Universe Episode 7",
+    "fetchedAt": "2026-09-25T16:05:41.098Z",
+    "matchesUsed": 75,
+    "teams": 15,
+    "players": 75,
+    "training": true
+  },
+  {
+    "leagueId": 18433,
+    "leagueName": "FISSURE Universe Episode 6",
+    "fetchedAt": "2026-09-25T16:22:50.005Z",
+    "matchesUsed": 117,
+    "teams": 18,
+    "players": 96,
+    "training": true
+  },
+  {
+    "leagueId": 18375,
+    "leagueName": "Esports World Cup 2025",
+    "fetchedAt": "2026-09-25T16:10:01.508Z",
+    "matchesUsed": 89,
+    "teams": 16,
+    "players": 80,
+    "training": true
+  },
+  {
+    "leagueId": 18359,
+    "leagueName": "Clavision DOTA2 Masters 2025: Snow-Ruyi",
+    "fetchedAt": "2026-09-25T17:17:15.087Z",
+    "matchesUsed": 85,
+    "teams": 12,
+    "players": 50,
+    "training": true
+  },
+  {
+    "leagueId": 18358,
+    "leagueName": "PGL Wallachia 2025 Season 5",
+    "fetchedAt": "2026-09-25T16:33:39.561Z",
+    "matchesUsed": 116,
+    "teams": 16,
+    "players": 81,
+    "training": true
+  },
+  {
     "leagueId": 18324,
     "leagueName": "The International 2025",
     "fetchedAt": "2026-09-01T07:47:07.899Z",
@@ -169,6 +232,60 @@
     "teams": 16,
     "players": 80,
     "training": false
+  },
+  {
+    "leagueId": 18111,
+    "leagueName": "DreamLeague Season 26",
+    "fetchedAt": "2026-09-25T16:31:17.797Z",
+    "matchesUsed": 202,
+    "teams": 16,
+    "players": 81,
+    "training": true
+  },
+  {
+    "leagueId": 18107,
+    "leagueName": "FISSURE Universe Episode 5",
+    "fetchedAt": "2026-09-25T16:03:14.834Z",
+    "matchesUsed": 116,
+    "teams": 18,
+    "players": 93,
+    "training": true
+  },
+  {
+    "leagueId": 18058,
+    "leagueName": "PGL Wallachia 2025 Season 4",
+    "fetchedAt": "2026-09-24T15:10:28.643Z",
+    "matchesUsed": 115,
+    "teams": 16,
+    "players": 81,
+    "training": true
+  },
+  {
+    "leagueId": 17420,
+    "leagueName": "SLAM V",
+    "fetchedAt": "2026-09-25T16:33:17.482Z",
+    "matchesUsed": 94,
+    "teams": 14,
+    "players": 60,
+    "training": true
+  },
+  {
+    "leagueId": 17419,
+    "leagueName": "SLAM IV",
+    "fetchedAt": "2026-09-25T16:33:19.931Z",
+    "matchesUsed": 96,
+    "teams": 12,
+    "players": 61,
+    "training": true
+  },
+  {
+    "leagueId": 17418,
+    "leagueName": "SLAM III",
+    "fetchedAt": "2026-09-25T15:57:52.945Z",
+    "matchesUsed": 43,
+    "teams": 10,
+    "players": 50,
+    "training": true
   },
   {
     "leagueId": 16935,

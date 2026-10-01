@@ -38,6 +38,7 @@ npm run prepare-ti -- 19719 --recover
 npm run audit-data -- 19719 --write
 
 # After supplying a pre-lock roster and the selected source events:
+npm run prepare-sources -- --target 19543 --config prelock-19543-groupstage.draft.json --identity-report docs/reports/roster-identity-19543.json --selection docs/reports/source-selection-19543.json --discovery-report data/audits/source-events-19543-prelock.json
 npm run train -- 19719 --config path/to/pre-lock-manifest.json
 
 # Research diagnostics, not permission to publish a model:

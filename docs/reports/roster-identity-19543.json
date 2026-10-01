@@ -1,0 +1,1455 @@
+{
+  "schemaVersion": 1,
+  "targetLeagueId": 19543,
+  "cutoff": 1776492000,
+  "method": "Account ID and reported alias checked against locally cached raw OpenDota match ended before cutoff; absence is not disproof",
+  "checkedAt": "2026-09-24T15:10:35.788Z",
+  "counts": {
+    "players": 80,
+    "withPreCutoffCachedMatch": 80,
+    "noPreCutoffCachedMatch": 0,
+    "aliasDiff": 11
+  },
+  "rows": [
+    {
+      "accountId": 171262902,
+      "name": "watson",
+      "teamName": "Team Yandex",
+      "position": 1,
+      "preCutoffCachedMaps": 121,
+      "distinctAliases": [
+        "医者watson`"
+      ],
+      "latestEvidence": {
+        "leagueId": 19422,
+        "matchId": 8749655300,
+        "endedAt": 1774814522,
+        "rawName": "医者watson`",
+        "steamName": "arima-"
+      },
+      "aliasAgrees": false
+    },
+    {
+      "accountId": 312436974,
+      "name": "CHIRA_JUNIOR",
+      "teamName": "Team Yandex",
+      "position": 2,
+      "preCutoffCachedMaps": 121,
+      "distinctAliases": [
+        "CHIRA_JUNIOR"
+      ],
+      "latestEvidence": {
+        "leagueId": 19422,
+        "matchId": 8749655300,
+        "endedAt": 1774814522,
+        "rawName": "CHIRA_JUNIOR",
+        "steamName": "CHIRA_JUNIOR"
+      },
+      "aliasAgrees": true
+    },
+    {
+      "accountId": 56351509,
+      "name": "DM",
+      "teamName": "Team Yandex",
+      "position": 3,
+      "preCutoffCachedMaps": 67,
+      "distinctAliases": [
+        "DM"
+      ],
+      "latestEvidence": {
+        "leagueId": 19435,
+        "matchId": 8730786393,
+        "endedAt": 1773609682,
+        "rawName": "DM",
+        "steamName": "alright"
+      },
+      "aliasAgrees": true
+    },
+    {
+      "accountId": 103735745,
+      "name": "Saksa",
+      "teamName": "Team Yandex",
+      "position": 4,
+      "preCutoffCachedMaps": 145,
+      "distinctAliases": [
+        "Saksa"
+      ],
+      "latestEvidence": {
+        "leagueId": 19422,
+        "matchId": 8749655300,
+        "endedAt": 1774814522,
+        "rawName": "Saksa",
+        "steamName": "Yi Zaha"
+      },
+      "aliasAgrees": true
+    },
+    {
+      "accountId": 93817671,
+      "name": "Malady",
+      "teamName": "Team Yandex",
+      "position": 5,
+      "preCutoffCachedMaps": 121,
+      "distinctAliases": [
+        "Maladych"
+      ],
+      "latestEvidence": {
+        "leagueId": 19422,
+        "matchId": 8749655300,
+        "endedAt": 1774814522,
+        "rawName": "Maladych",
+        "steamName": "; ]"
+      },
+      "aliasAgrees": false
+    },
+    {
+      "accountId": 152455523,
+      "name": "V-Tune",
+      "teamName": "Tundra Esports",
+      "position": 1,
+      "preCutoffCachedMaps": 17,
+      "distinctAliases": [
+        "V-Tune"
+      ],
+      "latestEvidence": {
+        "leagueId": 19435,
+        "matchId": 8727184011,
+        "endedAt": 1773412452,
+        "rawName": "V-Tune",
+        "steamName": "888"
+      },
+      "aliasAgrees": true
+    },
+    {
+      "accountId": 93618577,
+      "name": "bzm",
+      "teamName": "Tundra Esports",
+      "position": 2,
+      "preCutoffCachedMaps": 140,
+      "distinctAliases": [
+        "bzm"
+      ],
+      "latestEvidence": {
+        "leagueId": 19422,
+        "matchId": 8749655300,
+        "endedAt": 1774814522,
+        "rawName": "bzm",
+        "steamName": "wax/wings"
+      },
+      "aliasAgrees": true
+    },
+    {
+      "accountId": 86698277,
+      "name": "33",
+      "teamName": "Tundra Esports",
+      "position": 3,
+      "preCutoffCachedMaps": 129,
+      "distinctAliases": [
+        "33"
+      ],
+      "latestEvidence": {
+        "leagueId": 19422,
+        "matchId": 8749655300,
+        "endedAt": 1774814522,
+        "rawName": "33",
+        "steamName": "not human (животное)"
+      },
+      "aliasAgrees": true
+    },
+    {
+      "accountId": 346412363,
+      "name": "Ari",
+      "teamName": "Tundra Esports",
+      "position": 4,
+      "preCutoffCachedMaps": 116,
+      "distinctAliases": [
+        "Ari"
+      ],
+      "latestEvidence": {
+        "leagueId": 19422,
+        "matchId": 8749655300,
+        "endedAt": 1774814522,
+        "rawName": "Ari",
+        "steamName": "Arianka"
+      },
+      "aliasAgrees": true
+    },
+    {
+      "accountId": 136829091,
+      "name": "Whitemon",
+      "teamName": "Tundra Esports",
+      "position": 5,
+      "preCutoffCachedMaps": 140,
+      "distinctAliases": [
+        "Whitemon"
+      ],
+      "latestEvidence": {
+        "leagueId": 19422,
+        "matchId": 8749655300,
+        "endedAt": 1774814522,
+        "rawName": "Whitemon",
+        "steamName": "NongMon"
+      },
+      "aliasAgrees": true
+    },
+    {
+      "accountId": 1044002267,
+      "name": "Satanic",
+      "teamName": "PARIVISION",
+      "position": 1,
+      "preCutoffCachedMaps": 111,
+      "distinctAliases": [
+        "Satanic"
+      ],
+      "latestEvidence": {
+        "leagueId": 19422,
+        "matchId": 8748176080,
+        "endedAt": 1774734712,
+        "rawName": "Satanic",
+        "steamName": "Satanic"
+      },
+      "aliasAgrees": true
+    },
+    {
+      "accountId": 106573901,
+      "name": "No[o]ne-",
+      "teamName": "PARIVISION",
+      "position": 2,
+      "preCutoffCachedMaps": 111,
+      "distinctAliases": [
+        "No[o]ne-"
+      ],
+      "latestEvidence": {
+        "leagueId": 19422,
+        "matchId": 8748176080,
+        "endedAt": 1774734712,
+        "rawName": "No[o]ne-",
+        "steamName": "Have fun"
+      },
+      "aliasAgrees": true
+    },
+    {
+      "accountId": 402583877,
+      "name": "SSS",
+      "teamName": "PARIVISION",
+      "position": 3,
+      "preCutoffCachedMaps": 88,
+      "distinctAliases": [
+        "SSS"
+      ],
+      "latestEvidence": {
+        "leagueId": 19422,
+        "matchId": 8748176080,
+        "endedAt": 1774734712,
+        "rawName": "SSS",
+        "steamName": "Chained"
+      },
+      "aliasAgrees": true
+    },
+    {
+      "accountId": 164199202,
+      "name": "9Class",
+      "teamName": "PARIVISION",
+      "position": 4,
+      "preCutoffCachedMaps": 111,
+      "distinctAliases": [
+        "9Class"
+      ],
+      "latestEvidence": {
+        "leagueId": 19422,
+        "matchId": 8748176080,
+        "endedAt": 1774734712,
+        "rawName": "9Class",
+        "steamName": "Pele"
+      },
+      "aliasAgrees": true
+    },
+    {
+      "accountId": 73401082,
+      "name": "Dukalis",
+      "teamName": "PARIVISION",
+      "position": 5,
+      "preCutoffCachedMaps": 111,
+      "distinctAliases": [
+        "Dukalis"
+      ],
+      "latestEvidence": {
+        "leagueId": 19422,
+        "matchId": 8748176080,
+        "endedAt": 1774734712,
+        "rawName": "Dukalis",
+        "steamName": "Dukalis"
+      },
+      "aliasAgrees": true
+    },
+    {
+      "accountId": 321580662,
+      "name": "Yatoro",
+      "teamName": "Team Spirit",
+      "position": 1,
+      "preCutoffCachedMaps": 119,
+      "distinctAliases": [
+        "Yatoro"
+      ],
+      "latestEvidence": {
+        "leagueId": 19422,
+        "matchId": 8746649774,
+        "endedAt": 1774652296,
+        "rawName": "Yatoro",
+        "steamName": "1"
+      },
+      "aliasAgrees": true
+    },
+    {
+      "accountId": 106305042,
+      "name": "Larl",
+      "teamName": "Team Spirit",
+      "position": 2,
+      "preCutoffCachedMaps": 78,
+      "distinctAliases": [
+        "Larl"
+      ],
+      "latestEvidence": {
+        "leagueId": 19422,
+        "matchId": 8746649774,
+        "endedAt": 1774652296,
+        "rawName": "Larl",
+        "steamName": "road to dream (9k)"
+      },
+      "aliasAgrees": true
+    },
+    {
+      "accountId": 140835095,
+      "name": "Batyuk",
+      "teamName": "Team Spirit",
+      "position": 3,
+      "preCutoffCachedMaps": 15,
+      "distinctAliases": [
+        "Batyuk"
+      ],
+      "latestEvidence": {
+        "leagueId": 18988,
+        "matchId": 8606379791,
+        "endedAt": 1765807714,
+        "rawName": "Batyuk",
+        "steamName": "GAMBOT-PARIS"
+      },
+      "aliasAgrees": true
+    },
+    {
+      "accountId": 847565596,
+      "name": "rue",
+      "teamName": "Team Spirit",
+      "position": 4,
+      "preCutoffCachedMaps": 119,
+      "distinctAliases": [
+        "rue"
+      ],
+      "latestEvidence": {
+        "leagueId": 19422,
+        "matchId": 8746649774,
+        "endedAt": 1774652296,
+        "rawName": "rue",
+        "steamName": "rue"
+      },
+      "aliasAgrees": true
+    },
+    {
+      "accountId": 108958769,
+      "name": "panto",
+      "teamName": "Team Spirit",
+      "position": 5,
+      "preCutoffCachedMaps": 128,
+      "distinctAliases": [
+        "panto"
+      ],
+      "latestEvidence": {
+        "leagueId": 19422,
+        "matchId": 8746649774,
+        "endedAt": 1774652296,
+        "rawName": "panto",
+        "steamName": "sustain"
+      },
+      "aliasAgrees": true
+    },
+    {
+      "accountId": 898754153,
+      "name": "Ame",
+      "teamName": "Xtreme Gaming",
+      "position": 1,
+      "preCutoffCachedMaps": 123,
+      "distinctAliases": [
+        "Ame"
+      ],
+      "latestEvidence": {
+        "leagueId": 19422,
+        "matchId": 8749102310,
+        "endedAt": 1774792554,
+        "rawName": "Ame",
+        "steamName": "NothingToGay"
+      },
+      "aliasAgrees": true
+    },
+    {
+      "accountId": 173978074,
+      "name": "NothingToSay",
+      "teamName": "Xtreme Gaming",
+      "position": 2,
+      "preCutoffCachedMaps": 132,
+      "distinctAliases": [
+        "NothingToSay"
+      ],
+      "latestEvidence": {
+        "leagueId": 19422,
+        "matchId": 8749102310,
+        "endedAt": 1774792554,
+        "rawName": "NothingToSay",
+        "steamName": "NothingToSay"
+      },
+      "aliasAgrees": true
+    },
+    {
+      "accountId": 129958758,
+      "name": "Xxs",
+      "teamName": "Xtreme Gaming",
+      "position": 3,
+      "preCutoffCachedMaps": 123,
+      "distinctAliases": [
+        "Xxs"
+      ],
+      "latestEvidence": {
+        "leagueId": 19422,
+        "matchId": 8749102310,
+        "endedAt": 1774792554,
+        "rawName": "Xxs",
+        "steamName": "Xxs"
+      },
+      "aliasAgrees": true
+    },
+    {
+      "accountId": 101695162,
+      "name": "fy",
+      "teamName": "Xtreme Gaming",
+      "position": 4,
+      "preCutoffCachedMaps": 111,
+      "distinctAliases": [
+        "fy"
+      ],
+      "latestEvidence": {
+        "leagueId": 19422,
+        "matchId": 8749102310,
+        "endedAt": 1774792554,
+        "rawName": "fy",
+        "steamName": "fy"
+      },
+      "aliasAgrees": true
+    },
+    {
+      "accountId": 94296097,
+      "name": "xNova",
+      "teamName": "Xtreme Gaming",
+      "position": 5,
+      "preCutoffCachedMaps": 111,
+      "distinctAliases": [
+        "xNova"
+      ],
+      "latestEvidence": {
+        "leagueId": 19422,
+        "matchId": 8749102310,
+        "endedAt": 1774792554,
+        "rawName": "xNova",
+        "steamName": "lavie"
+      },
+      "aliasAgrees": true
+    },
+    {
+      "accountId": 152962063,
+      "name": "m1CKe",
+      "teamName": "Team Liquid",
+      "position": 1,
+      "preCutoffCachedMaps": 137,
+      "distinctAliases": [
+        "m1CKe"
+      ],
+      "latestEvidence": {
+        "leagueId": 19435,
+        "matchId": 8730786393,
+        "endedAt": 1773609682,
+        "rawName": "m1CKe",
+        "steamName": "yondaime"
+      },
+      "aliasAgrees": true
+    },
+    {
+      "accountId": 201358612,
+      "name": "Nisha",
+      "teamName": "Team Liquid",
+      "position": 2,
+      "preCutoffCachedMaps": 137,
+      "distinctAliases": [
+        "Nisha"
+      ],
+      "latestEvidence": {
+        "leagueId": 19435,
+        "matchId": 8730786393,
+        "endedAt": 1773609682,
+        "rawName": "Nisha",
+        "steamName": "мусор"
+      },
+      "aliasAgrees": true
+    },
+    {
+      "accountId": 97590558,
+      "name": "Ace",
+      "teamName": "Team Liquid",
+      "position": 3,
+      "preCutoffCachedMaps": 113,
+      "distinctAliases": [
+        "Ace ♠"
+      ],
+      "latestEvidence": {
+        "leagueId": 19435,
+        "matchId": 8730786393,
+        "endedAt": 1773609682,
+        "rawName": "Ace ♠",
+        "steamName": "K5"
+      },
+      "aliasAgrees": false
+    },
+    {
+      "accountId": 230487729,
+      "name": "Ekki",
+      "teamName": "Team Liquid",
+      "position": 4,
+      "preCutoffCachedMaps": 24,
+      "distinctAliases": [
+        "Ekki"
+      ],
+      "latestEvidence": {
+        "leagueId": 19239,
+        "matchId": 8667984124,
+        "endedAt": 1769617009,
+        "rawName": "Ekki",
+        "steamName": "frong"
+      },
+      "aliasAgrees": true
+    },
+    {
+      "accountId": 16497807,
+      "name": "tOfu",
+      "teamName": "Team Liquid",
+      "position": 5,
+      "preCutoffCachedMaps": 113,
+      "distinctAliases": [
+        "tOfu"
+      ],
+      "latestEvidence": {
+        "leagueId": 19435,
+        "matchId": 8730786393,
+        "endedAt": 1773609682,
+        "rawName": "tOfu",
+        "steamName": "tOfu"
+      },
+      "aliasAgrees": true
+    },
+    {
+      "accountId": 172099728,
+      "name": "Kiritych",
+      "teamName": "BetBoom Team",
+      "position": 1,
+      "preCutoffCachedMaps": 94,
+      "distinctAliases": [
+        "Kiritych~"
+      ],
+      "latestEvidence": {
+        "leagueId": 19422,
+        "matchId": 8743783853,
+        "endedAt": 1774469652,
+        "rawName": "Kiritych~",
+        "steamName": "Sage of the Six Paths"
+      },
+      "aliasAgrees": false
+    },
+    {
+      "accountId": 480412663,
+      "name": "gpk",
+      "teamName": "BetBoom Team",
+      "position": 2,
+      "preCutoffCachedMaps": 104,
+      "distinctAliases": [
+        "gpk~"
+      ],
+      "latestEvidence": {
+        "leagueId": 19422,
+        "matchId": 8743783853,
+        "endedAt": 1774469652,
+        "rawName": "gpk~",
+        "steamName": "fffffffffffffffffffffffffff"
+      },
+      "aliasAgrees": false
+    },
+    {
+      "accountId": 165564598,
+      "name": "MieRo",
+      "teamName": "BetBoom Team",
+      "position": 3,
+      "preCutoffCachedMaps": 109,
+      "distinctAliases": [
+        "MieRo"
+      ],
+      "latestEvidence": {
+        "leagueId": 19422,
+        "matchId": 8743783853,
+        "endedAt": 1774469652,
+        "rawName": "MieRo",
+        "steamName": "Badwater"
+      },
+      "aliasAgrees": true
+    },
+    {
+      "accountId": 317880638,
+      "name": "Save-",
+      "teamName": "BetBoom Team",
+      "position": 4,
+      "preCutoffCachedMaps": 109,
+      "distinctAliases": [
+        "Save-"
+      ],
+      "latestEvidence": {
+        "leagueId": 19422,
+        "matchId": 8743783853,
+        "endedAt": 1774469652,
+        "rawName": "Save-",
+        "steamName": "Hao-"
+      },
+      "aliasAgrees": true
+    },
+    {
+      "accountId": 196878136,
+      "name": "Kataomi",
+      "teamName": "BetBoom Team",
+      "position": 5,
+      "preCutoffCachedMaps": 109,
+      "distinctAliases": [
+        "Kataomi`"
+      ],
+      "latestEvidence": {
+        "leagueId": 19422,
+        "matchId": 8743783853,
+        "endedAt": 1774469652,
+        "rawName": "Kataomi`",
+        "steamName": "heaven and hell"
+      },
+      "aliasAgrees": false
+    },
+    {
+      "accountId": 124801257,
+      "name": "Nightfall",
+      "teamName": "Aurora Gaming",
+      "position": 1,
+      "preCutoffCachedMaps": 116,
+      "distinctAliases": [
+        "Nightfall"
+      ],
+      "latestEvidence": {
+        "leagueId": 19422,
+        "matchId": 8747486863,
+        "endedAt": 1774705837,
+        "rawName": "Nightfall",
+        "steamName": "fml"
+      },
+      "aliasAgrees": true
+    },
+    {
+      "accountId": 301750126,
+      "name": "Mikoto",
+      "teamName": "Aurora Gaming",
+      "position": 2,
+      "preCutoffCachedMaps": 59,
+      "distinctAliases": [
+        "Mikoto"
+      ],
+      "latestEvidence": {
+        "leagueId": 19422,
+        "matchId": 8747486863,
+        "endedAt": 1774705837,
+        "rawName": "Mikoto",
+        "steamName": "darksystem"
+      },
+      "aliasAgrees": true
+    },
+    {
+      "accountId": 126842529,
+      "name": "Ws",
+      "teamName": "Aurora Gaming",
+      "position": 3,
+      "preCutoffCachedMaps": 105,
+      "distinctAliases": [
+        "Ws`"
+      ],
+      "latestEvidence": {
+        "leagueId": 19422,
+        "matchId": 8747486863,
+        "endedAt": 1774705837,
+        "rawName": "Ws`",
+        "steamName": "Shenorita`"
+      },
+      "aliasAgrees": false
+    },
+    {
+      "accountId": 256156323,
+      "name": "Mira",
+      "teamName": "Aurora Gaming",
+      "position": 4,
+      "preCutoffCachedMaps": 135,
+      "distinctAliases": [
+        "Mira"
+      ],
+      "latestEvidence": {
+        "leagueId": 19422,
+        "matchId": 8747486863,
+        "endedAt": 1774705837,
+        "rawName": "Mira",
+        "steamName": "get up"
+      },
+      "aliasAgrees": true
+    },
+    {
+      "accountId": 320219866,
+      "name": "kaori",
+      "teamName": "Aurora Gaming",
+      "position": 5,
+      "preCutoffCachedMaps": 98,
+      "distinctAliases": [
+        "kaori"
+      ],
+      "latestEvidence": {
+        "leagueId": 19422,
+        "matchId": 8747486863,
+        "endedAt": 1774705837,
+        "rawName": "kaori",
+        "steamName": "unlike u"
+      },
+      "aliasAgrees": true
+    },
+    {
+      "accountId": 100058342,
+      "name": "skiter",
+      "teamName": "Team Falcons",
+      "position": 1,
+      "preCutoffCachedMaps": 105,
+      "distinctAliases": [
+        "skiter"
+      ],
+      "latestEvidence": {
+        "leagueId": 19422,
+        "matchId": 8746313247,
+        "endedAt": 1774633242,
+        "rawName": "skiter",
+        "steamName": "I m Going To Be 10k Player"
+      },
+      "aliasAgrees": true
+    },
+    {
+      "accountId": 898455820,
+      "name": "Malr1ne",
+      "teamName": "Team Falcons",
+      "position": 2,
+      "preCutoffCachedMaps": 95,
+      "distinctAliases": [
+        "Malr1ne"
+      ],
+      "latestEvidence": {
+        "leagueId": 19422,
+        "matchId": 8746313247,
+        "endedAt": 1774633242,
+        "rawName": "Malr1ne",
+        "steamName": "Буська"
+      },
+      "aliasAgrees": true
+    },
+    {
+      "accountId": 183719386,
+      "name": "ATF",
+      "teamName": "Team Falcons",
+      "position": 3,
+      "preCutoffCachedMaps": 93,
+      "distinctAliases": [
+        "AMMAR_THE_F"
+      ],
+      "latestEvidence": {
+        "leagueId": 19422,
+        "matchId": 8746313247,
+        "endedAt": 1774633242,
+        "rawName": "AMMAR_THE_F",
+        "steamName": "Sumaoky-"
+      },
+      "aliasAgrees": false
+    },
+    {
+      "accountId": 25907144,
+      "name": "Cr1t-",
+      "teamName": "Team Falcons",
+      "position": 4,
+      "preCutoffCachedMaps": 105,
+      "distinctAliases": [
+        "Cr1t-"
+      ],
+      "latestEvidence": {
+        "leagueId": 19422,
+        "matchId": 8746313247,
+        "endedAt": 1774633242,
+        "rawName": "Cr1t-",
+        "steamName": "o_o"
+      },
+      "aliasAgrees": true
+    },
+    {
+      "accountId": 10366616,
+      "name": "Sneyking",
+      "teamName": "Team Falcons",
+      "position": 5,
+      "preCutoffCachedMaps": 105,
+      "distinctAliases": [
+        "Sneyking"
+      ],
+      "latestEvidence": {
+        "leagueId": 19422,
+        "matchId": 8746313247,
+        "endedAt": 1774633242,
+        "rawName": "Sneyking",
+        "steamName": "Sneyking"
+      },
+      "aliasAgrees": true
+    },
+    {
+      "accountId": 177203952,
+      "name": "Yuma",
+      "teamName": "HEROIC",
+      "position": 1,
+      "preCutoffCachedMaps": 63,
+      "distinctAliases": [
+        "Yuma"
+      ],
+      "latestEvidence": {
+        "leagueId": 19435,
+        "matchId": 8728480115,
+        "endedAt": 1773494174,
+        "rawName": "Yuma",
+        "steamName": "Yuma"
+      },
+      "aliasAgrees": true
+    },
+    {
+      "accountId": 1026694469,
+      "name": "TaiLung",
+      "teamName": "HEROIC",
+      "position": 2,
+      "preCutoffCachedMaps": 51,
+      "distinctAliases": [
+        "TaiLung"
+      ],
+      "latestEvidence": {
+        "leagueId": 19435,
+        "matchId": 8728480115,
+        "endedAt": 1773494174,
+        "rawName": "TaiLung",
+        "steamName": "a"
+      },
+      "aliasAgrees": true
+    },
+    {
+      "accountId": 292921272,
+      "name": "Wisper",
+      "teamName": "HEROIC",
+      "position": 3,
+      "preCutoffCachedMaps": 63,
+      "distinctAliases": [
+        "Wisper"
+      ],
+      "latestEvidence": {
+        "leagueId": 19435,
+        "matchId": 8728480115,
+        "endedAt": 1773494174,
+        "rawName": "Wisper",
+        "steamName": "Wisper"
+      },
+      "aliasAgrees": true
+    },
+    {
+      "accountId": 105045291,
+      "name": "Thiolicor",
+      "teamName": "HEROIC",
+      "position": 4,
+      "preCutoffCachedMaps": 37,
+      "distinctAliases": [
+        "Thiolicor"
+      ],
+      "latestEvidence": {
+        "leagueId": 19435,
+        "matchId": 8728480115,
+        "endedAt": 1773494174,
+        "rawName": "Thiolicor",
+        "steamName": "Rita"
+      },
+      "aliasAgrees": true
+    },
+    {
+      "accountId": 81306398,
+      "name": "KJ",
+      "teamName": "HEROIC",
+      "position": 5,
+      "preCutoffCachedMaps": 63,
+      "distinctAliases": [
+        "KingJungles"
+      ],
+      "latestEvidence": {
+        "leagueId": 19435,
+        "matchId": 8728480115,
+        "endedAt": 1773494174,
+        "rawName": "KingJungles",
+        "steamName": "марсианин"
+      },
+      "aliasAgrees": false
+    },
+    {
+      "accountId": 127617979,
+      "name": "Crystallis",
+      "teamName": "MOUZ",
+      "position": 1,
+      "preCutoffCachedMaps": 114,
+      "distinctAliases": [
+        "Crystallis"
+      ],
+      "latestEvidence": {
+        "leagueId": 19422,
+        "matchId": 8746052384,
+        "endedAt": 1774623867,
+        "rawName": "Crystallis",
+        "steamName": "KITR"
+      },
+      "aliasAgrees": true
+    },
+    {
+      "accountId": 210053851,
+      "name": "lorenof",
+      "teamName": "MOUZ",
+      "position": 2,
+      "preCutoffCachedMaps": 72,
+      "distinctAliases": [
+        "lorenof"
+      ],
+      "latestEvidence": {
+        "leagueId": 19435,
+        "matchId": 8723405985,
+        "endedAt": 1773147423,
+        "rawName": "lorenof",
+        "steamName": "Dota 2 specialist"
+      },
+      "aliasAgrees": true
+    },
+    {
+      "accountId": 190826739,
+      "name": "BOOM",
+      "teamName": "MOUZ",
+      "position": 3,
+      "preCutoffCachedMaps": 90,
+      "distinctAliases": [
+        "BOOM"
+      ],
+      "latestEvidence": {
+        "leagueId": 19422,
+        "matchId": 8746052384,
+        "endedAt": 1774623867,
+        "rawName": "BOOM",
+        "steamName": "nemáš zač"
+      },
+      "aliasAgrees": true
+    },
+    {
+      "accountId": 9403474,
+      "name": "yamich",
+      "teamName": "MOUZ",
+      "position": 4,
+      "preCutoffCachedMaps": 88,
+      "distinctAliases": [
+        "yamich"
+      ],
+      "latestEvidence": {
+        "leagueId": 19422,
+        "matchId": 8746052384,
+        "endedAt": 1774623867,
+        "rawName": "yamich",
+        "steamName": "mid two"
+      },
+      "aliasAgrees": true
+    },
+    {
+      "accountId": 1202267677,
+      "name": "aik",
+      "teamName": "MOUZ",
+      "position": 5,
+      "preCutoffCachedMaps": 10,
+      "distinctAliases": [
+        "aik"
+      ],
+      "latestEvidence": {
+        "leagueId": 19239,
+        "matchId": 8667984124,
+        "endedAt": 1769617009,
+        "rawName": "aik",
+        "steamName": "解放~"
+      },
+      "aliasAgrees": true
+    },
+    {
+      "accountId": 320252024,
+      "name": "shiro",
+      "teamName": "Vici Gaming",
+      "position": 1,
+      "preCutoffCachedMaps": 54,
+      "distinctAliases": [
+        "shiro"
+      ],
+      "latestEvidence": {
+        "leagueId": 19435,
+        "matchId": 8726925455,
+        "endedAt": 1773399657,
+        "rawName": "shiro",
+        "steamName": "Imailisa"
+      },
+      "aliasAgrees": true
+    },
+    {
+      "accountId": 137129583,
+      "name": "Xm",
+      "teamName": "Vici Gaming",
+      "position": 2,
+      "preCutoffCachedMaps": 31,
+      "distinctAliases": [
+        "Xm"
+      ],
+      "latestEvidence": {
+        "leagueId": 19435,
+        "matchId": 8726925455,
+        "endedAt": 1773399657,
+        "rawName": "Xm",
+        "steamName": "^"
+      },
+      "aliasAgrees": true
+    },
+    {
+      "accountId": 118134220,
+      "name": "Bach",
+      "teamName": "Vici Gaming",
+      "position": 3,
+      "preCutoffCachedMaps": 40,
+      "distinctAliases": [
+        "Bach"
+      ],
+      "latestEvidence": {
+        "leagueId": 19435,
+        "matchId": 8726925455,
+        "endedAt": 1773399657,
+        "rawName": "Bach",
+        "steamName": "Bach"
+      },
+      "aliasAgrees": true
+    },
+    {
+      "accountId": 157475523,
+      "name": "XinQ",
+      "teamName": "Vici Gaming",
+      "position": 4,
+      "preCutoffCachedMaps": 12,
+      "distinctAliases": [
+        "XinQ"
+      ],
+      "latestEvidence": {
+        "leagueId": 18058,
+        "matchId": 8265596440,
+        "endedAt": 1745398819,
+        "rawName": "XinQ",
+        "steamName": "狙击鸭才是最强的"
+      },
+      "aliasAgrees": true
+    },
+    {
+      "accountId": 111114687,
+      "name": "y`",
+      "teamName": "Vici Gaming",
+      "position": 5,
+      "preCutoffCachedMaps": 54,
+      "distinctAliases": [
+        "y`"
+      ],
+      "latestEvidence": {
+        "leagueId": 19435,
+        "matchId": 8726925455,
+        "endedAt": 1773399657,
+        "rawName": "y`",
+        "steamName": "宇宙にきらめく エメラルド"
+      },
+      "aliasAgrees": true
+    },
+    {
+      "accountId": 957204049,
+      "name": "gotthejuice",
+      "teamName": "Natus Vincere",
+      "position": 1,
+      "preCutoffCachedMaps": 77,
+      "distinctAliases": [
+        "gotthejuice"
+      ],
+      "latestEvidence": {
+        "leagueId": 19435,
+        "matchId": 8724596548,
+        "endedAt": 1773234214,
+        "rawName": "gotthejuice",
+        "steamName": "realm"
+      },
+      "aliasAgrees": true
+    },
+    {
+      "accountId": 185590374,
+      "name": "Niku",
+      "teamName": "Natus Vincere",
+      "position": 2,
+      "preCutoffCachedMaps": 77,
+      "distinctAliases": [
+        "Niku"
+      ],
+      "latestEvidence": {
+        "leagueId": 19435,
+        "matchId": 8724596548,
+        "endedAt": 1773234214,
+        "rawName": "Niku",
+        "steamName": "vv"
+      },
+      "aliasAgrees": true
+    },
+    {
+      "accountId": 835864135,
+      "name": "pma",
+      "teamName": "Natus Vincere",
+      "position": 3,
+      "preCutoffCachedMaps": 77,
+      "distinctAliases": [
+        "pma"
+      ],
+      "latestEvidence": {
+        "leagueId": 19435,
+        "matchId": 8724596548,
+        "endedAt": 1773234214,
+        "rawName": "pma",
+        "steamName": "???"
+      },
+      "aliasAgrees": true
+    },
+    {
+      "accountId": 919735867,
+      "name": "daze",
+      "teamName": "Natus Vincere",
+      "position": 4,
+      "preCutoffCachedMaps": 9,
+      "distinctAliases": [
+        "daze"
+      ],
+      "latestEvidence": {
+        "leagueId": 19239,
+        "matchId": 8666473326,
+        "endedAt": 1769520944,
+        "rawName": "daze",
+        "steamName": "hungry af"
+      },
+      "aliasAgrees": true
+    },
+    {
+      "accountId": 130991304,
+      "name": "Riddys",
+      "teamName": "Natus Vincere",
+      "position": 5,
+      "preCutoffCachedMaps": 77,
+      "distinctAliases": [
+        "Riddys"
+      ],
+      "latestEvidence": {
+        "leagueId": 19435,
+        "matchId": 8724596548,
+        "endedAt": 1773234214,
+        "rawName": "Riddys",
+        "steamName": "float"
+      },
+      "aliasAgrees": true
+    },
+    {
+      "accountId": 206642367,
+      "name": "Ghost",
+      "teamName": "GamerLegion",
+      "position": 1,
+      "preCutoffCachedMaps": 23,
+      "distinctAliases": [
+        "Ghost"
+      ],
+      "latestEvidence": {
+        "leagueId": 19422,
+        "matchId": 8743236667,
+        "endedAt": 1774446219,
+        "rawName": "Ghost",
+        "steamName": "鬼"
+      },
+      "aliasAgrees": true
+    },
+    {
+      "accountId": 154974246,
+      "name": "RCY",
+      "teamName": "GamerLegion",
+      "position": 2,
+      "preCutoffCachedMaps": 59,
+      "distinctAliases": [
+        "RCY"
+      ],
+      "latestEvidence": {
+        "leagueId": 19422,
+        "matchId": 8743688613,
+        "endedAt": 1774464566,
+        "rawName": "RCY",
+        "steamName": "))"
+      },
+      "aliasAgrees": true
+    },
+    {
+      "accountId": 160119017,
+      "name": "Fayde",
+      "teamName": "GamerLegion",
+      "position": 3,
+      "preCutoffCachedMaps": 59,
+      "distinctAliases": [
+        "Fayde"
+      ],
+      "latestEvidence": {
+        "leagueId": 19422,
+        "matchId": 8743688613,
+        "endedAt": 1774464566,
+        "rawName": "Fayde",
+        "steamName": "ak b"
+      },
+      "aliasAgrees": true
+    },
+    {
+      "accountId": 90423751,
+      "name": "Bignum",
+      "teamName": "GamerLegion",
+      "position": 4,
+      "preCutoffCachedMaps": 59,
+      "distinctAliases": [
+        "Bignum"
+      ],
+      "latestEvidence": {
+        "leagueId": 19422,
+        "matchId": 8743688613,
+        "endedAt": 1774464566,
+        "rawName": "Bignum",
+        "steamName": "discovery subscription"
+      },
+      "aliasAgrees": true
+    },
+    {
+      "accountId": 191362875,
+      "name": "Speeed",
+      "teamName": "GamerLegion",
+      "position": 5,
+      "preCutoffCachedMaps": 59,
+      "distinctAliases": [
+        "Speeed"
+      ],
+      "latestEvidence": {
+        "leagueId": 19422,
+        "matchId": 8743688613,
+        "endedAt": 1774464566,
+        "rawName": "Speeed",
+        "steamName": "Speeed"
+      },
+      "aliasAgrees": true
+    },
+    {
+      "accountId": 97658618,
+      "name": "Timado",
+      "teamName": "Virtus.pro",
+      "position": 1,
+      "preCutoffCachedMaps": 49,
+      "distinctAliases": [
+        "Timado"
+      ],
+      "latestEvidence": {
+        "leagueId": 19422,
+        "matchId": 8743555498,
+        "endedAt": 1774458657,
+        "rawName": "Timado",
+        "steamName": "firestarter"
+      },
+      "aliasAgrees": true
+    },
+    {
+      "accountId": 154715080,
+      "name": "Abed",
+      "teamName": "Virtus.pro",
+      "position": 2,
+      "preCutoffCachedMaps": 33,
+      "distinctAliases": [
+        "Abed"
+      ],
+      "latestEvidence": {
+        "leagueId": 19422,
+        "matchId": 8743555498,
+        "endedAt": 1774458657,
+        "rawName": "Abed",
+        "steamName": "hamilton"
+      },
+      "aliasAgrees": true
+    },
+    {
+      "accountId": 126212866,
+      "name": "SaberLight",
+      "teamName": "Virtus.pro",
+      "position": 3,
+      "preCutoffCachedMaps": 66,
+      "distinctAliases": [
+        "Saberlight"
+      ],
+      "latestEvidence": {
+        "leagueId": 19422,
+        "matchId": 8743555498,
+        "endedAt": 1774458657,
+        "rawName": "Saberlight",
+        "steamName": "Goblin Legenda"
+      },
+      "aliasAgrees": true
+    },
+    {
+      "accountId": 241884166,
+      "name": "Hellscream",
+      "teamName": "Virtus.pro",
+      "position": 4,
+      "preCutoffCachedMaps": 49,
+      "distinctAliases": [
+        "Hellscream"
+      ],
+      "latestEvidence": {
+        "leagueId": 19422,
+        "matchId": 8743555498,
+        "endedAt": 1774458657,
+        "rawName": "Hellscream",
+        "steamName": "Hellscream"
+      },
+      "aliasAgrees": true
+    },
+    {
+      "accountId": 94155156,
+      "name": "Fly",
+      "teamName": "Virtus.pro",
+      "position": 5,
+      "preCutoffCachedMaps": 48,
+      "distinctAliases": [
+        "Fly"
+      ],
+      "latestEvidence": {
+        "leagueId": 19422,
+        "matchId": 8743555498,
+        "endedAt": 1774458657,
+        "rawName": "Fly",
+        "steamName": "⸂⸂⸜(രᴗര๑)⸝⸃⸃"
+      },
+      "aliasAgrees": true
+    },
+    {
+      "accountId": 363758022,
+      "name": "Wits",
+      "teamName": "South America Rejects",
+      "position": 1,
+      "preCutoffCachedMaps": 28,
+      "distinctAliases": [
+        "Wits"
+      ],
+      "latestEvidence": {
+        "leagueId": 19422,
+        "matchId": 8743561222,
+        "endedAt": 1774458014,
+        "rawName": "Wits",
+        "steamName": "7726"
+      },
+      "aliasAgrees": true
+    },
+    {
+      "accountId": 352545711,
+      "name": "DarkMago",
+      "teamName": "South America Rejects",
+      "position": 2,
+      "preCutoffCachedMaps": 27,
+      "distinctAliases": [
+        "DarkMago♥"
+      ],
+      "latestEvidence": {
+        "leagueId": 19422,
+        "matchId": 8743561222,
+        "endedAt": 1774458014,
+        "rawName": "DarkMago♥",
+        "steamName": "†Alessini Bananini†"
+      },
+      "aliasAgrees": false
+    },
+    {
+      "accountId": 252737052,
+      "name": "Frank",
+      "teamName": "South America Rejects",
+      "position": 3,
+      "preCutoffCachedMaps": 27,
+      "distinctAliases": [
+        "Fr△nk"
+      ],
+      "latestEvidence": {
+        "leagueId": 19422,
+        "matchId": 8743561222,
+        "endedAt": 1774458014,
+        "rawName": "Fr△nk",
+        "steamName": "^"
+      },
+      "aliasAgrees": false
+    },
+    {
+      "accountId": 157989498,
+      "name": "Scofield",
+      "teamName": "South America Rejects",
+      "position": 4,
+      "preCutoffCachedMaps": 53,
+      "distinctAliases": [
+        "Scofield"
+      ],
+      "latestEvidence": {
+        "leagueId": 19422,
+        "matchId": 8743561222,
+        "endedAt": 1774458014,
+        "rawName": "Scofield",
+        "steamName": "Scofield"
+      },
+      "aliasAgrees": true
+    },
+    {
+      "accountId": 1031547092,
+      "name": "Elmisho",
+      "teamName": "South America Rejects",
+      "position": 5,
+      "preCutoffCachedMaps": 27,
+      "distinctAliases": [
+        "Elmisho"
+      ],
+      "latestEvidence": {
+        "leagueId": 19422,
+        "matchId": 8743561222,
+        "endedAt": 1774458014,
+        "rawName": "Elmisho",
+        "steamName": "YO TAMBIEN QUIERO SER MILLONARIO"
+      },
+      "aliasAgrees": true
+    }
+  ]
+}
