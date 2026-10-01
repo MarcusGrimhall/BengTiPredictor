@@ -1,16 +1,14 @@
-> Current implementation status (2026-09-10): see
-> [STATISTICAL_AUDIT.md](docs/STATISTICAL_AUDIT.md) and
-> [EXACT_PIPELINE.md](docs/EXACT_PIPELINE.md). The notes below describe earlier
-> experiments. Claims that refresh is missing or Tormentor cannot be exact
-> are superseded. The primary path now rejects legacy fallback training.
-
 # Open questions
 
 What is not settled, written down so it is not rediscovered from scratch. Rules
 that *are* settled live in ASSUMPTIONS.md; this file is what is still open, the
 reasoning behind calls that were close, and ideas that have not been tried.
+The delivery order lives in [PLAN.md](PLAN.md), and the exact-data contract in
+[EXACT_PIPELINE.md](docs/EXACT_PIPELINE.md) and
+[STATISTICAL_AUDIT.md](docs/STATISTICAL_AUDIT.md).
 
-Last updated 2026-09-04, after auditing the reroll offer search.
+Last updated 2026-10-01, after adopting negative Deaths and Stuns and removing
+notes the 2026-09-10 audit had superseded.
 
 ---
 
@@ -52,10 +50,10 @@ properties per colour are all-only, plus two colourless quality wildcards.
 Valve's schema independently confirms that operations are delivered in buckets.
 
 **Immediate deal repeats are assumed not to occur.** You instructed the model
-on 2026-09-03 to proceed on that basis, but it is not directly captured and the
-scope still matters: block all three previously shown options, only the option
-used, or only declined options. `deal` currently has no memory and permits all
-three interpretations' forbidden repeats.
+on 2026-09-03 to proceed on that basis, but it is not directly captured. `deal`
+now takes the widest reading and excludes all three previously shown options
+(R13). The narrower readings, only the option used or only the declined ones,
+remain possible, and a captured pair of consecutive deals would settle it.
 
 **Wildcard semantics.** "Randomly increase one Quality", "increase two and reduce
 one" appear in community material only. Whether the outcome resolves before or
@@ -71,21 +69,19 @@ been captured, so that final plus sign remains an explicit assumption.
 **Replay counters settle the vague stat definitions.** Teamfight is
 `m_flTeamFightParticipation`; Tormentor participation is `m_iTormentorKills`;
 Madstones score from `m_iNeutralTokensFound`; Watchers and Lotuses are separate
-`m_iWatchersTaken` and `m_iLotusesTaken` counters. Exact overlays are present for
-TI 2026, EWC 2026 and 1win Essence II. Older matches retain calibrated API
-fallbacks, so their values remain less certain.
+`m_iWatchersTaken` and `m_iLotusesTaken` counters. The primary training path
+requires these replay values and rejects the calibrated API fallbacks; those
+remain only in legacy descriptive data. Replay coverage now spans the 2026
+events and the S8 source events that pass the exact audit.
 
-## The one mechanic we know about and do not model
+## The reroll continuation is greedy
 
-**Refreshing the three options costs one Roll Token.** There is no free decline
-that reshuffles: not using an option spends nothing and changes nothing, and the
-tutorial says explicitly that replacing the options costs a token.
-
-`playOut` in `lib/offers.ts` stops the moment nothing on the table has positive
-gain. That was written as a floor when the mechanic was unknown; it is now a
-known omission. With 30–40 tokens, paying one to see three new options is often
-correct, and every plan the simulator produces is understated because it never
-does. This is the largest single gap between the model and the game.
+Refresh is modelled: `playOut` in `lib/offers.ts` pays a token to refresh when
+no offer improves, instead of stopping. What remains (R14) is that the rollout
+continues greedily rather than seeing every random outcome before deciding.
+One-token decisions and the reduced Bellman games are exact, and
+`docs/reports/policy-benchmark.json` measures the reduced regret, but a full
+40-token policy is not certified optimal.
 
 ## Model gaps
 
@@ -101,32 +97,33 @@ used unchanged for that objective.
 as far as it repeats, measured by split-half *within* an event. The ranking
 predicts *across* months and roster changes, where transfer is lower. So the
 weights are an upper bound and the correction is smaller than it should be —
-wrong in the safe direction, but wrong. Calibrating on pre-event → event needs
-training sets for the older four Internationals, which do not exist here.
+wrong in the safe direction, but wrong. The chronological origins in
+[ORIGINS_2026_DRAFT.md](docs/ORIGINS_2026_DRAFT.md) now give pre-event → event
+pairs with exact data, so this can be calibrated once their manifests are frozen.
 
-**The web calculator now uses pre-event form.** It previously passed the target
-event's own stage rows into the Fantasy page, making it descriptive rather than
-predictive. The page now requires `training-<id>.json`; only `/information`
-continues to show what actually happened.
+**The Fantasy page is closed until a validated forecast exists.** It requires
+a `complete-exact` training bank with `modelValidated` set by the production
+gate, and shows a waiting message otherwise. The aim is to reopen it before the
+next TI. `/information` keeps showing what actually happened.
 
-**The picks land near the middle of the field.** Across five Internationals,
+**The legacy picks landed near the middle of the field.** Across five Internationals,
 group-stage form picks a playoff entry at about the 49th percentile — up from the
 44th before shrinkage. Pre-event form at TI 2026 reaches the 61st on five
 role-events. The pick captures 79% of the best possible, and the top of the field
 is narrow, so this is not as bad as it reads. But it is a long way from the
-confidence the interface projects.
+confidence the interface projected. Any replacement must beat the three simple
+baselines in `lib/historyForecast.ts` on the same origins before it is shown.
 
 **The winner's curse is uncorrected.** `valueOf` takes the maximum over a
 shortlist of noisy estimates, which is biased high, and it compounds with the
 shrinkage question above. Untouched.
 
-**Unparsed matches vanish quietly.** `extractMatch` returns null on an unparsed
-replay and the match is dropped. Right call — half the stats would be empty — but
-nothing checks the dropped set is random. Measured today it is moot:
-`matchesSkipped` is 0 across all 22 leagues, 2,540 of 2,540. The code path is
-still live and silent, so a less-parsed event would reintroduce the question
-without announcing it. **Worth a validator check that fails when the skip rate
-rises above zero.**
+**Unparsed matches vanish quietly in the legacy path.** `extractMatch` returns
+null on an unparsed replay and the match is dropped without a check that the
+dropped set is random. The exact path answers this for training: `audit-data`
+compares against the full match manifest, requires 90% per event and tests for
+concentrated missingness by team. The legacy descriptive path still lacks that
+check.
 
 **Roster-based pair selection is currently a no-op, and half-blind on old
 events.** `buildLineups` now prefers players on the team's captured roster over
@@ -164,13 +161,7 @@ is underdetermined but heavily constrained, and a solve is worth attempting.
 Retiring this would move a whole scoring feature from "reported as unknown" to
 modelled.
 
-## Two stats nobody can check
-
-**Teamfight participation** is the one derived field of sixteen, reconstructed as
-`(kills + assists) / the opposing team's total deaths`. It reproduces the field
-exactly in 102 of 120 player-games and in 13 more with a numerator one assist
-lower — 95.8% accounted for, 4.2% unexplained. It is the second most valuable
-emblem in the game and, per the persistence work, one of the least predictive.
+## One stat nobody can check
 
 **Stun duration** comes from the replay's scoreboard `m_fStuns` field, including
 negative values. A local parse reproduced OpenDota's negative Xm value exactly.
@@ -301,10 +292,11 @@ third button that locks held traits and optimises around them would cover it.
 - **Pick on the ceiling rather than the mean.** A period pays a maximum, and the
   risk slider already exposes the distribution, but the ranking optimises a
   percentile rather than the shape.
-- **Calibrate recency on several pre-event tests.** Per-map timestamps and an
-  experimental 180-day/60-day-half-life mode now exist. TI 2026 regressed on
-  all three summary measures, so enabling or tuning it from that one target
-  would be overfitting. Build comparable training sets for TI 2023–2025 first.
+- **Calibrate recency on complete roster decisions.** `compare-models` now grades
+  raw stats on 24 exact origins: everything from 120 days or a 120-day half-life
+  upward sits within about one CRPS point, so raw stats do not choose the window.
+  The deciding test is on roster decisions across the chronological origins,
+  with Wallachia S9 held out.
 - **Add madstones to the persistence table's calibration.** It is the least
   reliable red stat measured and the most assumed in extraction; those two facts
   have never been looked at together.
@@ -344,19 +336,20 @@ outlier if anyone iterates on it; never profiled.
 Kept short so none of it is reopened. Detail is in ASSUMPTIONS.md.
 
 - **Pairs average, they do not sum**, and it is the *scores* that are averaged,
-  not the stat lines. The ordering error that hid behind that cost a whole
-  emblem in the worst pair-game.
+  not the stat lines. Under the old zero floor on Deaths the order cost a whole
+  emblem in the worst pair-game; with negative Deaths every scale is linear.
+- **Teamfight is the replay's `m_flTeamFightParticipation`**, not a K/A/deaths
+  reconstruction. OpenDota matches it within 1e-5 on 98.6% of 1,470 TI rows.
 - **Bonuses add against the base score**, so tier V with an active Fractal is
   ×3.10. The other calculator's multiplicative model is wrong.
 - **A period pays the best single series.** The other calculator averages every
   match instead, which is the error this project retracted long ago.
 - **Creep Score counts denies** as well as last hits. Small — 2.5% — but it was
   simply missing.
-- **Tormentor cannot be improved.** All four public fields were tested over 2,540
-  matches; `damage` is the kill counter renamed, `damage_taken` is participation
-  of the wrong kind (supports get hit and walk away, scoring them 9.18×). The
-  kill credit in use is the least wrong. The community reference cannot arbitrate
-  either — its own companion table disagrees with it by up to 17× on this stat.
+- **Tormentor comes from the replay's `m_iTormentorKills`**, which credits every
+  participant. Of the public API fields, kill credit was the least wrong, but
+  none was exact. The community reference cannot arbitrate: its own companion
+  table disagrees with it by up to 17× on this stat.
 - **The Core skew in reroll advice is correct.** Core 49% / Mid 35% / Support 18%
   tracks banner value, which is the right shape.
 - **Support courier kills at TI 2026 are a real feature of the event**, not a
